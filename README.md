@@ -1,4 +1,4 @@
-# 🚗🅿️ Sistem Parkir Cerdas Terintegrasi IoT (SPCT IoT)
+# Sistem Parkir Cerdas Terintegrasi IoT (SPCT IoT)
 > **Green-IoT Integrated Smart Parking System with AI-Powered ALPR & Real-Time Navigation**
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -30,13 +30,13 @@ Sistem ini dikembangkan berdasarkan analisis kerangka kerja **PIECES** terhadap 
 
 ## ✨ Fitur Utama
 
-- 🔍 **AI-Powered ALPR (Automatic License Plate Recognition):** Deteksi posisi plat nomor kendaraan secara instan menggunakan **YOLOv11** dan ekstraksi teks menggunakan **OCR** di gerbang masuk dan keluar (< 3 detik).
-- 🧭 **Alokasi Slot Cerdas & Navigasi Graf (A* / Dijkstra):** Sistem memetakan area parkir sebagai struktur *Graph* (Node & Edge) untuk mengarahkan pengemudi langsung ke slot kosong terdekat via panduan visual terminal.
-- 📡 **Pemantauan Okupansi IoT Real-Time:** Sensor fisik (Ultrasonik/Inframerah) memantau status slot (`Kosong`, `Dipesan`, `Terisi`) dan mengirimkan telemetri melalui protokol **MQTT**.
-- 🚨 **Deteksi Anomali & Pencegahan Efek Domino:** Peringatan dini jika terjadi salah parkir / penyerobotan slot tanpa alokasi, dengan fitur verifikasi visual bagi petugas lapangan.
-- 💳 **Pembayaran Nirkontak (Cashless Gateway):** Integrasi pembayaran digital via E-Toll/QRIS lengkap dengan dukungan aturan *Grace Period* (Drop-Off gratis < 10 menit).
-- 🌱 **Kalkulator Reduksi Emisi CO2 (Eco-Metrics):** Menghitung estimasi emisi karbon yang berhasil dicegah berdasarkan selisih waktu pencarian parkir terpandu versus konvensional.
-- 📊 **Role-Based Command Center:**
+- **AI-Powered ALPR (Automatic License Plate Recognition):** Deteksi posisi plat nomor kendaraan secara instan menggunakan **YOLOv11** dan ekstraksi teks menggunakan **OCR** di gerbang masuk dan keluar (< 3 detik).
+- **Alokasi Slot Cerdas & Navigasi Graf (A* / Dijkstra):** Sistem memetakan area parkir sebagai struktur *Graph* (Node & Edge) untuk mengarahkan pengemudi langsung ke slot kosong terdekat via panduan visual terminal.
+- **Pemantauan Okupansi IoT Real-Time:** Sensor fisik (Ultrasonik/Inframerah) memantau status slot (`Kosong`, `Dipesan`, `Terisi`) dan mengirimkan telemetri melalui protokol **MQTT**.
+- **Deteksi Anomali & Pencegahan Efek Domino:** Peringatan dini jika terjadi salah parkir / penyerobotan slot tanpa alokasi, dengan fitur verifikasi visual bagi petugas lapangan.
+- **Pembayaran Nirkontak (Cashless Gateway):** Integrasi pembayaran digital via E-Toll/QRIS lengkap dengan dukungan aturan *Grace Period* (Drop-Off gratis < 10 menit).
+- **Kalkulator Reduksi Emisi CO2 (Eco-Metrics):** Menghitung estimasi emisi karbon yang berhasil dicegah berdasarkan selisih waktu pencarian parkir terpandu versus konvensional.
+- **Role-Based Command Center:**
   - **Manajemen:** Dashboard analitik pendapatan kotor (*Revenue Tracker*) dan metrik lingkungan hidup (*CO2 Savings*).
   - **Petugas Lapangan:** Tampilan operasional taktis, pemantauan CCTV gerbang (*Gate OCR Feed*), dan log anomali (*Anomaly Logs*).
 
