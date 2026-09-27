@@ -1,7 +1,6 @@
 # Sistem Parkir Cerdas Terintegrasi IoT (SPCT IoT)
 > **Green-IoT Integrated Smart Parking System with AI-Powered ALPR & Real-Time Navigation**
 
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Spring Boot](https://img.shields.io/badge/Backend-Java%20Spring%20Boot-brightgreen.svg?logo=springboot)](https://spring.io/projects/spring-boot)
 [![YOLOv11](https://img.shields.io/badge/AI-YOLOv11%20%2B%20OCR-orange.svg?logo=python)](https://github.com/ultralytics/ultralytics)
 [![IoT Protocol](https://img.shields.io/badge/IoT-MQTT%20%2F%20WebSocket-00BFFF.svg)](#arsitektur-sistem)
@@ -117,6 +116,7 @@ Proyek ini disusun dan dikembangkan oleh mahasiswa **Program Studi Informatika, 
 
 ---
 
-## 📄 Lisensi
+## 📄 Hak Cipta & Lisensi
 
-Proyek ini dilisensikan di bawah lisensi MIT - lihat berkas [LICENSE](LICENSE) untuk detail selengkapnya.
+© 2026 Universitas Sanata Dharma. **All Rights Reserved.**
+Proyek ini adalah karya akademik tertutup. Hak cipta dilindungi sepenuhnya oleh tim pengembang. Dilarang menyalin, mendistribusikan, atau menggunakan kode dari repositori ini untuk keperluan komersial tanpa izin eksplisit.
