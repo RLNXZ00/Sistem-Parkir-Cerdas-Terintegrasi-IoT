@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# IDEs & Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS Generated
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Datasets (Ukuran besar, tidak di-push ke Git)
+CCPD/
+Indonesian Plate Dataset/
+Indonesian Vehicle Liscense Plate Dataset/
+
+# Bobot Model / Weights > 100MB (Gunakan Git LFS atau rilis via Google Drive / Hugging Face)
+*.safetensors
+*.bin
+*.pt
+
+# Hasil Tangkapan Kamera & Logs
+hasil_tangkapan_kamera/*
+!hasil_tangkapan_kamera/.gitkeep
+screenshots/
