@@ -1,0 +1,16 @@
+Sistem yang masih kurang dari Sistem Parkir Cerdas Terintegrasi IoT (SPCT IoT)
+1. Sistem menggunakan kendali karcis digital, bukan kertas
+2. Belum memiliki algoritma khusus untuk alokasi rute denah pencarian slot parker
+3. Antisipasi jika dua kendaraan dalam Waktu yang sama masuk ke dalam basement dan sudah mendapatkan slot yang telah dipesan, namun saat parkir ternyata salah satu kendaraan keliru parkir pada slot parkir milik kendaraan satunya dan kendaraan satunya mau tidak mau mengisi slot milik kendaraan tsb. Ini jelas sangat berdampak, jika nanti salah satu kendaraan keluar, sensor akan update status menjadi kosong untuk kendaraan dengan id parkir pada slot tsb. Namun saat sampai di gerbang keluar, akan terjadi error dimana kendaraan yang keluar adalah kendaraan yang mana id parkirnya masih memiliki status slot masih terisi (karena terisi oleh kendaraan yang keliru tadi), namun kendaraan tsb sudah keluar dari slot yang keliru dan dideteksi oleh kamera ALPR dalam mencocokkan plat dengan id parkirnya tsb. Karena status slotnya demikian sehingga kendaraan ini gabisa keluar, yang tentunya ini akan berdampak pada kendaraan yang keliru tsb saat kendaraan tsb juga nantinya jika keluar (Dpaat memberi efek domino). Sehingga dibutuhkan validasi tambahan dan handle error.
+4. Sistem Paymenet gateway saat mau pengendara melakukan pembayaran, jika terjadi koneksi down pada server atau internet RS atau Mall, system paling tidak memiliki Wifi Bawaan atau modul system tertanam yang memiliki data seluler seperti MiFi-GSP.
+5. Rumus Reduksi Emisi CO2 hasil dari keunggulan system SPCT IoT harus didasari pada rumus standar pengeluaran CO2 tiap kendaraan per detik, guna kalkulasi Co2 yang dikeluarkan hingga kendaraan tiba di slot (Rumus kendaraan tiba - kendaraan masuk dikalikan nilai standar CO2 kendaraan per detik). Guna visualisasi dan laporan analitik Reduksi CO2.
+6. Data yang disimpan dalam historis perlu direset tiap bulan. Namun ini mungkin ini masih belum memjawab Open Issues dari PK-UC010.
+7. Tabel Database belum tentu atributnya sesuai dengan atribut yang digunakan pada GUI. Perlu beberapa pendekatan atau metode dalam membuat relasi atau penyesuaian lainnya.
+8. Database masih belum memiliki bagaimana relasi antar table dan mekanismenya di balik Sistem ini, sehingga penyesuaian back-endnya masih abu-abu.
+9. Diagram MVC perlu divalidasi Kembali apakah sejalan dengan system atau ada entitas atau lainnya yang kurang atau tidak diperlukan.
+10. 
+
+Tantangan lainnya:
+1. Jika manusia seklias berdiri lama dekat slot yang kosong (entah pemilik atau penumpang dari mobli slot sebelahnya) lalu kemudian bergerak lagi, sensor bisa error sesaat karena mendeteksi adanya objek yang mengisi slot yang mana system hanya tahu jika terisi berarti itu mobil atau anomaly. Sehingga mungkin kedepannya system perlu dibuat mampu mendeteksi/melihat yang terisi mobil atau manusia.
+2. Sistem perlu dirancang strukturnya untuk Front-End maupun Back-End nya dengan metode Micrservices.
+ 
