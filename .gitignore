@@ -1,0 +1,9 @@
+# Abaikan folder rancangan, dokumen internal, dan eksplorasi lokal
+/alpr/
+/Rekayasa Perangkat Lunak/
+/Spesifikasi Sistem Parkir Cerdas/
+/Respon Antigravity/
+
+# Abaikan file sistem OS
+.DS_Store
+Thumbs.db
