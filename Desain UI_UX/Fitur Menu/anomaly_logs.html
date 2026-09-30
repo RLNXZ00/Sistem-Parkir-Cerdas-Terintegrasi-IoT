@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Anomaly Logs - IoT PARKING OPS</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "warning-reserved": "#FFD700",
+                "surface-container-highest": "#30363a",
+                "on-secondary": "#00391d",
+                "on-tertiary": "#492900",
+                "text-high-contrast": "#FFFFFF",
+                "outline-variant": "#3d4850",
+                "on-primary-fixed-variant": "#004c69",
+                "error-container": "#93000a",
+                "slot-empty": "#333333",
+                "text-muted": "#9E9E9E",
+                "primary-fixed-dim": "#7ad0ff",
+                "secondary-container": "#00703f",
+                "surface": "#0e1418",
+                "primary": "#8fd6ff",
+                "bg-primary": "#121212",
+                "eco-success": "#2E8B57",
+                "on-tertiary-fixed-variant": "#693c00",
+                "on-secondary-fixed-variant": "#00522d",
+                "on-primary": "#003549",
+                "background": "#0e1418",
+                "alert-anomaly": "#FF4500",
+                "outline": "#87929b",
+                "tertiary": "#ffc184",
+                "on-error": "#690005",
+                "surface-container-low": "#161c20",
+                "tertiary-fixed": "#ffdcbd",
+                "error": "#ffb4ab",
+                "bg-surface": "#1E1E1E",
+                "on-tertiary-fixed": "#2c1600",
+                "tertiary-container": "#fb9c24",
+                "secondary-fixed": "#9af6b8",
+                "on-secondary-container": "#94f0b2",
+                "on-primary-container": "#004a65",
+                "inverse-on-surface": "#2b3135",
+                "on-tertiary-container": "#653a00",
+                "secondary": "#7ed99e",
+                "surface-dim": "#0e1418",
+                "surface-variant": "#30363a",
+                "primary-container": "#00bfff",
+                "tertiary-fixed-dim": "#ffb86e",
+                "secondary-fixed-dim": "#7ed99e",
+                "surface-container-high": "#252b2f",
+                "on-primary-fixed": "#001e2c",
+                "surface-container-lowest": "#090f13",
+                "surface-bright": "#343a3e",
+                "on-secondary-fixed": "#00210f",
+                "inverse-primary": "#00668a",
+                "surface-tint": "#7ad0ff",
+                "primary-fixed": "#c3e8ff",
+                "on-error-container": "#ffdad6",
+                "system-info": "#00BFFF",
+                "on-background": "#dee3e8",
+                "on-surface": "#dee3e8",
+                "inverse-surface": "#dee3e8",
+                "surface-container": "#1a2024",
+                "on-surface-variant": "#bcc8d1"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+        },
+        "spacing": {
+                "gutter": "16px",
+                "card-padding": "20px",
+                "container-margin": "24px",
+                "unit": "4px"
+        },
+        "fontFamily": {
+                "terminal-status": [
+                        "Inter"
+                ],
+                "tech-mono": [
+                        "Space Grotesk"
+                ],
+                "display-lg": [
+                        "Inter"
+                ],
+                "headline-md": [
+                        "Inter"
+                ],
+                "body-base": [
+                        "Inter"
+                ]
+        },
+        "fontSize": {
+                "terminal-status": [
+                        "32px",
+                        {
+                                "lineHeight": "1.1",
+                                "fontWeight": "800"
+                        }
+                ],
+                "tech-mono": [
+                        "18px",
+                        {
+                                "lineHeight": "1.2",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "500"
+                        }
+                ],
+                "display-lg": [
+                        "48px",
+                        {
+                                "lineHeight": "1.2",
+                                "fontWeight": "700"
+                        }
+                ],
+                "headline-md": [
+                        "24px",
+                        {
+                                "lineHeight": "1.4",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-base": [
+                        "16px",
+                        {
+                                "lineHeight": "1.6",
+                                "fontWeight": "400"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .fill-icon {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        body { background-color: #121212; color: #dee3e8; }
+        .glass-panel { background: rgba(30, 30, 30, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .fira-code { font-family: 'Space Grotesk', monospace; } /* Substituting Space Grotesk per token */
+        .pulse-red { animation: pulse-red 2s infinite; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 69, 0, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(255, 69, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 69, 0, 0); } }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #30363a;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3d4850;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-base text-body-base h-screen overflow-hidden flex">
+<!-- SideNavBar (Shared Component) -->
+<nav class="bg-surface dark:bg-surface w-20 lg:w-64 h-screen fixed left-0 top-0 border-r border-surface-container-low flex flex-col py-6 z-20">
+<div class="px-4 lg:px-6 mb-8 flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary">admin_panel_settings</span>
+</div>
+<div class="hidden lg:block overflow-hidden">
+<h1 class="font-headline-md text-[16px] leading-tight text-primary truncate">Smart Parking</h1>
+<p class="font-tech-mono text-[12px] text-text-muted truncate">Green Earth System</p>
+</div>
+</div>
+<ul class="flex flex-col flex-1 gap-2 px-2 lg:px-4">
+<li>
+<a class="flex items-center gap-4 px-3 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="hidden lg:block whitespace-nowrap">Live Dashboard</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-4 px-3 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="videocam">videocam</span>
+<span class="hidden lg:block whitespace-nowrap">Gate OCR Feed</span>
+</a>
+</li>
+<!-- Active Tab -->
+<li>
+<a class="flex items-center gap-4 px-3 py-3 rounded-lg text-primary font-bold border-r-4 border-primary bg-secondary-container/10 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined fill-icon" data-icon="report_problem">report_problem</span>
+<span class="hidden lg:block whitespace-nowrap">Anomaly Logs</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-4 px-3 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="bar_chart">bar_chart</span>
+<span class="hidden lg:block whitespace-nowrap">Reports</span>
+</a>
+</li>
+</ul>
+<ul class="flex flex-col gap-2 px-2 lg:px-4 mt-auto">
+<li>
+<a class="flex items-center gap-4 px-3 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="hidden lg:block whitespace-nowrap">Settings</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-4 px-3 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="hidden lg:block whitespace-nowrap">Logout</span>
+</a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 ml-20 lg:ml-64 flex flex-col h-screen relative bg-bg-primary">
+<!-- TopAppBar (Shared Component) -->
+<header class="bg-surface dark:bg-surface border-b border-surface-container flex justify-between items-center h-16 px-container-margin w-full fixed top-0 z-10 w-[calc(100%-5rem)] lg:w-[calc(100%-16rem)] glass-panel">
+<div class="flex items-center gap-4">
+<nav class="flex text-on-surface-variant font-tech-mono text-tech-mono text-sm">
+<a class="hover:text-primary transition-colors cursor-pointer active:scale-95" href="#">Dashboard</a>
+<span class="mx-2 opacity-50">/</span>
+<span class="text-primary font-semibold">Anomaly Logs</span>
+</nav>
+</div>
+<div class="flex items-center gap-6">
+<!-- System Status Indicator -->
+<div class="hidden md:flex items-center gap-2 bg-surface-container-high px-3 py-1.5 rounded-full border border-outline-variant">
+<div class="w-2.5 h-2.5 rounded-full bg-eco-success shadow-[0_0_8px_rgba(46,139,87,0.8)]"></div>
+<span class="font-tech-mono text-[12px] text-on-surface">IoT Connected</span>
+</div>
+<!-- Actions -->
+<div class="flex items-center gap-3">
+<button class="text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:scale-95 w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-high">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:scale-95 w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-high">
+<span class="material-symbols-outlined" data-icon="wifi">wifi</span>
+</button>
+<button class="text-eco-success hover:text-primary transition-colors cursor-pointer active:scale-95 w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-high">
+<span class="material-symbols-outlined" data-icon="eco">eco</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col overflow-hidden mt-16 relative">
+<!-- Header / Search Filter Bar -->
+<div class="h-20 px-container-margin flex items-center justify-between glass-panel shrink-0 border-b border-surface-container">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Live Alert List</h2>
+</div>
+<div class="flex items-center space-x-4">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="bg-surface-container border border-outline-variant rounded pl-10 pr-4 py-2 text-on-surface focus:outline-none focus:border-secondary w-64 text-sm font-tech-mono" placeholder="Filter by Slot ID..." type="text"/>
+</div>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-on-surface-variant">schedule</span>
+<select class="bg-surface-container border border-outline-variant rounded pl-10 pr-8 py-2 text-on-surface focus:outline-none focus:border-secondary text-sm appearance-none">
+<option>Last 24 Hours</option>
+<option>Last 7 Days</option>
+<option>All Time</option>
+</select>
+</div>
+</div>
+</div>
+<!-- Split Layout: List & Details -->
+<div class="flex-1 flex overflow-hidden">
+<!-- Logs List (Left Panel) -->
+<div class="w-2/3 h-full overflow-y-auto p-container-margin pr-2">
+<div class="space-y-unit flex flex-col gap-4">
+<!-- Active Anomaly Item (Selected) -->
+<div class="bg-surface border border-alert-anomaly rounded p-4 flex items-center cursor-pointer relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-alert-anomaly"></div>
+<div class="w-16 h-16 rounded bg-surface-container-highest flex items-center justify-center mr-6 shrink-0 border border-alert-anomaly pulse-red">
+<span class="material-symbols-outlined text-alert-anomaly text-3xl" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between mb-1">
+<span class="fira-code text-primary font-bold text-lg tracking-wider">SLOT B1-12</span>
+<span class="text-sm text-text-muted">14:02:45 / TODAY</span>
+</div>
+<div class="flex items-center justify-between">
+<h3 class="font-headline-md text-lg text-on-surface">Salah Parkir</h3>
+<span class="px-3 py-1 bg-[rgba(255,69,0,0.1)] text-alert-anomaly border border-alert-anomaly rounded text-xs font-bold uppercase tracking-widest">Active</span>
+</div>
+<p class="text-sm text-on-surface-variant mt-2">Vehicle footprint exceeds designated slot boundaries by 24%.</p>
+</div>
+</div>
+<!-- Active Anomaly Item -->
+<div class="glass-panel rounded p-4 flex items-center cursor-pointer hover:bg-surface-container transition-colors border border-outline-variant border-opacity-30 border-l-alert-anomaly border-l-4">
+<div class="w-16 h-16 rounded bg-surface-container-highest flex items-center justify-center mr-6 shrink-0 border border-alert-anomaly border-opacity-50">
+<span class="material-symbols-outlined text-alert-anomaly text-3xl" style="font-variation-settings: 'FILL' 1;">sensors_off</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between mb-1">
+<span class="fira-code text-primary font-bold text-lg tracking-wider">NODE-A4</span>
+<span class="text-sm text-text-muted">13:45:11 / TODAY</span>
+</div>
+<div class="flex items-center justify-between">
+<h3 class="font-headline-md text-lg text-on-surface">Obstruksi Sensor</h3>
+<span class="px-3 py-1 bg-[rgba(255,69,0,0.1)] text-alert-anomaly border border-alert-anomaly rounded text-xs font-bold uppercase tracking-widest">Active</span>
+</div>
+<p class="text-sm text-on-surface-variant mt-2">Ultrasonic sensor A4 reports persistent obstruction without confirmed vehicle mass.</p>
+</div>
+</div>
+<!-- Resolved Anomaly Item -->
+<div class="glass-panel rounded p-4 flex items-center cursor-pointer hover:bg-surface-container transition-colors border border-outline-variant border-opacity-30 border-l-eco-success border-l-4 opacity-75">
+<div class="w-16 h-16 rounded bg-surface-container-highest flex items-center justify-center mr-6 shrink-0 border border-eco-success border-opacity-50">
+<span class="material-symbols-outlined text-eco-success text-3xl" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between mb-1">
+<span class="fira-code text-primary font-bold text-lg tracking-wider">SLOT C2-05</span>
+<span class="text-sm text-text-muted">09:12:30 / TODAY</span>
+</div>
+<div class="flex items-center justify-between">
+<h3 class="font-headline-md text-lg text-on-surface line-through decoration-on-surface-variant">Salah Parkir</h3>
+<span class="px-3 py-1 bg-[rgba(46,139,87,0.1)] text-eco-success border border-eco-success rounded text-xs font-bold uppercase tracking-widest">Resolved</span>
+</div>
+<p class="text-sm text-on-surface-variant mt-2">Vehicle repositioned. Slot cleared.</p>
+</div>
+</div>
+<!-- Resolved Anomaly Item -->
+<div class="glass-panel rounded p-4 flex items-center cursor-pointer hover:bg-surface-container transition-colors border border-outline-variant border-opacity-30 border-l-eco-success border-l-4 opacity-75">
+<div class="w-16 h-16 rounded bg-surface-container-highest flex items-center justify-center mr-6 shrink-0 border border-eco-success border-opacity-50">
+<span class="material-symbols-outlined text-eco-success text-3xl" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between mb-1">
+<span class="fira-code text-primary font-bold text-lg tracking-wider">NODE-F1</span>
+<span class="text-sm text-text-muted">08:05:00 / TODAY</span>
+</div>
+<div class="flex items-center justify-between">
+<h3 class="font-headline-md text-lg text-on-surface line-through decoration-on-surface-variant">Obstruksi Sensor</h3>
+<span class="px-3 py-1 bg-[rgba(46,139,87,0.1)] text-eco-success border border-eco-success rounded text-xs font-bold uppercase tracking-widest">Resolved</span>
+</div>
+<p class="text-sm text-on-surface-variant mt-2">False positive dismissed by Operator.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Center / Detail View (Right Panel) -->
+<div class="w-1/3 bg-surface-container-low border-l border-outline-variant h-full p-container-margin overflow-y-auto flex flex-col">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-headline-md text-xl text-on-surface">Action Center</h3>
+<span class="material-symbols-outlined text-text-muted cursor-pointer hover:text-on-surface">close</span>
+</div>
+<!-- Snapshot Image -->
+<div class="w-full h-48 bg-surface border border-outline-variant rounded mb-6 relative overflow-hidden flex items-center justify-center">
+<div class="absolute top-2 left-2 px-2 py-1 bg-surface-dim rounded text-xs font-tech-mono text-system-info z-10 flex items-center">
+<span class="material-symbols-outlined text-sm mr-1">videocam</span> CAM-B1-NORTH
+                    </div>
+<!-- Placeholder for OCR/Camera Feed -->
+<div class="absolute inset-0 bg-cover bg-center opacity-40" data-alt="A gritty, low-light security camera feed of an indoor concrete parking garage basement. The scene is illuminated by harsh, pale artificial overhead lights casting deep shadows, aligning with a dark-tech aesthetic. A modern vehicle is visibly parked across two designated rectangular parking slots, breaching the painted lines. Monospaced technical telemetry data overlays the corners of the frame." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBLsLvMygqQxPD4B9TpBHw7nap-3_Mt5xAloGTcKM_UqhorRHEogkm9lEHLQexSUTtEySkw8aTqHAsIv_lQQ86pweK9LYNHB0bExE-54ypKURj9x0MvYbGMB5Mv2E6EVpVPaM_7QYFRf3b0-kzgSCQSh3iPWLxGdRy21lg8iu2XOtcIUvYEl3x-2PE32JGZ1Ax59_WALFBDRcrgLyAyiN-UZsuvXmcVdVKy_R1veLNBKkvwBHPdMrIBuYnx0kMnJ9AnyP5qX1dZMKaU');"></div>
+<!-- Bounding box overlay for error -->
+<div class="absolute border-2 border-alert-anomaly border-dashed w-3/4 h-3/4 z-10">
+<div class="absolute -bottom-6 left-0 bg-alert-anomaly text-white text-xs px-1 font-tech-mono">ERROR ZONE</div>
+</div>
+</div>
+<!-- Telemetry Data -->
+<div class="bg-surface rounded border border-outline-variant p-4 mb-6">
+<h4 class="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-4 border-b border-outline-variant pb-2">Telemetry Readout</h4>
+<div class="space-y-3">
+<div class="flex justify-between items-center">
+<span class="text-text-muted text-sm">Target ID</span>
+<span class="fira-code text-primary">SLOT B1-12</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-text-muted text-sm">Anomaly Class</span>
+<span class="text-alert-anomaly font-semibold">Salah Parkir</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-text-muted text-sm">First Detected</span>
+<span class="fira-code text-on-surface">14:02:45.331</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-text-muted text-sm">Duration</span>
+<span class="fira-code text-on-surface">00:15:22</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-text-muted text-sm">Confidence</span>
+<span class="fira-code text-secondary">98.4%</span>
+</div>
+</div>
+</div>
+<div class="mt-auto space-y-3 pt-6 border-t border-outline-variant">
+<button class="w-full py-4 bg-alert-anomaly text-white font-bold rounded flex items-center justify-center hover:opacity-90 transition-opacity text-lg tracking-wide shadow-[0_0_15px_rgba(255,69,0,0.3)]">
+<span class="material-symbols-outlined mr-2">gavel</span>
+                        ACKNOWLEDGE
+                    </button>
+<button class="w-full py-3 bg-surface border border-outline-variant text-on-surface-variant font-medium rounded flex items-center justify-center hover:bg-surface-container hover:text-on-surface transition-all">
+<span class="material-symbols-outlined mr-2">block</span>
+                        Dismiss / False Positive
+                    </button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
