@@ -1,0 +1,162 @@
+<!DOCTYPE html><html class="dark" lang="id"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Visitor Terminal - Idle</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;family=Space+Grotesk:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error-container": "#ffdad6",
+                        "error": "#ffb4ab",
+                        "secondary-fixed-dim": "#7ed99e",
+                        "text-high-contrast": "#FFFFFF",
+                        "tertiary": "#ffc184",
+                        "on-primary-fixed": "#001e2c",
+                        "background": "#0e1418",
+                        "on-error": "#690005",
+                        "outline": "#87929b",
+                        "inverse-on-surface": "#2b3135",
+                        "tertiary-container": "#fb9c24",
+                        "inverse-surface": "#dee3e8",
+                        "bg-primary": "#121212",
+                        "surface-tint": "#7ad0ff",
+                        "inverse-primary": "#00668a",
+                        "secondary": "#7ed99e",
+                        "bg-surface": "#1E1E1E",
+                        "tertiary-fixed-dim": "#ffb86e",
+                        "surface-container-low": "#161c20",
+                        "primary-container": "#00bfff",
+                        "on-secondary-fixed": "#00210f",
+                        "on-secondary": "#00391d",
+                        "on-primary-fixed-variant": "#004c69",
+                        "slot-empty": "#333333",
+                        "on-surface-variant": "#bcc8d1",
+                        "system-info": "#00BFFF",
+                        "warning-reserved": "#FFD700",
+                        "surface-variant": "#30363a",
+                        "on-primary-container": "#004a65",
+                        "on-tertiary-fixed": "#2c1600",
+                        "on-tertiary": "#492900",
+                        "secondary-container": "#00703f",
+                        "surface-bright": "#343a3e",
+                        "on-secondary-fixed-variant": "#00522d",
+                        "text-muted": "#9E9E9E",
+                        "outline-variant": "#3d4850",
+                        "surface": "#0e1418",
+                        "on-background": "#dee3e8",
+                        "alert-anomaly": "#FF4500",
+                        "surface-container": "#1a2024",
+                        "primary-fixed": "#c3e8ff",
+                        "on-tertiary-fixed-variant": "#693c00",
+                        "tertiary-fixed": "#ffdcbd",
+                        "on-tertiary-container": "#653a00",
+                        "on-primary": "#003549",
+                        "surface-dim": "#0e1418",
+                        "primary": "#8fd6ff",
+                        "secondary-fixed": "#9af6b8",
+                        "error-container": "#93000a",
+                        "surface-container-highest": "#30363a",
+                        "primary-fixed-dim": "#7ad0ff",
+                        "surface-container-high": "#252b2f",
+                        "on-surface": "#dee3e8",
+                        "on-secondary-container": "#94f0b2",
+                        "eco-success": "#2E8B57",
+                        "surface-container-lowest": "#090f13"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "gutter": "16px",
+                        "card-padding": "20px",
+                        "container-margin": "24px"
+                    },
+                    "fontFamily": {
+                        "tech-mono": ["Space Grotesk"],
+                        "body-base": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "terminal-status": ["Inter"],
+                        "display-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "tech-mono": ["18px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "body-base": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "terminal-status": ["32px", { "lineHeight": "1.1", "fontWeight": "800" }],
+                        "display-lg": ["48px", { "lineHeight": "1.2", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-bg-primary min-h-screen flex flex-col items-center justify-center relative overflow-hidden text-text-high-contrast selection:bg-primary-container selection:text-on-primary-container">
+<!-- Top IoT Status Bar -->
+<header class="absolute top-0 left-0 w-full px-container-margin py-gutter flex justify-between items-start z-10">
+<div class="flex items-center gap-3 bg-surface-container/80 backdrop-blur-md px-4 py-2 rounded-full border border-surface-variant">
+<span class="w-3 h-3 rounded-full bg-secondary shadow-[0_0_8px_rgba(126,217,158,0.6)]"></span>
+<span class="font-tech-mono text-tech-mono text-secondary uppercase text-[14px]">System Ready</span>
+</div>
+<div class="flex items-center gap-2 text-text-muted font-tech-mono text-tech-mono text-[14px] bg-surface-container/50 px-3 py-1 rounded-full">
+<span class="material-symbols-outlined text-[18px]">videocam</span>
+<span>PG_005_LIVE</span>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex flex-col items-center justify-center w-full max-w-lg mx-auto px-container-margin z-10 relative">
+<!-- Static Scanner Reticle UI -->
+<div class="relative w-full max-w-[320px] aspect-[16/9] border-2 border-surface-variant rounded-xl bg-surface/30 backdrop-blur-sm mb-12 flex items-center justify-center shadow-lg">
+<!-- Reticle Target Corners -->
+<div class="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-system-info rounded-tl-xl opacity-80"></div>
+<div class="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-system-info rounded-tr-xl opacity-80"></div>
+<div class="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-system-info rounded-bl-xl opacity-80"></div>
+<div class="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-system-info rounded-br-xl opacity-80"></div>
+<!-- Static Scan Line Overlay -->
+<div class="absolute top-1/3 left-0 w-full h-[2px] bg-system-info shadow-[0_0_15px_rgba(0,191,255,0.9)]"></div>
+<!-- Subtle Gradient Fill -->
+<div class="absolute inset-0 bg-gradient-to-b from-system-info/5 via-transparent to-transparent rounded-xl"></div>
+<!-- Center Icon Focus -->
+<span class="material-symbols-outlined text-[64px] text-system-info/30" style="font-variation-settings: 'FILL' 1;">directions_car</span>
+</div>
+<!-- Typography Display -->
+<div class="text-center flex flex-col gap-6">
+<h1 class="font-display-lg text-display-lg text-text-high-contrast tracking-tight drop-shadow-md">
+                SILAKAN MAJU
+            </h1>
+<div class="inline-flex items-center justify-center gap-3 bg-surface-container-high/80 px-6 py-3 rounded-full border border-surface-variant mx-auto">
+<span class="material-symbols-outlined text-system-info">radar</span>
+<p class="font-headline-md text-headline-md text-system-info">
+                    Scanning Vehicle...
+                </p>
+</div>
+</div>
+</main>
+<!-- Bottom Tech Branding -->
+<footer class="absolute bottom-0 left-0 w-full pb-container-margin px-container-margin flex justify-center items-center z-10">
+<div class="flex items-center gap-4 border-t border-surface-variant pt-4 w-full max-w-md justify-center">
+<span class="font-tech-mono text-tech-mono text-text-muted text-[12px] uppercase tracking-widest">Powered by PARK-TECH</span>
+</div>
+</footer>
+</body></html>
