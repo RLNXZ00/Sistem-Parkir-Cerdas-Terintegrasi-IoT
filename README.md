@@ -2,7 +2,7 @@
 
 # Sistem Parkir Cerdas Terintegrasi IoT (SPCT IoT)
 
-> **Green-IoT Integrated Smart Parking System with AI-Powered ALPR & Real-Time Navigation**
+**Green-IoT Integrated Smart Parking System with AI-Powered ALPR & Real-Time Navigation**
 
 [![Spring Boot](https://img.shields.io/badge/Backend-Java%20Spring%20Boot-brightgreen.svg?logo=springboot)](https://spring.io/projects/spring-boot)
 [![YOLOv11](https://img.shields.io/badge/AI-YOLOv11%20%2B%20OCR-orange.svg?logo=python)](https://github.com/ultralytics/ultralytics)
