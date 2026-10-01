@@ -3,6 +3,16 @@
 /Rekayasa Perangkat Lunak/
 /Spesifikasi Sistem Parkir Cerdas/
 /Respon Antigravity/
+/Desain UI_UX/
+Evaluasi SPCT IoT.txt
+*.pdf
+
+# File modul dan referensi kode sebelumnya
+/School_Reminder/
+/Modul_8/
+/Modul_9/
+/Modul_12/
+README.md
 
 # Abaikan file sistem OS
 .DS_Store
