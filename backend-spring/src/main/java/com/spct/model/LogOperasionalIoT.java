@@ -66,9 +66,19 @@ public class LogOperasionalIoT // Kelas model untuk mencatat semua pergerakan da
     // Getter & Setter (gaya penulisan Anda)
     // =====================================================================
 
+    public void setIdLog(Long idLog) // Deklarasi method setter untuk idLog
+    {
+        this.idLog = idLog; // Mengubah nilai atribut idLog
+    }
+
     public Long getIdLog() // Deklarasi method getter untuk idLog
     {
         return idLog; // Mengembalikan nilai atribut idLog
+    }
+
+    public void setWaktuKejadian(LocalDateTime waktuKejadian) // Deklarasi method setter untuk waktuKejadian
+    {
+        this.waktuKejadian = waktuKejadian; // Mengubah nilai atribut waktuKejadian
     }
 
     public LocalDateTime getWaktuKejadian() // Deklarasi method getter untuk waktuKejadian
@@ -76,9 +86,19 @@ public class LogOperasionalIoT // Kelas model untuk mencatat semua pergerakan da
         return waktuKejadian; // Mengembalikan nilai atribut waktuKejadian
     }
 
+    public void setJenisKejadian(JenisKejadian jenisKejadian) // Deklarasi method setter untuk jenisKejadian
+    {
+        this.jenisKejadian = jenisKejadian; // Mengubah nilai atribut jenisKejadian
+    }
+
     public JenisKejadian getJenisKejadian() // Deklarasi method getter untuk jenisKejadian
     {
         return jenisKejadian; // Mengembalikan nilai atribut jenisKejadian
+    }
+
+    public void setTingkatKeparahan(TingkatKeparahan tingkatKeparahan) // Deklarasi method setter untuk tingkatKeparahan
+    {
+        this.tingkatKeparahan = tingkatKeparahan; // Mengubah nilai atribut tingkatKeparahan
     }
 
     public TingkatKeparahan getTingkatKeparahan() // Deklarasi method getter untuk tingkatKeparahan
@@ -86,19 +106,29 @@ public class LogOperasionalIoT // Kelas model untuk mencatat semua pergerakan da
         return tingkatKeparahan; // Mengembalikan nilai atribut tingkatKeparahan
     }
 
+    public void setStatusResolusi(StatusResolusi statusResolusi) // Deklarasi method setter untuk statusResolusi
+    {
+        this.statusResolusi = statusResolusi; // Mengubah status resolusi
+    }
+
     public StatusResolusi getStatusResolusi() // Deklarasi method getter untuk statusResolusi
     {
         return statusResolusi; // Mengembalikan nilai atribut statusResolusi
     }
 
-    public void setStatusResolusi(StatusResolusi statusResolusi) // Deklarasi method setter untuk statusResolusi
+    public void setCatatanDetail(String catatanDetail) // Deklarasi method setter untuk catatanDetail
     {
-        this.statusResolusi = statusResolusi; // Mengubah status resolusi (dipanggil saat petugas mengkonfirmasi penanganan)
+        this.catatanDetail = catatanDetail; // Mengubah nilai atribut catatanDetail
     }
 
     public String getCatatanDetail() // Deklarasi method getter untuk catatanDetail
     {
         return catatanDetail; // Mengembalikan nilai atribut catatanDetail
+    }
+
+    public void setSlotTerkait(SlotParkir slotTerkait) // Deklarasi method setter untuk slotTerkait
+    {
+        this.slotTerkait = slotTerkait; // Mengubah relasi objek SlotParkir
     }
 
     public SlotParkir getSlotTerkait() // Deklarasi method getter untuk slotTerkait
