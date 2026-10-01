@@ -1,34 +1,86 @@
 package com.spct.model;
 
-/**
- * ENTITAS: DataKendaraan
- * Merepresentasikan tabel 'data_kendaraan' di Database Relasional.
- * Merupakan basis dari seluruh operasional sistem.
- * 
- * PSEUDOCODE / STRUKTUR ATRIBUT:
- * 
- * Tipe Tabel: Master Data
- * 
- * 1. id_kendaraan (Primary Key)
- *    - Tipe: String / UUID / Long (Auto-increment)
- *    - Fungsi: Identitas unik referensi antar tabel.
- * 
- * 2. plat_nomor (Unique)
- *    - Tipe: String (Contoh: "AB1234XY")
- *    - Fungsi: Untuk pencocokan OCR YOLO di gerbang keluar dan masuk.
- * 
- * 3. jenis_kendaraan
- *    - Tipe: Enum (MOBIL, MOTOR)
- *    - Fungsi: Penentu dimensi ukuran slot parkir yang dialokasikan dan tarif awal.
- * 
- * 4. waktu_registrasi_pertama
- *    - Tipe: Timestamp (DateTime)
- *    - Fungsi: Menyimpan jejak rekam sejak kapan sistem mengenali kendaraan ini.
- * 
- * RELASI ERD:
- * - One-to-Many ke tabel TransaksiParkir (Satu kendaraan bisa parkir berkali-kali).
- * - One-to-One ke tabel SlotParkir (Saat kendaraan sedang berada di dalam gedung).
- */
-public class DataKendaraan {
-    // Akan diisi anotas @Entity, @Id, @Column dari JPA
+import jakarta.persistence.*;
+import java.time.LocalDateTime; // Mengimpor kelas LocalDateTime untuk menyimpan waktu registrasi pertama
+
+// Deklarasi Enum JenisKendaraan: merepresentasikan tipe kendaraan yang masuk ke sistem
+enum JenisKendaraan
+{
+    MOBIL, // Kendaraan roda empat
+    MOTOR  // Kendaraan roda dua
+}
+
+// Deklarasi Entity: merepresentasikan tabel 'data_kendaraan' di Database Relasional
+// Setara dengan kelas Proyek.java / Tugas.java Anda namun terhubung ke database via JPA
+@Entity
+@Table(name = "data_kendaraan") // Mendefinisikan nama tabel di database
+public class DataKendaraan // Kelas model untuk menyimpan data identitas setiap kendaraan yang pernah terdaftar
+{
+    // =====================================================================
+    // Deklarasi Atribut: Kolom-kolom tabel 'data_kendaraan'
+    // =====================================================================
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-increment oleh database
+    @Column(name = "id_kendaraan")
+    private Long idKendaraan; // ID unik auto-increment sebagai primary key (setara kodeEvent di Reminder.java Anda)
+
+    @Column(name = "plat_nomor", nullable = false, unique = true, length = 15)
+    private String platNomor; // Nomor plat kendaraan (misal: "AB1234XY") - harus unik untuk pencocokan OCR YOLO
+
+    @Enumerated(EnumType.STRING) // Menyimpan nama Enum sebagai String di database (bukan angka index)
+    @Column(name = "jenis_kendaraan", nullable = false)
+    private JenisKendaraan jenisKendaraan; // Tipe kendaraan: MOBIL atau MOTOR (menentukan slot yang dialokasikan)
+
+    @Column(name = "waktu_registrasi_pertama", nullable = false)
+    private LocalDateTime waktuRegistrasiPertama; // Timestamp pertama kali kendaraan ini dikenali oleh sistem
+
+
+    // =====================================================================
+    // Konstruktor LENGKAP untuk CRUD/Database (gaya penulisan Anda)
+    // =====================================================================
+    public DataKendaraan(String platNomor, JenisKendaraan jenisKendaraan)
+    {
+        this.platNomor = platNomor;                                     // Menginisialisasi atribut platNomor
+        this.jenisKendaraan = jenisKendaraan;                           // Menginisialisasi atribut jenisKendaraan
+        this.waktuRegistrasiPertama = LocalDateTime.now();              // Inisialisasi waktu registrasi dengan waktu sekarang
+    }
+
+    // Konstruktor kosong (wajib ada untuk JPA/Hibernate agar bisa membuat objek dari data database)
+    public DataKendaraan() {}
+
+
+    // =====================================================================
+    // Getter & Setter (gaya penulisan Anda)
+    // =====================================================================
+
+    public Long getIdKendaraan() // Deklarasi method getter untuk idKendaraan
+    {
+        return idKendaraan; // Mengembalikan nilai atribut idKendaraan
+    }
+
+    public String getPlatNomor() // Deklarasi method getter untuk platNomor
+    {
+        return platNomor; // Mengembalikan nilai atribut platNomor
+    }
+
+    public void setPlatNomor(String platNomor) // Deklarasi method setter untuk platNomor
+    {
+        this.platNomor = platNomor; // Mengubah nilai atribut platNomor
+    }
+
+    public JenisKendaraan getJenisKendaraan() // Deklarasi method getter untuk jenisKendaraan
+    {
+        return jenisKendaraan; // Mengembalikan nilai atribut jenisKendaraan
+    }
+
+    public void setJenisKendaraan(JenisKendaraan jenisKendaraan) // Deklarasi method setter untuk jenisKendaraan
+    {
+        this.jenisKendaraan = jenisKendaraan; // Mengubah nilai atribut jenisKendaraan
+    }
+
+    public LocalDateTime getWaktuRegistrasiPertama() // Deklarasi method getter untuk waktuRegistrasiPertama
+    {
+        return waktuRegistrasiPertama; // Mengembalikan nilai atribut waktuRegistrasiPertama
+    }
 }
