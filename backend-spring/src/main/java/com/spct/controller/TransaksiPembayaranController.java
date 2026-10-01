@@ -1,40 +1,77 @@
 package com.spct.controller;
 
+import com.spct.dto.HasilTagihanDto;
+import com.spct.model.MetodePembayaran;
+import com.spct.service.TransaksiPembayaranService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
 /**
  * Controller: TransaksiPembayaranController
- * Sesuai Diagram Sequence (Transaksi Keluar) dan Use-Case UC004.
- * 
- * PSEUDOCODE KOMPREHENSIF (UML COMPLIANT):
- * 
- * 1. Menerima Deteksi Keluar:
- *    - Endpoint: /api/v1/gate/keluar
- *    - Payload: { plat_nomor: "AB1234XY" }
- * 
- * 2. Kalkulasi Tagihan Berdasarkan Waktu:
- *    - Kueri transaksi: SELECT * FROM transaksi_parkir WHERE plat_nomor = X AND status = 'BELUM_LUNAS'
- *    - Catat Waktu Keluar (Timestamp sistem saat ini).
- *    - Durasi = Waktu Keluar - Waktu Masuk.
- * 
- * 3. Logika Bisnis Tarif (Termasuk Konsep Drop-Off/Grace Period):
- *    - IF Durasi <= 10 Menit (Grace Period):
- *        - Total Biaya = Rp 0.
- *        - Langsung panggil fungsi Buka Palang.
- *    - ELSE:
- *        - Total Biaya = (Durasi / 60) * Tarif Per Jam.
- * 
- * 4. Komunikasi dengan Payment Gateway (QRIS/E-Toll):
- *    - Kirim data (Jumlah Tagihan, ID Transaksi) ke API Bank/Payment Gateway.
- *    - Tunggu status respon (Callback).
- * 
- * 5. Eksekusi Pasca-Pembayaran (Diagram Aktifitas):
- *    - IF Pembayaran Berhasil:
- *        - UPDATE transaksi_parkir SET status = 'LUNAS'.
- *        - UPDATE slot_parkir (yang terkait dengan kendaraan) SET status = 'KOSONG'.
- *        - Kirim perintah ke Hardware Palang Keluar (Buka Gate).
- *        - Desain Output UI Kios: "Terima Kasih, Hati-hati di Jalan".
- *    - IF Pembayaran Gagal/Kurang Saldo:
- *        - Desain Output UI Kios: "Saldo Kurang / Pembayaran Gagal".
+ * Sesuai Diagram Sequence (Keluar Parkir & Pembayaran).
+ *
+ * ALUR EKSEKUSI (sesuai pseudocode):
+ * 1. Menerima HTTP GET dari kamera gerbang keluar (ALPR) untuk memindai plat dan menghitung tagihan.
+ * 2. Menghitung biaya berdasarkan durasi parkir (Service).
+ * 3. Jika bayar (QRIS/E-toll via POST), update transaksi jadi LUNAS dan slot jadi KOSONG.
+ *
+ * Endpoint Base URL: /api/pembayaran
  */
-public class TransaksiPembayaranController {
-    // Siap diimplementasikan menjadi Spring @RestController
+
+// Deklarasi Controller: kelas penerima request untuk operasional keluar kendaraan
+@RestController
+@RequestMapping("/api/pembayaran") // Base URL: http://localhost:8080/api/pembayaran
+@CrossOrigin(origins = "*")  // Mengizinkan request dari Kiosk Keluar
+public class TransaksiPembayaranController 
+{
+    // =====================================================================
+    // Deklarasi Atribut Service (diinject otomatis oleh Spring)
+    // =====================================================================
+
+    @Autowired
+    private TransaksiPembayaranService transaksiPembayaranService;
+
+
+    // =====================================================================
+    // Endpoint GET: Menghitung tagihan saat kendaraan tiba di gerbang keluar
+    // =====================================================================
+
+    // Endpoint yang dipanggil oleh kamera ALPR gerbang keluar atau Kiosk Keluar
+    @GetMapping("/tagihan") // URL lengkap: GET /api/pembayaran/tagihan?platNomor=AB1234XY
+    public ResponseEntity<HasilTagihanDto> cekTagihan(
+        @RequestParam String platNomor) 
+    {
+        // Mendelegasikan perhitungan ke Service
+        HasilTagihanDto hasil = transaksiPembayaranService.hitungTagihanKeluar(platNomor);
+
+        // Jika transaksi tidak ditemukan
+        if ("TRANSAKSI_TIDAK_DITEMUKAN".equals(hasil.getStatus()))
+        {
+            // Panggil HTTP 404 Not Found: transaksi tidak ditemukan
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(hasil);
+        }
+
+        // Jika perhitungan sukses, kirim kembali detail tagihan ke Frontend Kiosk Keluar
+        return ResponseEntity.ok(hasil);
+    }
+
+
+    // =====================================================================
+    // Endpoint POST: Memproses konfirmasi pembayaran dari Payment Gateway
+    // =====================================================================
+
+    // Endpoint yang dipanggil saat pembayaran QRIS/E-Toll berhasil
+    @PostMapping("/konfirmasi") // URL lengkap: POST /api/pembayaran/konfirmasi
+    public ResponseEntity<HasilTagihanDto> konfirmasiPembayaran(
+        @RequestParam Long idTransaksi,
+        @RequestParam MetodePembayaran metodePembayaran) 
+    {
+        // Mengeksekusi penutupan transaksi (lunas) dan pelepasan slot parkir
+        HasilTagihanDto hasil = transaksiPembayaranService.prosesPembayaran(idTransaksi, metodePembayaran);
+
+        // Mengirim instruksi ke Kiosk untuk menampilkan pesan berhasil dan Buka Palang
+        return ResponseEntity.ok(hasil);
+    }
 }
