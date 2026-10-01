@@ -39,15 +39,19 @@ public class SpctApplication
                 // Cek apakah slot sudah ada di database
                 java.util.Optional<SlotParkir> existingSlot = slotRepo.findById(idSlot);
                 if (existingSlot.isPresent()) {
-                    // Update koordinat slot lama
+                    // Update koordinat slot lama dan KOSONGKAN slot untuk keperluan simulasi ulang
                     SlotParkir slot = existingSlot.get();
                     slot.setNodeId(nodeId);
                     slot.setKoordinatX(x);
                     slot.setKoordinatY(y);
+                    slot.setStatusSlot(StatusSlot.KOSONG);
+                    slot.setKendaraanAktif(null);
+                    slot.setWaktuDipesan(null);
                     slotRepo.save(slot);
                 } else {
                     // Buat slot baru
                     SlotParkir slot = new SlotParkir(idSlot, 1, nodeId, x, y);
+                    slot.setStatusSlot(StatusSlot.KOSONG);
                     slotRepo.save(slot);
                 }
             }
