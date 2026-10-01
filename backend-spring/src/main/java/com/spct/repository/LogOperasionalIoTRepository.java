@@ -21,13 +21,13 @@ public interface LogOperasionalIoTRepository extends JpaRepository<LogOperasiona
     // Mencari semua log yang belum ditangani berdasarkan tingkat keparahan
     // Digunakan oleh Dashboard Admin untuk menampilkan daftar anomali yang perlu perhatian petugas
     // Setara: SELECT * FROM log_operasional_iot WHERE status_resolusi = ? AND tingkat_keparahan = ? ORDER BY waktu_kejadian DESC
-    List<LogOperasionalIoT> findByStatusRsolusiAndTingkatKeparahanOrderByWaktuKejadianDesc(
+    List<LogOperasionalIoT> findByStatusResolusiAndTingkatKeparahanOrderByWaktuKejadianDesc(
         StatusResolusi statusResolusi, TingkatKeparahan tingkatKeparahan);
 
     // Mencari semua log anomali yang belum ditangani (BELUM_DITANGANI)
     // Digunakan untuk badge notifikasi di Dashboard Admin (misal: "3 anomali belum ditangani")
     // Setara: SELECT * FROM log_operasional_iot WHERE status_resolusi = 'BELUM_DITANGANI'
-    List<LogOperasionalIoT> findByStatusRsolusiOrderByWaktuKejadianDesc(StatusResolusi statusResolusi);
+    List<LogOperasionalIoT> findByStatusResolusiOrderByWaktuKejadianDesc(StatusResolusi statusResolusi);
 
     // Mencari semua log berdasarkan slot tertentu (untuk riwayat kejadian di satu slot)
     // Setara: SELECT * FROM log_operasional_iot WHERE id_slot = ? ORDER BY waktu_kejadian DESC
@@ -40,5 +40,5 @@ public interface LogOperasionalIoTRepository extends JpaRepository<LogOperasiona
 
     // Menghitung jumlah anomali yang belum ditangani (untuk badge notifikasi di header Dashboard)
     // Setara: SELECT COUNT(*) FROM log_operasional_iot WHERE status_resolusi = 'BELUM_DITANGANI'
-    Long countByStatusRsolusi(StatusResolusi statusResolusi);
+    Long countByStatusResolusi(StatusResolusi statusResolusi);
 }

@@ -77,7 +77,7 @@ public class AnalitikLaporanService // Kelas service yang mengumpulkan dan mengo
         // --- Langkah 3: Agregasi Jumlah Anomali ---
         // Memanggil kueri COUNT anomali BELUM_DITANGANI dari LogOperasionalIoTRepository
         Long totalAnomali = logOperasionalIoTRepository
-            .countByStatusRsolusi(StatusResolusi.BELUM_DITANGANI);
+            .countByStatusResolusi(StatusResolusi.BELUM_DITANGANI);
 
 
         // --- Langkah 4: Status Kapasitas Slot Real-Time ---

@@ -67,7 +67,7 @@ public class MonitoringFisikController // Kelas controller untuk menerima dan me
     {
         // Mengambil semua log dengan status BELUM_DITANGANI dari database, diurutkan terbaru di atas
         return ResponseEntity.ok(
-            logOperasionalIoTRepository.findByStatusRsolusiOrderByWaktuKejadianDesc(StatusResolusi.BELUM_DITANGANI)
+            logOperasionalIoTRepository.findByStatusResolusiOrderByWaktuKejadianDesc(StatusResolusi.BELUM_DITANGANI)
         );
     }
 
@@ -76,7 +76,7 @@ public class MonitoringFisikController // Kelas controller untuk menerima dan me
     public ResponseEntity<Long> hitungAnomaliAktif()
     {
         // Menghitung jumlah log yang masih berstatus BELUM_DITANGANI
-        Long jumlah = logOperasionalIoTRepository.countByStatusRsolusi(StatusResolusi.BELUM_DITANGANI);
+        Long jumlah = logOperasionalIoTRepository.countByStatusResolusi(StatusResolusi.BELUM_DITANGANI);
         return ResponseEntity.ok(jumlah); // Mengembalikan angka (misal: 3) ke Frontend untuk badge notifikasi
     }
 

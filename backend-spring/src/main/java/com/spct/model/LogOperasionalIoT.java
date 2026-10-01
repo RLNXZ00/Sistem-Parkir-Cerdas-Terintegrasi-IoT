@@ -3,34 +3,7 @@ package com.spct.model;
 import jakarta.persistence.*;
 import java.time.LocalDateTime; // Mengimpor LocalDateTime untuk menyimpan waktu kejadian sensor yang presisi
 
-// Deklarasi Enum JenisKejadian: merepresentasikan semua kategori kejadian yang bisa dicatat sensor IoT
-// Dibagi dua kategori: Normal (INFO) dan Kritis (WARNING/CRITICAL) sesuai pseudocode
-enum JenisKejadian
-{
-    // --- Kategori Normal ---
-    SENSOR_MENDETEKSI_MOBIL_MASUK,  // Slot berstatus DIPESAN -> sensor mendeteksi kendaraan masuk (normal)
-    SENSOR_MENDETEKSI_MOBIL_KELUAR, // Slot berstatus TERISI  -> sensor mendeteksi kendaraan keluar (normal)
 
-    // --- Kategori Kritis (Anomali) ---
-    ANOMALI_PENYEROBOTAN_SLOT,      // Slot KOSONG di database tapi sensor mendeteksi kendaraan (peringatan!)
-    SENSOR_OFFLINE_TIMEOUT,         // Sensor tidak mengirim data dalam waktu yang ditentukan (perangkat mati)
-    KENDARAAN_BEDA_DIMENSI          // Sensor mendeteksi dimensi kendaraan tidak sesuai jenis yang terdaftar
-}
-
-// Deklarasi Enum TingkatKeparahan: menentukan warna indikator di Dashboard Frontend Petugas
-enum TingkatKeparahan
-{
-    INFO,     // Hijau: kejadian normal, tidak perlu tindakan khusus
-    WARNING,  // Kuning: perlu perhatian petugas
-    CRITICAL  // Merah: butuh tindakan segera dari petugas lapangan
-}
-
-// Deklarasi Enum StatusResolusi: memastikan petugas tidak melewatkan anomali yang terjadi
-enum StatusResolusi
-{
-    BELUM_DITANGANI,    // Anomali baru masuk, petugas belum mengkonfirmasi
-    SELESAI_DIVALIDASI  // Petugas sudah mengecek lapangan dan mengkonfirmasi penanganan selesai
-}
 
 // Deklarasi Entity: merepresentasikan tabel 'log_operasional_iot' di Database Relasional
 // Tabel ini bersifat Log/History: sangat besar, mencatat setiap perubahan sensor secara real-time
