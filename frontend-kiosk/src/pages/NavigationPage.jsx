@@ -7,8 +7,8 @@ export default function NavigationPage() {
   
   // Ambil data dari halaman sebelumnya
   const { slotData, platNomor } = location.state || {};
-  const targetSlot = slotData?.slotDialokasikan || "B1-01";
-  const ruteKoordinat = slotData?.jalurRuteGraf || []; // Array of TitikRuteDto {id, x, y}
+  const targetSlot = slotData?.idSlotDialokasikan || "B1-01";
+  const ruteKoordinat = slotData?.urutan || []; // Array of TitikRuteDto {id, x, y}
 
   // Animasi Auto-redirect
   useEffect(() => {
