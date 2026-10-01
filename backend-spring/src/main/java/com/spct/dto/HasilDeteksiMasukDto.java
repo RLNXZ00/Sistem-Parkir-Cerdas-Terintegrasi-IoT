@@ -18,7 +18,7 @@ public class HasilDeteksiMasukDto // Kelas DTO untuk membungkus seluruh hasil pe
     private Long idTransaksi;               // ID transaksi yang baru dibuat (disimpan Kiosk untuk referensi keluar)
     private String slotDialokasikan;        // Nomor slot yang diberikan (misal: "B1-12") untuk ditampilkan di Kiosk
     private Integer lantaiSlot;             // Lantai dari slot (untuk konteks navigasi)
-    private List<String> jalurRuteGraf;     // Array urutan node rute dari Algoritma A* (untuk rendering animasi 2D)
+    private List<TitikRuteDto> jalurRuteGraf;     // Array urutan titik (id, x, y) rute dari Algoritma A* (untuk rendering simulasi visual 2D)
     private String pesanKeterangan;         // Keterangan tambahan (misal: pesan error atau instruksi ke pengguna)
 
 
@@ -27,7 +27,7 @@ public class HasilDeteksiMasukDto // Kelas DTO untuk membungkus seluruh hasil pe
     // =====================================================================
     public HasilDeteksiMasukDto(String status, String platNomor, LocalDateTime waktuMasuk,
                                  Long idTransaksi, String slotDialokasikan, Integer lantaiSlot,
-                                 List<String> jalurRuteGraf, String pesanKeterangan)
+                                 List<TitikRuteDto> jalurRuteGraf, String pesanKeterangan)
     {
         this.status = status;                         // Menginisialisasi atribut status
         this.platNomor = platNomor;                   // Menginisialisasi atribut platNomor
@@ -107,12 +107,12 @@ public class HasilDeteksiMasukDto // Kelas DTO untuk membungkus seluruh hasil pe
         return lantaiSlot; // Mengembalikan nilai atribut lantaiSlot
     }
 
-    public void setJalurRuteGraf(List<String> jalurRuteGraf) // Deklarasi method setter untuk jalurRuteGraf
+    public void setJalurRuteGraf(List<TitikRuteDto> jalurRuteGraf) // Deklarasi method setter untuk jalurRuteGraf
     {
         this.jalurRuteGraf = jalurRuteGraf;
     }
 
-    public List<String> getJalurRuteGraf() // Deklarasi method getter untuk jalurRuteGraf
+    public List<TitikRuteDto> getJalurRuteGraf() // Deklarasi method getter untuk jalurRuteGraf
     {
         return jalurRuteGraf; // Mengembalikan nilai atribut jalurRuteGraf (array rute A*)
     }
