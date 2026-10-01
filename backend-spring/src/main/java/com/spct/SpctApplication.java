@@ -26,22 +26,32 @@ public class SpctApplication
     @Bean
     public CommandLineRunner seederData(SlotParkirRepository slotRepo) {
         return args -> {
-            if (slotRepo.count() == 0) {
-                System.out.println("MENGINISIALISASI DATA SLOT PARKIR...");
-                for (int i = 1; i <= 15; i++) {
-                    String idSlot = "B1-" + String.format("%02d", i);
-                    String nodeId = "NODE_B1_" + i;
-                    
-                    // Rumus koordinat mengikuti Grid Kiosk
-                    int col = (i + 1) / 2;
-                    Double x = 20.0 * col;
-                    Double y = (i % 2 != 0) ? 30.0 : 70.0;
-                    
+            System.out.println("SINKRONISASI KOORDINAT SLOT PARKIR (GRID)...");
+            for (int i = 1; i <= 15; i++) {
+                String idSlot = "B1-" + String.format("%02d", i);
+                String nodeId = "NODE_B1_" + i;
+                
+                // Rumus koordinat mengikuti Grid Kiosk
+                int col = (i + 1) / 2;
+                Double x = 20.0 * col;
+                Double y = (i % 2 != 0) ? 30.0 : 70.0;
+                
+                // Cek apakah slot sudah ada di database
+                java.util.Optional<SlotParkir> existingSlot = slotRepo.findById(idSlot);
+                if (existingSlot.isPresent()) {
+                    // Update koordinat slot lama
+                    SlotParkir slot = existingSlot.get();
+                    slot.setNodeId(nodeId);
+                    slot.setKoordinatX(x);
+                    slot.setKoordinatY(y);
+                    slotRepo.save(slot);
+                } else {
+                    // Buat slot baru
                     SlotParkir slot = new SlotParkir(idSlot, 1, nodeId, x, y);
                     slotRepo.save(slot);
                 }
-                System.out.println("15 SLOT PARKIR (GRID) BERHASIL DIBUAT!");
             }
+            System.out.println("15 SLOT PARKIR (GRID) BERHASIL DISINKRONISASI!");
         };
     }
 }
