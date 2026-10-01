@@ -31,14 +31,16 @@ public class SpctApplication
                 for (int i = 1; i <= 15; i++) {
                     String idSlot = "B1-" + String.format("%02d", i);
                     String nodeId = "NODE_B1_" + i;
-                    Double x = 10.0 * i;
-                    Double y = 20.0;
                     
-                    // Menggunakan konstruktor berparameter karena tidak ada metode setter untuk field-field ini
+                    // Rumus koordinat mengikuti Grid Kiosk
+                    int col = (i + 1) / 2;
+                    Double x = 20.0 * col;
+                    Double y = (i % 2 != 0) ? 30.0 : 70.0;
+                    
                     SlotParkir slot = new SlotParkir(idSlot, 1, nodeId, x, y);
                     slotRepo.save(slot);
                 }
-                System.out.println("15 SLOT PARKIR BERHASIL DIBUAT!");
+                System.out.println("15 SLOT PARKIR (GRID) BERHASIL DIBUAT!");
             }
         };
     }
