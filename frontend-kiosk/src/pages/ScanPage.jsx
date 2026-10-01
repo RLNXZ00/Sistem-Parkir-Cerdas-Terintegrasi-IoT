@@ -16,10 +16,9 @@ export default function ScanPage() {
 
     try {
       // 1. Panggil API Deteksi Plat Masuk (Backend Port 8081 via Proxy Vite)
-      const response = await fetch('/api/gate/masuk', {
+      // Perhatian: Backend Spring Boot menggunakan @RequestParam, jadi data dikirim lewat URL query string
+      const response = await fetch(`/api/gate/masuk?platNomor=${encodeURIComponent(dummyPlate)}&jenisKendaraan=MOBIL&confidence=1.0`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platNomor: dummyPlate })
       });
       
       if (!response.ok) {
