@@ -1,17 +1,189 @@
-// OTAK LOGIKA UNTUK HARDWARE SENSOR IOT (MQTT)
+package com.spct.service;
 
-// Pseudocode:
-// Service ini berjalan di background secara terus-menerus mendengarkan sensor.
+import com.spct.model.*;
+import com.spct.repository.LogOperasionalIoTRepository;
+import com.spct.repository.SlotParkirRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-// Fungsi ketikaSensorBerubah(idSlotSensor, statusSensorHardware):
-// 1. Misal sensor di lantai B1-12 mendeteksi ada mobil (statusSensorHardware = "Terisi").
-// 2. Panggil SlotParkirRepository untuk mengambil data slot B1-12 dari Database.
-// 3. Bandingkan (Validasi Anomali):
-//    - Jika status Database = "Kosong" TETAPI status Sensor = "Terisi" 
-//      -> INI ANOMALI! Ada mobil menyerobot atau salah parkir.
-//      -> Kirim peringatan ke Dashboard Petugas Lapangan.
-//    - Jika status Database = "Dipesan" DAN status Sensor = "Terisi"
-//      -> INI NORMAL. Mobil yang dialokasikan sudah sampai. 
-//      -> Ubah status di Database menjadi "Terisi Penuh".
-//    - Jika status Sensor = "Kosong", ubah status di Database menjadi "Kosong".
-// 4. Simpan log kejadian ini ke LogOperasionalIoTRepository.
+import java.util.HashMap;  // Mengimpor HashMap untuk menyusun payload notifikasi WebSocket
+import java.util.Map;      // Mengimpor Map untuk tipe data payload notifikasi WebSocket
+
+// Deklarasi Service: kelas yang berisi logika verifikasi sensor IoT dan deteksi anomali
+// Sesuai pseudocode: membandingkan status sensor hardware dengan status database, lalu bertindak
+@Service
+public class MonitoringFisikService // Kelas service yang mengorkestrasi semua logika pemrosesan data sensor IoT
+{
+    // =====================================================================
+    // Deklarasi Atribut (diinject otomatis oleh Spring)
+    // =====================================================================
+
+    @Autowired
+    private SlotParkirRepository slotParkirRepository; // Repository untuk membaca dan mengubah status slot di database
+
+    @Autowired
+    private LogOperasionalIoTRepository logOperasionalIoTRepository; // Repository untuk menyimpan setiap kejadian ke tabel log
+
+    // SimpMessagingTemplate: komponen Spring untuk mengirim pesan ke klien WebSocket yang sudah subscribe
+    // Setara dengan memanggil sebuah method yang langsung "muncul" di layar Dashboard Admin tanpa refresh
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate; // Komponen pengirim pesan WebSocket ke Frontend Dashboard
+
+
+    // =====================================================================
+    // Method Utama: Memproses setiap perubahan status yang dikirim sensor IoT
+    // =====================================================================
+
+    // Dipanggil oleh MonitoringFisikController setiap ada laporan masuk dari IoT Gateway
+    // @Transactional memastikan operasi baca-tulis database dan pengiriman log berjalan atomik
+    @Transactional
+    public void prosesTelemetriSensor(String idSlot, String statusSensorHardware)
+    {
+        // Ambil data slot dari database berdasarkan id_slot yang dilaporkan sensor
+        SlotParkir slotDiDatabase = slotParkirRepository.findById(idSlot)
+            .orElse(null); // Jika slot tidak ditemukan di database, kembalikan null
+
+        // Validasi: jika slot tidak dikenali oleh database, log sebagai anomali sensor tidak terdaftar
+        if (slotDiDatabase == null)
+        {
+            // TODO: Kirim notifikasi WebSocket "Sensor tidak dikenal" di iterasi selanjutnya
+            return; // Hentikan proses jika slot tidak terdaftar
+        }
+
+        // Ambil status slot saat ini dari database untuk dibandingkan dengan status dari sensor hardware
+        StatusSlot statusDiDatabase = slotDiDatabase.getStatusSlot();
+
+        // =====================================================================
+        // BRANCHING: Bandingkan status sensor hardware dengan status di database
+        // Sesuai pseudocode 3 kondisi yang disepakati
+        // =====================================================================
+
+        // --- KONDISI 1: Normal Parkir ---
+        // Status database = DIPESAN (sudah dialokasikan) DAN sensor mendeteksi kendaraan masuk (TERISI)
+        // Artinya: Kendaraan yang seharusnya menempati slot ini sudah tiba di tempatnya
+        if (statusDiDatabase == StatusSlot.DIPESAN && "TERISI".equalsIgnoreCase(statusSensorHardware))
+        {
+            prosesKondisiNormalParkir(slotDiDatabase); // Panggil method handler Kondisi 1
+        }
+
+        // --- KONDISI 2: Normal Keluar ---
+        // Status database = TERISI DAN sensor melaporkan slot sudah kosong kembali
+        // Artinya: Kendaraan sudah meninggalkan slot (sudah melewati gerbang keluar)
+        else if (statusDiDatabase == StatusSlot.TERISI && "KOSONG".equalsIgnoreCase(statusSensorHardware))
+        {
+            prosesKondisiNormalKeluar(slotDiDatabase); // Panggil method handler Kondisi 2
+        }
+
+        // --- KONDISI 3: Anomali / Penyerobotan ---
+        // Status database = KOSONG (tidak ada alokasi) TETAPI sensor mendeteksi ada kendaraan
+        // Artinya: Ada kendaraan masuk tanpa melalui proses alokasi sistem (penyerobotan / salah parkir)
+        else if (statusDiDatabase == StatusSlot.KOSONG && "TERISI".equalsIgnoreCase(statusSensorHardware))
+        {
+            prosesKondisiAnomali(slotDiDatabase); // Panggil method handler Kondisi 3
+        }
+        // Kondisi lain (misal: status tidak berubah) diabaikan untuk menghindari log yang berlebihan
+    }
+
+
+    // =====================================================================
+    // Method Pendukung: Handler untuk setiap kondisi yang mungkin terjadi
+    // =====================================================================
+
+    // Handler Kondisi 1: kendaraan yang benar sudah tiba di slot yang dialokasikan
+    private void prosesKondisiNormalParkir(SlotParkir slot)
+    {
+        // UPDATE: Ubah status slot di database menjadi TERISI (konfirmasi fisik dari sensor)
+        slot.setStatusSlot(StatusSlot.TERISI); // Mengubah status slot menjadi TERISI
+        slotParkirRepository.save(slot);        // Simpan perubahan ke database
+
+        // INSERT: Catat kejadian normal ke tabel log
+        LogOperasionalIoT log = new LogOperasionalIoT(
+            slot,                                              // Slot yang terkait
+            JenisKejadian.SENSOR_MENDETEKSI_MOBIL_MASUK,     // Jenis kejadian: normal masuk
+            TingkatKeparahan.INFO,                            // Level: informasi biasa (hijau di Dashboard)
+            "Slot " + slot.getIdSlot() + ": kendaraan yang dialokasikan telah tiba. Status diubah menjadi TERISI."
+        );
+        logOperasionalIoTRepository.save(log); // Simpan log ke database
+
+        // PUSH WebSocket: Kirim pembaruan status denah ke Dashboard Admin (Redraw peta)
+        kirimPembaruanDenah(slot.getIdSlot(), "TERISI", TingkatKeparahan.INFO.name());
+    }
+
+    // Handler Kondisi 2: slot kembali kosong karena kendaraan sudah keluar
+    private void prosesKondisiNormalKeluar(SlotParkir slot)
+    {
+        // UPDATE: Ubah status slot di database menjadi KOSONG
+        slot.setStatusSlot(StatusSlot.KOSONG);    // Mengubah status slot menjadi KOSONG
+        slot.setKendaraanAktif(null);              // Putuskan relasi dengan kendaraan yang sebelumnya
+        slot.setWaktuDipesan(null);                // Bersihkan timestamp pemesanan
+        slotParkirRepository.save(slot);           // Simpan perubahan ke database
+
+        // INSERT: Catat kejadian normal ke tabel log
+        LogOperasionalIoT log = new LogOperasionalIoT(
+            slot,                                               // Slot yang terkait
+            JenisKejadian.SENSOR_MENDETEKSI_MOBIL_KELUAR,     // Jenis kejadian: normal keluar
+            TingkatKeparahan.INFO,                             // Level: informasi biasa (hijau di Dashboard)
+            "Slot " + slot.getIdSlot() + ": kendaraan telah keluar. Status diubah menjadi KOSONG."
+        );
+        logOperasionalIoTRepository.save(log); // Simpan log ke database
+
+        // PUSH WebSocket: Kirim pembaruan status denah ke Dashboard Admin (Redraw peta)
+        kirimPembaruanDenah(slot.getIdSlot(), "KOSONG", TingkatKeparahan.INFO.name());
+    }
+
+    // Handler Kondisi 3: ANOMALI - kendaraan menyerobot slot tanpa alokasi sistem
+    private void prosesKondisiAnomali(SlotParkir slot)
+    {
+        // INSERT: Catat kejadian anomali kritis ke tabel log (TIDAK mengubah status database)
+        // Status database SENGAJA tidak diubah agar sistem tetap konsisten dan petugas yang menangani
+        LogOperasionalIoT log = new LogOperasionalIoT(
+            slot,                                           // Slot yang terkait
+            JenisKejadian.ANOMALI_PENYEROBOTAN_SLOT,       // Jenis kejadian: anomali kritis!
+            TingkatKeparahan.CRITICAL,                     // Level: kritis (merah di Dashboard)
+            "ANOMALI! Slot " + slot.getIdSlot() + ": status DB=KOSONG tetapi sensor mendeteksi kendaraan. Kemungkinan penyerobotan atau salah parkir."
+        );
+        logOperasionalIoTRepository.save(log); // Simpan log anomali ke database
+
+        // PUSH WebSocket DARURAT: Kirim sinyal peringatan merah ke Dashboard Petugas Lapangan secara instan
+        // Topik khusus /topic/anomali agar Dashboard bisa menampilkan popup peringatan
+        kirimAlertAnomalii(slot.getIdSlot(), log.getCatatanDetail());
+
+        // Juga perbarui status denah dengan warna peringatan
+        kirimPembaruanDenah(slot.getIdSlot(), "ANOMALI", TingkatKeparahan.CRITICAL.name());
+    }
+
+
+    // =====================================================================
+    // Method WebSocket: Mengirim pesan push ke Frontend Dashboard
+    // =====================================================================
+
+    // Method untuk mengirim pembaruan status slot ke topik denah real-time
+    // Frontend Dashboard subscribe ke /topic/monitoring untuk menerima pembaruan ini
+    private void kirimPembaruanDenah(String idSlot, String statusBaru, String tingkatKeparahan)
+    {
+        // Menyusun payload pesan dalam format Map (akan dikonversi JSON otomatis oleh Spring)
+        Map<String, String> payload = new HashMap<>(); // Menyimpan data yang akan dikirim sebagai JSON
+        payload.put("idSlot", idSlot);                    // Menambahkan ID slot yang berubah
+        payload.put("statusBaru", statusBaru);            // Menambahkan status baru slot
+        payload.put("tingkatKeparahan", tingkatKeparahan); // Menambahkan level keparahan untuk pewarnaan
+
+        // Mengirim payload ke topik /topic/monitoring: semua Frontend yang subscribe akan menerima ini
+        messagingTemplate.convertAndSend("/topic/monitoring", payload); // Kirim pembaruan denah ke semua klien yang subscribe
+    }
+
+    // Method untuk mengirim peringatan anomali darurat ke topik khusus anomali
+    // Frontend Dashboard subscribe ke /topic/anomali untuk menampilkan popup peringatan merah
+    private void kirimAlertAnomalii(String idSlot, String pesanAnomali)
+    {
+        // Menyusun payload peringatan anomali
+        Map<String, String> payloadAlert = new HashMap<>(); // Menyimpan data peringatan yang akan dikirim sebagai JSON
+        payloadAlert.put("idSlot", idSlot);                    // Menambahkan ID slot anomali
+        payloadAlert.put("pesan", pesanAnomali);               // Menambahkan pesan detail anomali
+        payloadAlert.put("jenis", "ANOMALI_PENYEROBOTAN");     // Menambahkan jenis anomali
+
+        // Mengirim peringatan ke topik /topic/anomali: Frontend akan menampilkan popup peringatan
+        messagingTemplate.convertAndSend("/topic/anomali", payloadAlert); // Kirim sinyal darurat anomali ke semua klien
+    }
+}
