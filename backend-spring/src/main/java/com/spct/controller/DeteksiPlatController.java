@@ -86,6 +86,7 @@ public class DeteksiPlatController // Kelas controller untuk mengelola seluruh a
         // Jika basement penuh meski sudah override, tetap kembalikan error
         if ("BASEMENT_PENUH".equals(hasil.getStatus()))
         {
+            // Panggil HTTP 409 Conflict: kendaraan tidak bisa masuk
             return ResponseEntity.status(HttpStatus.CONFLICT).body(hasil);
         }
 
