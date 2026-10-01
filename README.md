@@ -87,12 +87,12 @@ Antarmuka SPCT IoT mengusung gaya visual **Dark Mode (#121212 / #1E1E1E)** ala *
 ## 📂 Struktur Repositori
 
 ```text
-├── Rekayasa Perangkat Lunak/       # Sumber Diagram UML (Use Case, Aktivitas, MVC, Sequence, ERD)
+├── Rekayasa Perangkat Lunak/         # Sumber Diagram UML (Use Case, Aktivitas, MVC, Sequence, ERD)
 ├── Spesifikasi Sistem Parkir Cerdas/ # Panduan spesifikasi desain UI/UX dan prompt perancangan
-├── Respon Antigravity/             # Dokumen analisis domain pemahaman dan strategi teknis
-├── Contoh_Kode_Java/               # Prototipe lapisan Entity, Repository, Service, dan Controller Spring Boot
-├── Evaluasi SPCT IoT.txt           # Catatan evaluasi mendalam dan penyelesaian Open Issues
-└── Tahap_V_SistemParkirCerdas.pdf  # Dokumen laporan konseptual rekayasa perangkat lunak lengkap
+├── Respon Antigravity/               # Dokumen analisis domain pemahaman dan strategi teknis
+├── Contoh_Kode_Java/                 # Prototipe lapisan Entity, Repository, Service, dan Controller Spring Boot
+├── Evaluasi SPCT IoT.txt             # Catatan evaluasi mendalam dan penyelesaian Open Issues
+└── Tahap_V_SistemParkirCerdas.pdf    # Dokumen laporan konseptual rekayasa perangkat lunak lengkap
 ```
 
 ---

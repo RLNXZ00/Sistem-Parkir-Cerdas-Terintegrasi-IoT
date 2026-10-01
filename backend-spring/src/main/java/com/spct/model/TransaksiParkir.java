@@ -72,9 +72,19 @@ public class TransaksiParkir // Kelas model untuk mencatat riwayat lengkap setia
     // Getter & Setter (gaya penulisan Anda)
     // =====================================================================
 
+    public void setIdTransaksi(Long idTransaksi) // Deklarasi method setter untuk idTransaksi
+    {
+        this.idTransaksi = idTransaksi; // Mengubah nilai atribut idTransaksi
+    }
+
     public Long getIdTransaksi() // Deklarasi method getter untuk idTransaksi
     {
         return idTransaksi; // Mengembalikan nilai atribut idTransaksi
+    }
+
+    public void setWaktuMasuk(LocalDateTime waktuMasuk) // Deklarasi method setter untuk waktuMasuk
+    {
+        this.waktuMasuk = waktuMasuk; // Mengubah nilai atribut waktuMasuk
     }
 
     public LocalDateTime getWaktuMasuk() // Deklarasi method getter untuk waktuMasuk
@@ -82,19 +92,14 @@ public class TransaksiParkir // Kelas model untuk mencatat riwayat lengkap setia
         return waktuMasuk; // Mengembalikan nilai atribut waktuMasuk
     }
 
+    public void setWaktuKeluar(LocalDateTime waktuKeluar) // Deklarasi method setter untuk waktuKeluar
+    {
+        this.waktuKeluar = waktuKeluar; // Mengubah nilai atribut waktuKeluar
+    }
+
     public LocalDateTime getWaktuKeluar() // Deklarasi method getter untuk waktuKeluar
     {
         return waktuKeluar; // Mengembalikan nilai atribut waktuKeluar
-    }
-
-    public void setWaktuKeluar(LocalDateTime waktuKeluar) // Deklarasi method setter untuk waktuKeluar
-    {
-        this.waktuKeluar = waktuKeluar; // Mengubah nilai atribut waktuKeluar (dipanggil saat proses keluar)
-    }
-
-    public Integer getDurasiTotalMenit() // Deklarasi method getter untuk durasiTotalMenit
-    {
-        return durasiTotalMenit; // Mengembalikan nilai atribut durasiTotalMenit
     }
 
     public void setDurasiTotalMenit(Integer durasiTotalMenit) // Deklarasi method setter untuk durasiTotalMenit
@@ -102,19 +107,19 @@ public class TransaksiParkir // Kelas model untuk mencatat riwayat lengkap setia
         this.durasiTotalMenit = durasiTotalMenit; // Mengubah nilai atribut durasiTotalMenit
     }
 
-    public BigDecimal getNominalTagihan() // Deklarasi method getter untuk nominalTagihan
+    public Integer getDurasiTotalMenit() // Deklarasi method getter untuk durasiTotalMenit
     {
-        return nominalTagihan; // Mengembalikan nilai atribut nominalTagihan
+        return durasiTotalMenit; // Mengembalikan nilai atribut durasiTotalMenit
     }
 
     public void setNominalTagihan(BigDecimal nominalTagihan) // Deklarasi method setter untuk nominalTagihan
     {
-        this.nominalTagihan = nominalTagihan; // Mengubah nilai atribut nominalTagihan (dihitung saat proses keluar)
+        this.nominalTagihan = nominalTagihan; // Mengubah nilai atribut nominalTagihan
     }
 
-    public StatusPembayaran getStatusPembayaran() // Deklarasi method getter untuk statusPembayaran
+    public BigDecimal getNominalTagihan() // Deklarasi method getter untuk nominalTagihan
     {
-        return statusPembayaran; // Mengembalikan nilai atribut statusPembayaran
+        return nominalTagihan; // Mengembalikan nilai atribut nominalTagihan
     }
 
     public void setStatusPembayaran(StatusPembayaran statusPembayaran) // Deklarasi method setter untuk statusPembayaran
@@ -122,9 +127,9 @@ public class TransaksiParkir // Kelas model untuk mencatat riwayat lengkap setia
         this.statusPembayaran = statusPembayaran; // Mengubah nilai atribut statusPembayaran
     }
 
-    public MetodePembayaran getMetodePembayaran() // Deklarasi method getter untuk metodePembayaran
+    public StatusPembayaran getStatusPembayaran() // Deklarasi method getter untuk statusPembayaran
     {
-        return metodePembayaran; // Mengembalikan nilai atribut metodePembayaran
+        return statusPembayaran; // Mengembalikan nilai atribut statusPembayaran
     }
 
     public void setMetodePembayaran(MetodePembayaran metodePembayaran) // Deklarasi method setter untuk metodePembayaran
@@ -132,9 +137,24 @@ public class TransaksiParkir // Kelas model untuk mencatat riwayat lengkap setia
         this.metodePembayaran = metodePembayaran; // Mengubah nilai atribut metodePembayaran
     }
 
+    public MetodePembayaran getMetodePembayaran() // Deklarasi method getter untuk metodePembayaran
+    {
+        return metodePembayaran; // Mengembalikan nilai atribut metodePembayaran
+    }
+
+    public void setKendaraan(DataKendaraan kendaraan) // Deklarasi method setter untuk kendaraan
+    {
+        this.kendaraan = kendaraan; // Mengubah objek DataKendaraan yang terkait dengan transaksi ini
+    }
+
     public DataKendaraan getKendaraan() // Deklarasi method getter untuk kendaraan
     {
         return kendaraan; // Mengembalikan objek DataKendaraan yang terkait dengan transaksi ini
+    }
+
+    public void setSlotDipilih(SlotParkir slotDipilih) // Deklarasi method setter untuk slotDipilih
+    {
+        this.slotDipilih = slotDipilih; // Mengubah objek SlotParkir yang ditempati pada transaksi ini
     }
 
     public SlotParkir getSlotDipilih() // Deklarasi method getter untuk slotDipilih

@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;          // Mengimpor kelas LocalDateTime untuk timestamp penguncian slot
 import java.util.*;                       // Mengimpor Collections untuk implementasi Algoritma A*
+import com.spct.dto.TitikRuteDto;         // Mengimpor DTO titik rute
 
 // Deklarasi Service: kelas yang berisi OTAK / logika bisnis dari fitur Alokasi Rute
 // Setara dengan method-method aksi kompleks yang ada di dalam TableDataGUI.java Anda
@@ -22,249 +23,176 @@ public class AlokasiRuteService // Kelas service yang mengorkestrasi semua langk
 {
     // =====================================================================
     // Deklarasi Atribut Repository (diinject otomatis oleh Spring)
-    // Pengganti DataBaseConnection.getActiveConnection() dari proyek Anda
     // =====================================================================
 
     @Autowired
-    private SlotParkirRepository slotParkirRepository; // Repository untuk akses tabel slot_parkir
+    private SlotParkirRepository slotParkirRepository; 
 
     @Autowired
-    private DataKendaraanRepository dataKendaraanRepository; // Repository untuk akses tabel data_kendaraan
+    private DataKendaraanRepository dataKendaraanRepository; 
+
+    // Struktur Data Graph Statis (Simulasi denah siku-siku)
+    private static class GraphNodeData {
+        String id;
+        double x;
+        double y;
+        boolean isSlot;
+        
+        GraphNodeData(String id, double x, double y, boolean isSlot) {
+            this.id = id; this.x = x; this.y = y; this.isSlot = isSlot;
+        }
+    }
+
+    // Mendefinisikan koordinat tiap Node
+    private static final Map<String, GraphNodeData> GRAPH_NODES = new HashMap<>();
+    
+    // Mendefinisikan Edges (Tetangga) tiap Node
+    private static final Map<String, List<String>> GRAPH_EDGES = new HashMap<>();
+
+    static {
+        // 1. Inisialisasi Node Jalan (Koridor Utama di Y = 50)
+        GRAPH_NODES.put("Gate-A", new GraphNodeData("Gate-A", 0, 50, false));
+        for (int i = 1; i <= 8; i++) {
+            GRAPH_NODES.put("N-" + i, new GraphNodeData("N-" + i, 20.0 * i, 50, false));
+        }
+
+        // 2. Inisialisasi Node Slot (Di Y = 30 untuk atas, Y = 70 untuk bawah)
+        for (int i = 1; i <= 15; i++) {
+            int col = (i + 1) / 2; // Menentukan pasangan (1-2 di col 1, 3-4 di col 2, dst)
+            double x = 20.0 * col;
+            double y = (i % 2 != 0) ? 30.0 : 70.0;
+            String slotNodeId = "NODE_B1_" + i;
+            GRAPH_NODES.put(slotNodeId, new GraphNodeData(slotNodeId, x, y, true));
+            
+            // Hubungkan Slot ke Node Jalan di depannya secara langsung
+            String pathNodeId = "N-" + col;
+            tambahEdge(pathNodeId, slotNodeId);
+        }
+
+        // 3. Hubungkan antar Node Jalan secara berurutan (Gate -> N1 -> N2 dst)
+        tambahEdge("Gate-A", "N-1");
+        for (int i = 1; i < 8; i++) {
+            tambahEdge("N-" + i, "N-" + (i + 1));
+        }
+    }
+
+    // Helper untuk membuat Edge dua arah
+    private static void tambahEdge(String nodeA, String nodeB) {
+        GRAPH_EDGES.computeIfAbsent(nodeA, k -> new ArrayList<>()).add(nodeB);
+        GRAPH_EDGES.computeIfAbsent(nodeB, k -> new ArrayList<>()).add(nodeA);
+    }
 
 
     // =====================================================================
-    // Method Utama: Mengorkestrasi seluruh alur alokasi sesuai pseudocode
+    // Method Utama: Alokasi Rute dengan Graph Traversal (SDNL Concept)
     // =====================================================================
-
-    // Merupakan method utama yang dipanggil oleh AlokasiRuteController
-    // @Transactional memastikan semua operasi database (baca + tulis) berhasil semua atau gagal semua
     @Transactional
     public HasilAlokasiRuteDto prosesAlokasiDanRute(String platNomor, JenisKendaraan jenisKendaraan)
     {
-        // --- Langkah 1: Validasi & Registrasi Kendaraan ---
-        // Mengecek apakah plat nomor sudah terdaftar, jika belum maka daftarkan otomatis
         DataKendaraan kendaraan = cariAtauDaftarkanKendaraan(platNomor, jenisKendaraan);
 
-        // --- Langkah 2: Pencarian Slot Tersedia (Berjenjang per Lantai) ---
-        // Loop untuk Lantai 1, 2, 3 sesuai pseudocode (prioritas lantai terdekat gerbang)
-        SlotParkir slotTerpilih = cariSlotKosongBerjenjang();
-
-        // Jika setelah dicek semua lantai tidak ada slot kosong, lempar exception
-        if (slotTerpilih == null)
-        {
-            // Mengembalikan DTO dengan pesan "Basement Penuh" tanpa data rute
-            return new HasilAlokasiRuteDto(null, null, null, null, null, null, "BASEMENT_PENUH");
+        // Ambil semua slot parkir kosong dari database untuk pencocokan status
+        List<SlotParkir> slotKosongList = slotParkirRepository.findByStatusSlotAndLantaiOrderByKoordinatXAsc(StatusSlot.KOSONG, 1);
+        Set<String> setNodeSlotKosong = new HashSet<>();
+        Map<String, SlotParkir> mapSlotKosong = new HashMap<>();
+        for (SlotParkir slot : slotKosongList) {
+            setNodeSlotKosong.add(slot.getNodeId());
+            mapSlotKosong.put(slot.getNodeId(), slot);
         }
 
-        // --- Langkah 3: Algoritma A* (Pencarian Jalur Terpendek) ---
-        // Memanggil implementasi Algoritma A* untuk mencari rute dari gerbang ke slot terpilih
-        List<String> urutanRute = hitungRuteAstar("Gate-A", slotTerpilih.getNodeId());
+        // --- Langkah 2 & 3: Pencarian Slot Terdekat + Rute sekaligus (BFS/Dijkstra dari Gate) ---
+        // Karena jarak antar node kotak grid kurang lebih seragam, BFS sudah menemukan rute terpendek absolut!
+        String startNode = "Gate-A";
+        
+        Queue<String> queue = new LinkedList<>();
+        Map<String, String> peta_asal = new HashMap<>(); // Untuk merekonstruksi rute
+        Set<String> dikunjungi = new HashSet<>();
+        
+        queue.add(startNode);
+        dikunjungi.add(startNode);
+        
+        String nodeSlotTerpilih = null;
 
-        // --- Langkah 4: Penguncian Slot (Handling Race Condition) ---
-        // Mengubah status slot menjadi 'DIPESAN' agar slot tidak direbut kendaraan lain
-        kunciSlotSebagaiDipesan(slotTerpilih, kendaraan);
-
-        // --- Langkah 5: Menyusun dan mengembalikan hasil ke Controller ---
-        return new HasilAlokasiRuteDto(
-            slotTerpilih.getIdSlot(),   // ID Slot yang berhasil dialokasikan
-            slotTerpilih.getLantai(),   // Lantai dari slot tersebut
-            slotTerpilih.getKoordinatX(), // Koordinat X untuk rendering peta Kiosk
-            slotTerpilih.getKoordinatY(), // Koordinat Y untuk rendering peta Kiosk
-            urutanRute,                 // Array urutan rute dari Algoritma A*
-            null,                       // idTransaksi (akan diisi oleh TransaksiService nanti)
-            "ALOKASI_BERHASIL"          // Pesan status operasi berhasil
-        );
-    }
-
-
-    // =====================================================================
-    // Method Pendukung: Logika spesifik yang dipecah menjadi method tersendiri
-    // (gaya penulisan Anda: method terpisah dengan komentar blok)
-    // =====================================================================
-
-    // Method untuk mencari kendaraan di database atau mendaftarkan yang baru
-    private DataKendaraan cariAtauDaftarkanKendaraan(String platNomor, JenisKendaraan jenisKendaraan)
-    {
-        // Mencari kendaraan di database berdasarkan plat nomor
-        Optional<DataKendaraan> kendaraanTerdaftar = dataKendaraanRepository.findByPlatNomor(platNomor);
-
-        // Jika kendaraan sudah terdaftar (pernah parkir sebelumnya), gunakan data yang ada
-        if (kendaraanTerdaftar.isPresent())
-        {
-            return kendaraanTerdaftar.get(); // Mengembalikan objek DataKendaraan yang sudah ada di database
-        }
-
-        // Jika kendaraan belum terdaftar (kendaraan baru pertama kali masuk), daftarkan otomatis
-        DataKendaraan kendaraanBaru = new DataKendaraan(platNomor, jenisKendaraan);
-        return dataKendaraanRepository.save(kendaraanBaru); // Simpan kendaraan baru ke database dan kembalikan objeknya
-    }
-
-    // Method untuk mencari slot kosong secara berjenjang per lantai sesuai pseudocode
-    private SlotParkir cariSlotKosongBerjenjang()
-    {
-        // Deklarasi array lantai yang akan diiterasikan (Lantai 1 prioritas pertama)
-        int[] urutanLantai = {1, 2, 3}; // Asumsi basement 3 lantai sesuai pseudocode
-
-        // LOOP untuk setiap lantai dari lantai 1 (terdekat gerbang) hingga lantai 3
-        for (int lantai : urutanLantai)
-        {
-            // Kueri database: SELECT * FROM slot_parkir WHERE status = 'KOSONG' AND lantai = currentLantai
-            // Diurutkan berdasarkan koordinatX (slot terdekat dari titik gerbang masuk)
-            List<SlotParkir> slotKosong = slotParkirRepository
-                .findByStatusSlotAndLantaiOrderByKoordinatXAsc(StatusSlot.KOSONG, lantai);
-
-            // IF Ditemukan slot kosong di lantai ini
-            if (!slotKosong.isEmpty())
-            {
-                return slotKosong.get(0); // Break LOOP: ambil slot pertama (terdekat), kembalikan hasilnya
+        while (!queue.isEmpty()) {
+            String nodeSaatIni = queue.poll();
+            
+            // Cek apakah node ini adalah slot parkir yang sedang KOSONG di database?
+            if (GRAPH_NODES.get(nodeSaatIni).isSlot && setNodeSlotKosong.contains(nodeSaatIni)) {
+                nodeSlotTerpilih = nodeSaatIni; // DITEMUKAN SLOT TERDEKAT!
+                break; // Berhenti mencari karena algoritma BFS menjamin ini yang terdekat!
             }
-            // Jika tidak ada slot kosong di lantai ini, lanjut ke lantai berikutnya (continue loop)
-        }
-
-        return null; // IF TIDAK ADA SLOT KOSONG DI SEMUA LANTAI: kembalikan null (Basement Penuh)
-    }
-
-    // Method untuk mengunci slot menjadi 'DIPESAN' (mencegah penyerobotan / race condition)
-    private void kunciSlotSebagaiDipesan(SlotParkir slot, DataKendaraan kendaraan)
-    {
-        // UPDATE slot_parkir SET status = 'DIPESAN', id_kendaraan = id_kendaraan_saat_ini
-        slot.setStatusSlot(StatusSlot.DIPESAN);             // Mengubah status slot menjadi DIPESAN
-        slot.setKendaraanAktif(kendaraan);                  // Menghubungkan kendaraan ke slot ini
-        slot.setWaktuDipesan(LocalDateTime.now());          // Mencatat waktu penguncian slot
-
-        slotParkirRepository.save(slot); // Simpan perubahan ke database (setara commit manual Anda)
-    }
-
-
-    // =====================================================================
-    // Implementasi Algoritma A* (Pencarian Jalur Terpendek)
-    // Diimplementasikan menggunakan Graf dengan representasi adjacency list
-    // =====================================================================
-
-    // Method utama Algoritma A*: mencari rute terpendek dari nodeAwal ke nodeTujuan
-    private List<String> hitungRuteAstar(String nodeAwal, String nodeTujuan)
-    {
-        // --- Inisialisasi Struktur Data untuk A* ---
-        // PriorityQueue (Open Set): antrian berprioritas berdasarkan nilai F = G + H
-        // Diurutkan dari nilai F terkecil (jalur terbaik)
-        PriorityQueue<NodeAstar> openSet = new PriorityQueue<>(Comparator.comparingDouble(n -> n.nilaiF));
-
-        // Map untuk melacak node mana yang menjadi "orang tua" dari node saat ini (untuk merekonstruksi jalur)
-        Map<String, String> peta_asal = new HashMap<>();
-
-        // Map untuk menyimpan nilai G (biaya aktual dari nodeAwal ke node ini)
-        Map<String, Double> nilaiG = new HashMap<>();
-
-        // Inisialisasi nilai G awal: semua node memiliki biaya tak terhingga, kecuali node awal = 0
-        nilaiG.put(nodeAwal, 0.0);
-
-        // Masukkan node awal ke dalam antrian dengan nilai F = 0 + H(nodeAwal, nodeTujuan)
-        openSet.add(new NodeAstar(nodeAwal, hitungHeuristik(nodeAwal, nodeTujuan)));
-
-        // --- Loop Utama Algoritma A* ---
-        while (!openSet.isEmpty())
-        {
-            // Ambil node dengan nilai F terkecil dari antrian (jalur paling menjanjikan)
-            NodeAstar nodeSaatIni = openSet.poll();
-            String idNodeSaatIni = nodeSaatIni.idNode;
-
-            // Jika sudah mencapai node tujuan, rekonstruksi dan kembalikan jalurnya
-            if (idNodeSaatIni.equals(nodeTujuan))
-            {
-                return rekonstruksiJalur(peta_asal, nodeTujuan); // Kembalikan urutan node dari awal ke tujuan
-            }
-
-            // Telusuri semua tetangga (node yang terhubung) dari node saat ini
-            List<String[]> tetangga = ambilTetanggaNode(idNodeSaatIni); // Format: [nodeId, jarak]
-            for (String[] data : tetangga)
-            {
-                String idTetangga = data[0];                   // ID node tetangga
-                double jarakKeTetangga = Double.parseDouble(data[1]); // Jarak / bobot edge ke tetangga
-
-                // Hitung nilai G baru jika melewati node saat ini ke tetangga
-                double nilaiGBaru = nilaiG.getOrDefault(idNodeSaatIni, Double.MAX_VALUE) + jarakKeTetangga;
-
-                // Jika jalur baru ke tetangga ini lebih pendek dari yang sudah diketahui
-                if (nilaiGBaru < nilaiG.getOrDefault(idTetangga, Double.MAX_VALUE))
-                {
-                    peta_asal.put(idTetangga, idNodeSaatIni); // Catat bahwa asal terbaik ke tetangga adalah dari node saat ini
-                    nilaiG.put(idTetangga, nilaiGBaru);         // Perbarui nilai G untuk tetangga
-
-                    // Hitung nilai F = G (biaya aktual) + H (heuristik ke tujuan)
-                    double nilaiF = nilaiGBaru + hitungHeuristik(idTetangga, nodeTujuan);
-                    openSet.add(new NodeAstar(idTetangga, nilaiF)); // Tambahkan tetangga ke antrian dengan nilai F baru
+            
+            // Jika bukan, lanjutkan penelusuran ke tetangganya
+            List<String> tetangga = GRAPH_EDGES.getOrDefault(nodeSaatIni, Collections.emptyList());
+            for (String t : tetangga) {
+                if (!dikunjungi.contains(t)) {
+                    dikunjungi.add(t);
+                    peta_asal.put(t, nodeSaatIni); // Rekam jejak
+                    queue.add(t);
                 }
             }
         }
 
-        // Jika antrian habis tanpa menemukan tujuan, kembalikan list kosong (tidak ada jalur)
-        return Collections.emptyList();
+        // Jika antrian habis tapi tidak menemukan slot kosong sama sekali
+        if (nodeSlotTerpilih == null) {
+            return new HasilAlokasiRuteDto(null, null, null, null, null, null, "BASEMENT_PENUH");
+        }
+
+        // Rekonstruksi rute menjadi array koordinat
+        List<TitikRuteDto> urutanRute = rekonstruksiJalurKoordinat(peta_asal, nodeSlotTerpilih);
+        SlotParkir slotTerpilih = mapSlotKosong.get(nodeSlotTerpilih);
+
+        // Kunci slot agar tidak diserobot
+        kunciSlotSebagaiDipesan(slotTerpilih, kendaraan);
+
+        // Kembalikan DTO
+        return new HasilAlokasiRuteDto(
+            slotTerpilih.getIdSlot(),
+            slotTerpilih.getLantai(),
+            slotTerpilih.getKoordinatX(),
+            slotTerpilih.getKoordinatY(),
+            urutanRute,
+            null, // idTransaksi diisi nanti
+            "ALOKASI_BERHASIL"
+        );
     }
 
-    // Fungsi Heuristik A*: memperkirakan jarak dari nodeA ke nodeB
-    // Untuk saat ini menggunakan nilai konstan (akan diganti koordinat nyata di iterasi selanjutnya)
-    private double hitungHeuristik(String nodeA, String nodeB)
+    // =====================================================================
+    // Method Pendukung
+    // =====================================================================
+
+    private DataKendaraan cariAtauDaftarkanKendaraan(String platNomor, JenisKendaraan jenisKendaraan)
     {
-        // TODO: Iterasi berikutnya - hitung jarak Euclidean berdasarkan koordinat node dari database
-        // Saat ini mengembalikan 1.0 sebagai estimasi awal (A* tetap berjalan meski kurang optimal)
-        return 1.0; // Mengembalikan nilai heuristik estimasi awal
+        Optional<DataKendaraan> kendaraanTerdaftar = dataKendaraanRepository.findByPlatNomor(platNomor);
+        if (kendaraanTerdaftar.isPresent()) {
+            return kendaraanTerdaftar.get();
+        }
+        DataKendaraan kendaraanBaru = new DataKendaraan(platNomor, jenisKendaraan);
+        return dataKendaraanRepository.save(kendaraanBaru);
     }
 
-    // Method untuk mendapatkan daftar tetangga dari sebuah node (representasi Graf)
-    // TODO: Iterasi berikutnya - ambil data ini dari tabel 'graph_node' di database
-    private List<String[]> ambilTetanggaNode(String nodeId)
+    private void kunciSlotSebagaiDipesan(SlotParkir slot, DataKendaraan kendaraan)
     {
-        // Deklarasi List untuk menyimpan data tetangga: [nodeId, jarak]
-        List<String[]> tetangga = new ArrayList<>();
-
-        // Graf statis sementara untuk basement (akan dipindahkan ke database pada iterasi selanjutnya)
-        // Format representasi: {"nodeId", "jarak"}
-        Map<String, List<String[]>> graphBasement = new HashMap<>();
-        graphBasement.put("Gate-A",  Arrays.asList(new String[]{"N-1", "2"}, new String[]{"N-2", "3"}));
-        graphBasement.put("N-1",     Arrays.asList(new String[]{"Gate-A", "2"}, new String[]{"N-3", "2"}, new String[]{"N-4", "4"}));
-        graphBasement.put("N-2",     Arrays.asList(new String[]{"Gate-A", "3"}, new String[]{"N-5", "2"}));
-        graphBasement.put("N-3",     Arrays.asList(new String[]{"N-1", "2"}, new String[]{"N-6", "3"}));
-        graphBasement.put("N-4",     Arrays.asList(new String[]{"N-1", "4"}, new String[]{"N-7", "2"}));
-        graphBasement.put("N-5",     Arrays.asList(new String[]{"N-2", "2"}, new String[]{"N-8", "3"}));
-
-        // Mengambil daftar tetangga dari graf statis, kembalikan list kosong jika node tidak terdaftar
-        return graphBasement.getOrDefault(nodeId, tetangga);
+        slot.setStatusSlot(StatusSlot.DIPESAN);
+        slot.setKendaraanAktif(kendaraan);
+        slot.setWaktuDipesan(LocalDateTime.now());
+        slotParkirRepository.save(slot);
     }
 
-    // Method untuk merekonstruksi urutan jalur dari node tujuan kembali ke node awal
-    private List<String> rekonstruksiJalur(Map<String, String> peta_asal, String nodeTujuan)
+    // Merekonstruksi rute dari tujuan ke awal, dan mengkonversi Node menjadi TitikRuteDto (id, x, y)
+    private List<TitikRuteDto> rekonstruksiJalurKoordinat(Map<String, String> peta_asal, String nodeTujuan)
     {
-        // Deklarasi List untuk menyimpan urutan jalur
-        List<String> jalur = new ArrayList<>();
-
-        // Deklarasi variabel penunjuk dimulai dari node tujuan
+        List<TitikRuteDto> jalur = new ArrayList<>();
         String nodeSaatIni = nodeTujuan;
 
-        // LOOP: telusuri peta_asal dari tujuan kembali ke awal
-        while (nodeSaatIni != null)
-        {
-            jalur.add(0, nodeSaatIni);                 // Tambahkan node di posisi 0 (urutan terbalik menjadi maju)
-            nodeSaatIni = peta_asal.get(nodeSaatIni); // Pindah ke node asal dari node saat ini
+        while (nodeSaatIni != null) {
+            GraphNodeData dataNode = GRAPH_NODES.get(nodeSaatIni);
+            TitikRuteDto titik = new TitikRuteDto(dataNode.id, dataNode.x, dataNode.y);
+            
+            jalur.add(0, titik); // Tambah di depan agar urutannya menjadi dari awal ke akhir
+            nodeSaatIni = peta_asal.get(nodeSaatIni);
         }
 
-        return jalur; // Mengembalikan daftar urutan node dari awal hingga tujuan
-    }
-
-
-    // =====================================================================
-    // Kelas Inner: NodeAstar (Struktur Data untuk antrian A*)
-    // Setara dengan kelas ListNode.java di Modul_12 Anda namun untuk kebutuhan A*
-    // =====================================================================
-    private static class NodeAstar // Kelas inner untuk merepresentasikan sebuah node dalam antrian Algoritma A*
-    {
-        String idNode; // ID dari node ini di dalam graf basement
-        double nilaiF; // Nilai F = G (biaya aktual) + H (heuristik estimasi) untuk prioritas antrian
-
-        // Konstruktor NodeAstar
-        NodeAstar(String idNode, double nilaiF)
-        {
-            this.idNode = idNode;     // Menginisialisasi atribut idNode
-            this.nilaiF = nilaiF;     // Menginisialisasi atribut nilaiF
-        }
+        return jalur;
     }
 }

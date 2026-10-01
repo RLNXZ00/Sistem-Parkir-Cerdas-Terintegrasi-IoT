@@ -49,14 +49,14 @@ public class DataKendaraan // Kelas model untuk menyimpan data identitas setiap 
     // Getter & Setter (gaya penulisan Anda)
     // =====================================================================
 
+    public void setIdKendaraan(Long idKendaraan) // Deklarasi method setter untuk idKendaraan
+    {
+        this.idKendaraan = idKendaraan; // Mengubah nilai atribut idKendaraan
+    }
+
     public Long getIdKendaraan() // Deklarasi method getter untuk idKendaraan
     {
         return idKendaraan; // Mengembalikan nilai atribut idKendaraan
-    }
-
-    public String getPlatNomor() // Deklarasi method getter untuk platNomor
-    {
-        return platNomor; // Mengembalikan nilai atribut platNomor
     }
 
     public void setPlatNomor(String platNomor) // Deklarasi method setter untuk platNomor
@@ -64,14 +64,24 @@ public class DataKendaraan // Kelas model untuk menyimpan data identitas setiap 
         this.platNomor = platNomor; // Mengubah nilai atribut platNomor
     }
 
-    public JenisKendaraan getJenisKendaraan() // Deklarasi method getter untuk jenisKendaraan
+    public String getPlatNomor() // Deklarasi method getter untuk platNomor
     {
-        return jenisKendaraan; // Mengembalikan nilai atribut jenisKendaraan
+        return platNomor; // Mengembalikan nilai atribut platNomor
     }
 
     public void setJenisKendaraan(JenisKendaraan jenisKendaraan) // Deklarasi method setter untuk jenisKendaraan
     {
         this.jenisKendaraan = jenisKendaraan; // Mengubah nilai atribut jenisKendaraan
+    }
+
+    public JenisKendaraan getJenisKendaraan() // Deklarasi method getter untuk jenisKendaraan
+    {
+        return jenisKendaraan; // Mengembalikan nilai atribut jenisKendaraan
+    }
+
+    public void setWaktuRegistrasiPertama(LocalDateTime waktuRegistrasiPertama) // Deklarasi method setter untuk waktuRegistrasiPertama
+    {
+        this.waktuRegistrasiPertama = waktuRegistrasiPertama; // Mengubah nilai atribut waktuRegistrasiPertama
     }
 
     public LocalDateTime getWaktuRegistrasiPertama() // Deklarasi method getter untuk waktuRegistrasiPertama

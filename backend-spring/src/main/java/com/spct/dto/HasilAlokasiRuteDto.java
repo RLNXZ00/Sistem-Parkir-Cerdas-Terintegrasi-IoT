@@ -15,23 +15,22 @@ public class HasilAlokasiRuteDto // Kelas DTO untuk membungkus hasil alokasi slo
     private Integer lantaiSlot;         // Lantai dari slot yang dialokasikan (misal: 1)
     private Double koordinatX;          // Koordinat X slot untuk rendering peta di Frontend Kiosk
     private Double koordinatY;          // Koordinat Y slot untuk rendering peta di Frontend Kiosk
-    private List<String> urutan;        // Array urutan node rute hasil Algoritma A* (misal: ["Gate-A", "N-5", "N-12", "B1-10"])
+    private List<TitikRuteDto> urutan;        // Array urutan node rute beserta koordinat X,Y
     private Long idTransaksi;           // ID transaksi parkir yang baru dibuat (untuk referensi pembayaran saat keluar)
     private String pesanStatus;         // Pesan status operasi (misal: "Alokasi berhasil" atau "Basement penuh")
-
 
     // =====================================================================
     // Konstruktor LENGKAP (gaya penulisan Anda)
     // =====================================================================
     public HasilAlokasiRuteDto(String idSlotDialokasikan, Integer lantaiSlot,
                                 Double koordinatX, Double koordinatY,
-                                List<String> urutan, Long idTransaksi, String pesanStatus)
+                                List<TitikRuteDto> urutan, Long idTransaksi, String pesanStatus)
     {
         this.idSlotDialokasikan = idSlotDialokasikan; // Menginisialisasi atribut idSlotDialokasikan
         this.lantaiSlot = lantaiSlot;                 // Menginisialisasi atribut lantaiSlot
         this.koordinatX = koordinatX;                 // Menginisialisasi atribut koordinatX
         this.koordinatY = koordinatY;                 // Menginisialisasi atribut koordinatY
-        this.urutan = urutan;                         // Menginisialisasi atribut urutan (array rute A*)
+        this.urutan = urutan;                         // Menginisialisasi atribut urutan (array rute)
         this.idTransaksi = idTransaksi;               // Menginisialisasi atribut idTransaksi
         this.pesanStatus = pesanStatus;               // Menginisialisasi atribut pesanStatus
     }
@@ -44,14 +43,19 @@ public class HasilAlokasiRuteDto // Kelas DTO untuk membungkus hasil alokasi slo
     // Getter & Setter (gaya penulisan Anda)
     // =====================================================================
 
+    public void setIdSlotDialokasikan(String idSlotDialokasikan) // Deklarasi method setter untuk idSlotDialokasikan
+    {
+        this.idSlotDialokasikan = idSlotDialokasikan; // Mengubah nilai atribut idSlotDialokasikan
+    }
+
     public String getIdSlotDialokasikan() // Deklarasi method getter untuk idSlotDialokasikan
     {
         return idSlotDialokasikan; // Mengembalikan nilai atribut idSlotDialokasikan
     }
 
-    public void setIdSlotDialokasikan(String idSlotDialokasikan) // Deklarasi method setter untuk idSlotDialokasikan
+    public void setLantaiSlot(Integer lantaiSlot) // Deklarasi method setter untuk lantaiSlot
     {
-        this.idSlotDialokasikan = idSlotDialokasikan; // Mengubah nilai atribut idSlotDialokasikan
+        this.lantaiSlot = lantaiSlot;
     }
 
     public Integer getLantaiSlot() // Deklarasi method getter untuk lantaiSlot
@@ -59,9 +63,19 @@ public class HasilAlokasiRuteDto // Kelas DTO untuk membungkus hasil alokasi slo
         return lantaiSlot; // Mengembalikan nilai atribut lantaiSlot
     }
 
+    public void setKoordinatX(Double koordinatX) // Deklarasi method setter untuk koordinatX
+    {
+        this.koordinatX = koordinatX;
+    }
+
     public Double getKoordinatX() // Deklarasi method getter untuk koordinatX
     {
         return koordinatX; // Mengembalikan nilai atribut koordinatX
+    }
+
+    public void setKoordinatY(Double koordinatY) // Deklarasi method setter untuk koordinatY
+    {
+        this.koordinatY = koordinatY;
     }
 
     public Double getKoordinatY() // Deklarasi method getter untuk koordinatY
@@ -69,9 +83,19 @@ public class HasilAlokasiRuteDto // Kelas DTO untuk membungkus hasil alokasi slo
         return koordinatY; // Mengembalikan nilai atribut koordinatY
     }
 
-    public List<String> getUrutan() // Deklarasi method getter untuk urutan (array rute A*)
+    public void setUrutan(List<TitikRuteDto> urutan) // Deklarasi method setter untuk urutan
+    {
+        this.urutan = urutan;
+    }
+
+    public List<TitikRuteDto> getUrutan() // Deklarasi method getter untuk urutan (array rute)
     {
         return urutan; // Mengembalikan nilai atribut urutan
+    }
+
+    public void setIdTransaksi(Long idTransaksi) // Deklarasi method setter untuk idTransaksi
+    {
+        this.idTransaksi = idTransaksi;
     }
 
     public Long getIdTransaksi() // Deklarasi method getter untuk idTransaksi
@@ -79,13 +103,13 @@ public class HasilAlokasiRuteDto // Kelas DTO untuk membungkus hasil alokasi slo
         return idTransaksi; // Mengembalikan nilai atribut idTransaksi
     }
 
-    public String getPesanStatus() // Deklarasi method getter untuk pesanStatus
-    {
-        return pesanStatus; // Mengembalikan nilai atribut pesanStatus
-    }
-
     public void setPesanStatus(String pesanStatus) // Deklarasi method setter untuk pesanStatus
     {
         this.pesanStatus = pesanStatus; // Mengubah nilai atribut pesanStatus
+    }
+
+    public String getPesanStatus() // Deklarasi method getter untuk pesanStatus
+    {
+        return pesanStatus; // Mengembalikan nilai atribut pesanStatus
     }
 }

@@ -18,7 +18,7 @@ public class HasilDeteksiMasukDto // Kelas DTO untuk membungkus seluruh hasil pe
     private Long idTransaksi;               // ID transaksi yang baru dibuat (disimpan Kiosk untuk referensi keluar)
     private String slotDialokasikan;        // Nomor slot yang diberikan (misal: "B1-12") untuk ditampilkan di Kiosk
     private Integer lantaiSlot;             // Lantai dari slot (untuk konteks navigasi)
-    private List<String> jalurRuteGraf;     // Array urutan node rute dari Algoritma A* (untuk rendering animasi 2D)
+    private List<TitikRuteDto> jalurRuteGraf;     // Array urutan titik (id, x, y) rute dari Algoritma A* (untuk rendering simulasi visual 2D)
     private String pesanKeterangan;         // Keterangan tambahan (misal: pesan error atau instruksi ke pengguna)
 
 
@@ -27,7 +27,7 @@ public class HasilDeteksiMasukDto // Kelas DTO untuk membungkus seluruh hasil pe
     // =====================================================================
     public HasilDeteksiMasukDto(String status, String platNomor, LocalDateTime waktuMasuk,
                                  Long idTransaksi, String slotDialokasikan, Integer lantaiSlot,
-                                 List<String> jalurRuteGraf, String pesanKeterangan)
+                                 List<TitikRuteDto> jalurRuteGraf, String pesanKeterangan)
     {
         this.status = status;                         // Menginisialisasi atribut status
         this.platNomor = platNomor;                   // Menginisialisasi atribut platNomor
@@ -47,14 +47,19 @@ public class HasilDeteksiMasukDto // Kelas DTO untuk membungkus seluruh hasil pe
     // Getter & Setter (gaya penulisan Anda)
     // =====================================================================
 
+    public void setStatus(String status) // Deklarasi method setter untuk status
+    {
+        this.status = status; // Mengubah nilai atribut status
+    }
+
     public String getStatus() // Deklarasi method getter untuk status
     {
         return status; // Mengembalikan nilai atribut status
     }
 
-    public void setStatus(String status) // Deklarasi method setter untuk status
+    public void setPlatNomor(String platNomor) // Deklarasi method setter untuk platNomor
     {
-        this.status = status; // Mengubah nilai atribut status
+        this.platNomor = platNomor;
     }
 
     public String getPlatNomor() // Deklarasi method getter untuk platNomor
@@ -62,9 +67,19 @@ public class HasilDeteksiMasukDto // Kelas DTO untuk membungkus seluruh hasil pe
         return platNomor; // Mengembalikan nilai atribut platNomor
     }
 
+    public void setWaktuMasuk(LocalDateTime waktuMasuk) // Deklarasi method setter untuk waktuMasuk
+    {
+        this.waktuMasuk = waktuMasuk;
+    }
+
     public LocalDateTime getWaktuMasuk() // Deklarasi method getter untuk waktuMasuk
     {
         return waktuMasuk; // Mengembalikan nilai atribut waktuMasuk
+    }
+
+    public void setIdTransaksi(Long idTransaksi) // Deklarasi method setter untuk idTransaksi
+    {
+        this.idTransaksi = idTransaksi;
     }
 
     public Long getIdTransaksi() // Deklarasi method getter untuk idTransaksi
@@ -72,9 +87,19 @@ public class HasilDeteksiMasukDto // Kelas DTO untuk membungkus seluruh hasil pe
         return idTransaksi; // Mengembalikan nilai atribut idTransaksi
     }
 
+    public void setSlotDialokasikan(String slotDialokasikan) // Deklarasi method setter untuk slotDialokasikan
+    {
+        this.slotDialokasikan = slotDialokasikan;
+    }
+
     public String getSlotDialokasikan() // Deklarasi method getter untuk slotDialokasikan
     {
         return slotDialokasikan; // Mengembalikan nilai atribut slotDialokasikan
+    }
+
+    public void setLantaiSlot(Integer lantaiSlot) // Deklarasi method setter untuk lantaiSlot
+    {
+        this.lantaiSlot = lantaiSlot;
     }
 
     public Integer getLantaiSlot() // Deklarasi method getter untuk lantaiSlot
@@ -82,18 +107,23 @@ public class HasilDeteksiMasukDto // Kelas DTO untuk membungkus seluruh hasil pe
         return lantaiSlot; // Mengembalikan nilai atribut lantaiSlot
     }
 
-    public List<String> getJalurRuteGraf() // Deklarasi method getter untuk jalurRuteGraf
+    public void setJalurRuteGraf(List<TitikRuteDto> jalurRuteGraf) // Deklarasi method setter untuk jalurRuteGraf
     {
-        return jalurRuteGraf; // Mengembalikan nilai atribut jalurRuteGraf (array rute A*)
+        this.jalurRuteGraf = jalurRuteGraf;
     }
 
-    public String getPesanKeterangan() // Deklarasi method getter untuk pesanKeterangan
+    public List<TitikRuteDto> getJalurRuteGraf() // Deklarasi method getter untuk jalurRuteGraf
     {
-        return pesanKeterangan; // Mengembalikan nilai atribut pesanKeterangan
+        return jalurRuteGraf; // Mengembalikan nilai atribut jalurRuteGraf (array rute A*)
     }
 
     public void setPesanKeterangan(String pesanKeterangan) // Deklarasi method setter untuk pesanKeterangan
     {
         this.pesanKeterangan = pesanKeterangan; // Mengubah nilai atribut pesanKeterangan
+    }
+
+    public String getPesanKeterangan() // Deklarasi method getter untuk pesanKeterangan
+    {
+        return pesanKeterangan; // Mengembalikan nilai atribut pesanKeterangan
     }
 }
