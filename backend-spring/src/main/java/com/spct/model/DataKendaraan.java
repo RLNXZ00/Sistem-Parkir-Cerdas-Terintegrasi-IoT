@@ -3,12 +3,7 @@ package com.spct.model;
 import jakarta.persistence.*;
 import java.time.LocalDateTime; // Mengimpor kelas LocalDateTime untuk menyimpan waktu registrasi pertama
 
-// Deklarasi Enum JenisKendaraan: merepresentasikan tipe kendaraan yang masuk ke sistem
-enum JenisKendaraan
-{
-    MOBIL, // Kendaraan roda empat
-    MOTOR  // Kendaraan roda dua
-}
+
 
 // Deklarasi Entity: merepresentasikan tabel 'data_kendaraan' di Database Relasional
 // Setara dengan kelas Proyek.java / Tugas.java Anda namun terhubung ke database via JPA

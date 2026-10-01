@@ -3,15 +3,7 @@ package com.spct.model;
 import jakarta.persistence.*;
 import java.time.LocalDateTime; // Mengimpor kelas LocalDateTime untuk menyimpan waktu pemesanan slot
 
-// Deklarasi Enum StatusSlot: merepresentasikan semua kemungkinan state dari sebuah slot parkir
-// Pengganti String statis "PENDING" / "DONE" dari gaya Proyek.java Anda
-enum StatusSlot
-{
-    KOSONG,     // Slot tidak ada kendaraan dan bebas digunakan
-    DIPESAN,    // Slot sudah dialokasikan oleh sistem saat kendaraan baru masuk (handling race condition)
-    TERISI,     // Slot sudah benar-benar terisi (sensor fisik mengkonfirmasi)
-    MAINTENANCE // Slot sedang dalam perbaikan / tidak tersedia
-}
+
 
 // Deklarasi Entity: merepresentasikan tabel 'slot_parkir' di Database Relasional
 // Setara dengan kelas Proyek.java yang mengimplementasikan Serializable untuk persistensi

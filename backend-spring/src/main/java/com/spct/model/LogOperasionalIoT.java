@@ -1,36 +1,108 @@
 package com.spct.model;
 
-/**
- * ENTITAS: LogOperasionalIoT
- * Merepresentasikan tabel 'log_operasional_iot' di Database.
- * Bertanggung jawab mencatat semua pergerakan sensor perangkat keras.
- * 
- * PSEUDOCODE / STRUKTUR ATRIBUT:
- * 
- * Tipe Tabel: Log / History (Data sangat besar, mungkin butuh partisi bulanan)
- * 
- * 1. id_log (Primary Key)
- *    - Tipe: Long Auto-Increment atau UUID.
- * 
- * 2. id_slot (Foreign Key)
- *    - Menunjuk ke SlotParkir mana log ini terjadi.
- * 
- * 3. waktu_kejadian
- *    - Tipe: Timestamp (Sangat presisi hingga milidetik).
- * 
- * 4. jenis_kejadian
- *    - Tipe: Enum. 
- *      Kategori Normal: (SENSOR_MENDETEKSI_MOBIL_MASUK, SENSOR_MENDETEKSI_MOBIL_KELUAR)
- *      Kategori Kritis: (ANOMALI_PENYEROBOTAN_SLOT, SENSOR_OFFLINE_TIMEOUT, KENDARAAN_BEDA_DIMENSI)
- * 
- * 5. tingkat_keparahan (Severity)
- *    - Tipe: Enum (INFO, WARNING, CRITICAL)
- *    - Fungsi: Untuk pewarnaan (merah/kuning/hijau) di Dashboard Frontend Petugas.
- * 
- * 6. status_resolusi
- *    - Tipe: Enum (BELUM_DITANGANI, SELESAI_DIVALIDASI).
- *    - Fungsi: Memastikan petugas mengecek lapangan jika terjadi anomali, sebelum statusnya diubah menjadi "Selesai".
- */
-public class LogOperasionalIoT {
-    // Akan diisi anotas @Entity, @Id, @Column dari JPA
+import jakarta.persistence.*;
+import java.time.LocalDateTime; // Mengimpor LocalDateTime untuk menyimpan waktu kejadian sensor yang presisi
+
+
+
+// Deklarasi Entity: merepresentasikan tabel 'log_operasional_iot' di Database Relasional
+// Tabel ini bersifat Log/History: sangat besar, mencatat setiap perubahan sensor secara real-time
+@Entity
+@Table(name = "log_operasional_iot") // Mendefinisikan nama tabel di database
+public class LogOperasionalIoT // Kelas model untuk mencatat semua pergerakan dan kejadian sensor IoT
+{
+    // =====================================================================
+    // Deklarasi Atribut: Kolom-kolom tabel 'log_operasional_iot'
+    // =====================================================================
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-increment oleh database
+    @Column(name = "id_log")
+    private Long idLog; // ID unik log sebagai primary key (auto-increment)
+
+    @Column(name = "waktu_kejadian", nullable = false)
+    private LocalDateTime waktuKejadian; // Timestamp presisi saat sensor mengirim perubahan status
+
+    @Enumerated(EnumType.STRING) // Menyimpan nama Enum sebagai String di database
+    @Column(name = "jenis_kejadian", nullable = false)
+    private JenisKejadian jenisKejadian; // Kategori kejadian: normal atau anomali
+
+    @Enumerated(EnumType.STRING) // Menyimpan nama Enum sebagai String di database
+    @Column(name = "tingkat_keparahan", nullable = false)
+    private TingkatKeparahan tingkatKeparahan; // Level keparahan: INFO, WARNING, atau CRITICAL
+
+    @Enumerated(EnumType.STRING) // Menyimpan nama Enum sebagai String di database
+    @Column(name = "status_resolusi", nullable = false)
+    private StatusResolusi statusResolusi; // Status penanganan: belum ditangani atau sudah divalidasi petugas
+
+    @Column(name = "catatan_detail", length = 500)
+    private String catatanDetail; // Penjelasan detail kejadian (misal: "Slot B1-12: status DB=KOSONG, sensor=TERISI")
+
+    // Relasi Foreign Key ke SlotParkir (Many-to-One: banyak log bisa terjadi di satu slot)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_slot", nullable = false) // Kolom FK di tabel log_operasional_iot
+    private SlotParkir slotTerkait; // Slot parkir mana yang terkait dengan kejadian ini
+
+
+    // =====================================================================
+    // Konstruktor LENGKAP untuk CRUD/Database (gaya penulisan Anda)
+    // =====================================================================
+    public LogOperasionalIoT(SlotParkir slotTerkait, JenisKejadian jenisKejadian,
+                              TingkatKeparahan tingkatKeparahan, String catatanDetail)
+    {
+        this.slotTerkait = slotTerkait;             // Menginisialisasi relasi ke slot terkait
+        this.jenisKejadian = jenisKejadian;         // Menginisialisasi atribut jenisKejadian
+        this.tingkatKeparahan = tingkatKeparahan;   // Menginisialisasi atribut tingkatKeparahan
+        this.catatanDetail = catatanDetail;         // Menginisialisasi atribut catatanDetail
+        this.waktuKejadian = LocalDateTime.now();   // Mencatat waktu kejadian otomatis saat log dibuat
+        this.statusResolusi = StatusResolusi.BELUM_DITANGANI; // Default: semua log baru belum ditangani
+    }
+
+    // Konstruktor kosong (wajib ada untuk JPA/Hibernate)
+    public LogOperasionalIoT() {}
+
+
+    // =====================================================================
+    // Getter & Setter (gaya penulisan Anda)
+    // =====================================================================
+
+    public Long getIdLog() // Deklarasi method getter untuk idLog
+    {
+        return idLog; // Mengembalikan nilai atribut idLog
+    }
+
+    public LocalDateTime getWaktuKejadian() // Deklarasi method getter untuk waktuKejadian
+    {
+        return waktuKejadian; // Mengembalikan nilai atribut waktuKejadian
+    }
+
+    public JenisKejadian getJenisKejadian() // Deklarasi method getter untuk jenisKejadian
+    {
+        return jenisKejadian; // Mengembalikan nilai atribut jenisKejadian
+    }
+
+    public TingkatKeparahan getTingkatKeparahan() // Deklarasi method getter untuk tingkatKeparahan
+    {
+        return tingkatKeparahan; // Mengembalikan nilai atribut tingkatKeparahan
+    }
+
+    public StatusResolusi getStatusResolusi() // Deklarasi method getter untuk statusResolusi
+    {
+        return statusResolusi; // Mengembalikan nilai atribut statusResolusi
+    }
+
+    public void setStatusResolusi(StatusResolusi statusResolusi) // Deklarasi method setter untuk statusResolusi
+    {
+        this.statusResolusi = statusResolusi; // Mengubah status resolusi (dipanggil saat petugas mengkonfirmasi penanganan)
+    }
+
+    public String getCatatanDetail() // Deklarasi method getter untuk catatanDetail
+    {
+        return catatanDetail; // Mengembalikan nilai atribut catatanDetail
+    }
+
+    public SlotParkir getSlotTerkait() // Deklarasi method getter untuk slotTerkait
+    {
+        return slotTerkait; // Mengembalikan objek SlotParkir yang terkait dengan log ini
+    }
 }
