@@ -44,14 +44,19 @@ public class HasilAlokasiRuteDto // Kelas DTO untuk membungkus hasil alokasi slo
     // Getter & Setter (gaya penulisan Anda)
     // =====================================================================
 
+    public void setIdSlotDialokasikan(String idSlotDialokasikan) // Deklarasi method setter untuk idSlotDialokasikan
+    {
+        this.idSlotDialokasikan = idSlotDialokasikan; // Mengubah nilai atribut idSlotDialokasikan
+    }
+
     public String getIdSlotDialokasikan() // Deklarasi method getter untuk idSlotDialokasikan
     {
         return idSlotDialokasikan; // Mengembalikan nilai atribut idSlotDialokasikan
     }
 
-    public void setIdSlotDialokasikan(String idSlotDialokasikan) // Deklarasi method setter untuk idSlotDialokasikan
+    public void setLantaiSlot(Integer lantaiSlot) // Deklarasi method setter untuk lantaiSlot
     {
-        this.idSlotDialokasikan = idSlotDialokasikan; // Mengubah nilai atribut idSlotDialokasikan
+        this.lantaiSlot = lantaiSlot;
     }
 
     public Integer getLantaiSlot() // Deklarasi method getter untuk lantaiSlot
@@ -59,9 +64,19 @@ public class HasilAlokasiRuteDto // Kelas DTO untuk membungkus hasil alokasi slo
         return lantaiSlot; // Mengembalikan nilai atribut lantaiSlot
     }
 
+    public void setKoordinatX(Double koordinatX) // Deklarasi method setter untuk koordinatX
+    {
+        this.koordinatX = koordinatX;
+    }
+
     public Double getKoordinatX() // Deklarasi method getter untuk koordinatX
     {
         return koordinatX; // Mengembalikan nilai atribut koordinatX
+    }
+
+    public void setKoordinatY(Double koordinatY) // Deklarasi method setter untuk koordinatY
+    {
+        this.koordinatY = koordinatY;
     }
 
     public Double getKoordinatY() // Deklarasi method getter untuk koordinatY
@@ -69,9 +84,19 @@ public class HasilAlokasiRuteDto // Kelas DTO untuk membungkus hasil alokasi slo
         return koordinatY; // Mengembalikan nilai atribut koordinatY
     }
 
+    public void setUrutan(List<String> urutan) // Deklarasi method setter untuk urutan
+    {
+        this.urutan = urutan;
+    }
+
     public List<String> getUrutan() // Deklarasi method getter untuk urutan (array rute A*)
     {
         return urutan; // Mengembalikan nilai atribut urutan
+    }
+
+    public void setIdTransaksi(Long idTransaksi) // Deklarasi method setter untuk idTransaksi
+    {
+        this.idTransaksi = idTransaksi;
     }
 
     public Long getIdTransaksi() // Deklarasi method getter untuk idTransaksi
@@ -79,13 +104,13 @@ public class HasilAlokasiRuteDto // Kelas DTO untuk membungkus hasil alokasi slo
         return idTransaksi; // Mengembalikan nilai atribut idTransaksi
     }
 
-    public String getPesanStatus() // Deklarasi method getter untuk pesanStatus
-    {
-        return pesanStatus; // Mengembalikan nilai atribut pesanStatus
-    }
-
     public void setPesanStatus(String pesanStatus) // Deklarasi method setter untuk pesanStatus
     {
         this.pesanStatus = pesanStatus; // Mengubah nilai atribut pesanStatus
+    }
+
+    public String getPesanStatus() // Deklarasi method getter untuk pesanStatus
+    {
+        return pesanStatus; // Mengembalikan nilai atribut pesanStatus
     }
 }

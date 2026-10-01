@@ -49,13 +49,93 @@ public class HasilTagihanDto
     // Getter & Setter (gaya penulisan Anda)
     // =====================================================================
 
-    public String getStatus() { return status; }
-    public Long getIdTransaksi() { return idTransaksi; }
-    public String getPlatNomor() { return platNomor; }
-    public LocalDateTime getWaktuMasuk() { return waktuMasuk; }
-    public LocalDateTime getWaktuKeluar() { return waktuKeluar; }
-    public Integer getDurasiTotalMenit() { return durasiTotalMenit; }
-    public BigDecimal getNominalTagihan() { return nominalTagihan; }
-    public StatusPembayaran getStatusPembayaran() { return statusPembayaran; }
-    public String getPesanKeterangan() { return pesanKeterangan; }
+    public void setStatus(String status) // Setter status
+    {
+        this.status = status;
+    }
+
+    public String getStatus() // Getter status
+    {
+        return status;
+    }
+
+    public void setIdTransaksi(Long idTransaksi) // Setter idTransaksi
+    {
+        this.idTransaksi = idTransaksi;
+    }
+
+    public Long getIdTransaksi() // Getter idTransaksi
+    {
+        return idTransaksi;
+    }
+
+    public void setPlatNomor(String platNomor) // Setter platNomor
+    {
+        this.platNomor = platNomor;
+    }
+
+    public String getPlatNomor() // Getter platNomor
+    {
+        return platNomor;
+    }
+
+    public void setWaktuMasuk(LocalDateTime waktuMasuk) // Setter waktuMasuk
+    {
+        this.waktuMasuk = waktuMasuk;
+    }
+
+    public LocalDateTime getWaktuMasuk() // Getter waktuMasuk
+    {
+        return waktuMasuk;
+    }
+
+    public void setWaktuKeluar(LocalDateTime waktuKeluar) // Setter waktuKeluar
+    {
+        this.waktuKeluar = waktuKeluar;
+    }
+
+    public LocalDateTime getWaktuKeluar() // Getter waktuKeluar
+    {
+        return waktuKeluar;
+    }
+
+    public void setDurasiTotalMenit(Integer durasiTotalMenit) // Setter durasiTotalMenit
+    {
+        this.durasiTotalMenit = durasiTotalMenit;
+    }
+
+    public Integer getDurasiTotalMenit() // Getter durasiTotalMenit
+    {
+        return durasiTotalMenit;
+    }
+
+    public void setNominalTagihan(BigDecimal nominalTagihan) // Setter nominalTagihan
+    {
+        this.nominalTagihan = nominalTagihan;
+    }
+
+    public BigDecimal getNominalTagihan() // Getter nominalTagihan
+    {
+        return nominalTagihan;
+    }
+
+    public void setStatusPembayaran(StatusPembayaran statusPembayaran) // Setter statusPembayaran
+    {
+        this.statusPembayaran = statusPembayaran;
+    }
+
+    public StatusPembayaran getStatusPembayaran() // Getter statusPembayaran
+    {
+        return statusPembayaran;
+    }
+
+    public void setPesanKeterangan(String pesanKeterangan) // Setter pesanKeterangan
+    {
+        this.pesanKeterangan = pesanKeterangan;
+    }
+
+    public String getPesanKeterangan() // Getter pesanKeterangan
+    {
+        return pesanKeterangan;
+    }
 }

@@ -37,8 +37,25 @@ public class DataDashboardDto // Kelas DTO untuk membungkus semua data analitik 
             this.jumlahMasuk = jumlahMasuk; // Menginisialisasi atribut jumlahMasuk
         }
 
-        public String getJam() { return jam; }                    // Getter jam
-        public Long getJumlahMasuk() { return jumlahMasuk; }     // Getter jumlahMasuk
+        public void setJam(String jam) // Setter jam
+        {
+            this.jam = jam;
+        }
+
+        public String getJam() // Getter jam
+        {
+            return jam;
+        }
+
+        public void setJumlahMasuk(Long jumlahMasuk) // Setter jumlahMasuk
+        {
+            this.jumlahMasuk = jumlahMasuk;
+        }
+
+        public Long getJumlahMasuk() // Getter jumlahMasuk
+        {
+            return jumlahMasuk;
+        }
     }
 
 
@@ -65,11 +82,73 @@ public class DataDashboardDto // Kelas DTO untuk membungkus semua data analitik 
     // Getter & Setter (gaya penulisan Anda)
     // =====================================================================
 
-    public BigDecimal getPendapatanTotal() { return pendapatanTotal; }
-    public Long getTotalKendaraan() { return totalKendaraan; }
-    public Long getTotalAnomali() { return totalAnomali; }
-    public Long getSlotKosongSaatIni() { return slotKosongSaatIni; }
-    public Long getSlotTerisiSaatIni() { return slotTerisiSaatIni; }
-    public Double getReduksiCo2Kg() { return reduksiCo2Kg; }
-    public List<DataOkupansiJamDto> getGrafikOkupansiPerJam() { return grafikOkupansiPerJam; }
+    public void setPendapatanTotal(BigDecimal pendapatanTotal) // Setter pendapatanTotal
+    {
+        this.pendapatanTotal = pendapatanTotal;
+    }
+
+    public BigDecimal getPendapatanTotal() // Getter pendapatanTotal
+    {
+        return pendapatanTotal;
+    }
+
+    public void setTotalKendaraan(Long totalKendaraan) // Setter totalKendaraan
+    {
+        this.totalKendaraan = totalKendaraan;
+    }
+
+    public Long getTotalKendaraan() // Getter totalKendaraan
+    {
+        return totalKendaraan;
+    }
+
+    public void setTotalAnomali(Long totalAnomali) // Setter totalAnomali
+    {
+        this.totalAnomali = totalAnomali;
+    }
+
+    public Long getTotalAnomali() // Getter totalAnomali
+    {
+        return totalAnomali;
+    }
+
+    public void setSlotKosongSaatIni(Long slotKosongSaatIni) // Setter slotKosongSaatIni
+    {
+        this.slotKosongSaatIni = slotKosongSaatIni;
+    }
+
+    public Long getSlotKosongSaatIni() // Getter slotKosongSaatIni
+    {
+        return slotKosongSaatIni;
+    }
+
+    public void setSlotTerisiSaatIni(Long slotTerisiSaatIni) // Setter slotTerisiSaatIni
+    {
+        this.slotTerisiSaatIni = slotTerisiSaatIni;
+    }
+
+    public Long getSlotTerisiSaatIni() // Getter slotTerisiSaatIni
+    {
+        return slotTerisiSaatIni;
+    }
+
+    public void setReduksiCo2Kg(Double reduksiCo2Kg) // Setter reduksiCo2Kg
+    {
+        this.reduksiCo2Kg = reduksiCo2Kg;
+    }
+
+    public Double getReduksiCo2Kg() // Getter reduksiCo2Kg
+    {
+        return reduksiCo2Kg;
+    }
+
+    public void setGrafikOkupansiPerJam(List<DataOkupansiJamDto> grafikOkupansiPerJam) // Setter grafikOkupansiPerJam
+    {
+        this.grafikOkupansiPerJam = grafikOkupansiPerJam;
+    }
+
+    public List<DataOkupansiJamDto> getGrafikOkupansiPerJam() // Getter grafikOkupansiPerJam
+    {
+        return grafikOkupansiPerJam;
+    }
 }
