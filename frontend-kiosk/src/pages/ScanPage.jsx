@@ -63,7 +63,7 @@ export default function ScanPage() {
           <div className="inline-flex items-center justify-center gap-3 bg-surface-container-high/80 px-6 py-3 rounded-full border border-surface-variant mx-auto group-hover:bg-system-info/10 transition-colors">
             <span className="material-symbols-outlined text-system-info animate-spin">radar</span>
             <p className="font-headline-md text-system-info text-xl font-semibold">
-              Scanning Vehicle...
+              SIMULASI KENDARAAN...
             </p>
           </div>
         </div>
