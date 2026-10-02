@@ -1,158 +1,277 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
+
+// ─── Konfigurasi Denah Parkir (harus sinkron dengan AlokasiRuteService.java) ────
+// Slot ganjil = baris ATAS, slot genap = baris BAWAH
+// Kolom 1–8 bersesuaian dengan Node N-1 s/d N-8 di backend
+const TOTAL_COLS = 8; // N-1 s/d N-8
+const ALL_SLOTS = Array.from({ length: 15 }, (_, i) => `B1-${String(i + 1).padStart(2, '0')}`);
+
+// Ukuran kanvas (px) – harus sesuai dengan mapToSvg di bawah
+const MAP_W = 860;
+const MAP_H = 320;
+const GATE_X = 40;
+const CORRIDOR_Y = MAP_H / 2;      // Y = 160 → garis tengah koridor
+const COL_SPACING = 96;             // Jarak antar kolom slot (px)
+const COL_OFFSET = 120;             // X awal kolom pertama
+const SLOT_ABOVE_Y = CORRIDOR_Y - 68; // Y baris atas
+const SLOT_BELOW_Y = CORRIDOR_Y + 68; // Y baris bawah
+
+// Mapping: id slot (B1-01 s/d B1-15) → koordinat pusat slot di kanvas
+function getSlotCoord(slotLabel) {
+  const num = parseInt(slotLabel.replace('B1-', ''), 10);
+  const col = Math.ceil(num / 2);   // 1–2 → col1, 3–4 → col2, dst.
+  const isOdd = num % 2 !== 0;
+  return {
+    x: COL_OFFSET + (col - 1) * COL_SPACING,
+    y: isOdd ? SLOT_ABOVE_Y : SLOT_BELOW_Y,
+  };
+}
+
+// Peta jalan: Gate-A → N-1 → ... → N-8, semua di Y = CORRIDOR_Y
+function getCorridorX(nodeId) {
+  if (nodeId === 'Gate-A') return GATE_X;
+  const n = parseInt(nodeId.replace('N-', ''), 10);
+  return COL_OFFSET + (n - 1) * COL_SPACING;
+}
 
 export default function NavigationPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [pathD, setPathD] = useState('');
-  const [startPoint, setStartPoint] = useState({x: -100, y: -100});
-  const [endPoint, setEndPoint] = useState({x: -100, y: -100});
 
-  const slotData = location.state?.slotData;
-  const platNomor = location.state?.platNomor || 'Unknown';
-  const slotId = slotData?.slotDialokasikan || '---';
+  const slotData   = location.state?.slotData;
+  const platNomor  = location.state?.platNomor || 'Unknown';
+  const slotId     = slotData?.slotDialokasikan || '---';
   const idTransaksi = slotData?.idTransaksi || '000';
-  const jalur = slotData?.jalurRuteGraf || [];
+  const jalur      = slotData?.jalurRuteGraf || [];
 
-  // Konversi koordinat dari Backend (skala 0-160) ke kanvas SVG Frontend (800x600)
-  const mapToSvg = (x, y) => {
-    // X digeser ke kanan (+100) dan dikalikan skala 4
-    const scaledX = 100 + (x * 4);
-    // Y (tengah koridor = 50) dipusatkan di SVG Y=300, skala 4
-    const scaledY = 300 + ((y - 50) * 4);
-    return { x: scaledX, y: scaledY };
-  };
+  // ─── Bangun string path SVG dari array koordinat backend ───────────────────
+  const { pathD, routeLen } = useMemo(() => {
+    if (!jalur || jalur.length === 0) return { pathD: '', routeLen: 0 };
 
-  useEffect(() => {
-    if (jalur && jalur.length > 0) {
-      const pathString = jalur.map((titik, index) => {
-        const { x, y } = mapToSvg(titik.x, titik.y);
-        return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-      }).join(' ');
+    // Backend mengirimkan titik-titik (Gate-A, N-1, …, NODE_B1_x)
+    // Kita mapping ID-nya ke koordinat kanvas kita
+    const points = jalur.map(titik => {
+      const id = titik.id || '';
+      if (id === 'Gate-A') return { x: GATE_X, y: CORRIDOR_Y };
+      if (id.startsWith('N-'))  return { x: getCorridorX(id), y: CORRIDOR_Y };
+      // Slot node: NODE_B1_1 s/d NODE_B1_15 → konversi ke "B1-01" format
+      if (id.startsWith('NODE_B1_')) {
+        const num  = parseInt(id.replace('NODE_B1_', ''), 10);
+        const label = `B1-${String(num).padStart(2, '0')}`;
+        return getSlotCoord(label);
+      }
+      return { x: titik.x * 5, y: titik.y * 3 }; // fallback koordinat backend mentah
+    });
 
-      setPathD(pathString);
-      setStartPoint(mapToSvg(jalur[0].x, jalur[0].y));
-      setEndPoint(mapToSvg(jalur[jalur.length - 1].x, jalur[jalur.length - 1].y));
-    }
+    const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+    // Perkiraan panjang rute agar animasi dash tepat
+    const approxLen = points.reduce((acc, p, i) => {
+      if (i === 0) return 0;
+      const prev = points[i - 1];
+      return acc + Math.hypot(p.x - prev.x, p.y - prev.y);
+    }, 0);
+    return { pathD: d, routeLen: Math.ceil(approxLen) + 50 };
   }, [jalur]);
 
-  // Auto redirect kembali ke scan setelah beberapa detik untuk simulasi
+  // Auto-redirect ke halaman sukses setelah 10 detik
   useEffect(() => {
-    const timer = setTimeout(() => {
-      navigate('/success'); // Pindah ke success gate out untuk demo flow lengkap
-    }, 8000); // 8 detik agar sempat melihat animasi rute
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => navigate('/success'), 10000);
+    return () => clearTimeout(t);
   }, [navigate]);
 
+  const targetCoord = slotId !== '---' ? getSlotCoord(slotId) : null;
+
   return (
-    <div className="bg-bg-primary h-screen w-screen flex flex-col overflow-hidden select-none cursor-pointer" onClick={() => navigate('/success')}>
+    <div
+      className="bg-[#070d12] h-screen w-screen flex flex-col overflow-hidden select-none"
+      onClick={() => navigate('/success')}
+    >
       <style>{`
-        .map-grid {
-            background-image: 
-                linear-gradient(to right, #30363a 1px, transparent 1px),
-                linear-gradient(to bottom, #30363a 1px, transparent 1px);
-            background-size: 40px 40px;
+        :root {
+          --neon: #00e5ff;
+          --green: #2ECC71;
+          --green-glow: rgba(46,204,113,0.55);
+          --slot-border: #1e3040;
+          --slot-bg: #0c1922;
+          --corridor-bg: rgba(0,229,255,0.06);
         }
-        .glowing-route {
-            filter: drop-shadow(0 0 12px #2E8B57);
-            stroke-dasharray: 2000;
-            stroke-dashoffset: 2000;
-            animation: dash 4s ease-out forwards;
+
+        /* Scan-line overlay */
+        .scanline::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 2px,
+            rgba(0,0,0,0.18) 2px,
+            rgba(0,0,0,0.18) 4px
+          );
+          pointer-events: none;
+          z-index: 50;
         }
-        @keyframes dash {
-            to { stroke-dashoffset: 0; }
+
+        /* Animasi garis rute */
+        .route-line {
+          stroke-dasharray: var(--route-len, 3000);
+          stroke-dashoffset: var(--route-len, 3000);
+          animation: drawRoute 3.5s cubic-bezier(.4,0,.2,1) forwards;
+          filter: drop-shadow(0 0 8px var(--green)) drop-shadow(0 0 2px #fff);
         }
-        .glowing-pulse {
-            animation: pulse-glow 2s infinite;
+        @keyframes drawRoute { to { stroke-dashoffset: 0; } }
+
+        /* Pulsing gate dot */
+        .gate-pulse {
+          animation: gatePulse 1.6s ease-in-out infinite;
         }
-        @keyframes pulse-glow {
-            0% { box-shadow: 0 0 0 0 rgba(46, 139, 87, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(46, 139, 87, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(46, 139, 87, 0); }
+        @keyframes gatePulse {
+          0%,100% { box-shadow: 0 0 0 0 rgba(0,229,255,.7), 0 0 12px rgba(0,229,255,.4); }
+          60%      { box-shadow: 0 0 0 10px rgba(0,229,255,0), 0 0 20px rgba(0,229,255,.6); }
+        }
+
+        /* Destination slot blink */
+        .dest-slot {
+          animation: destBlink 1.2s ease-in-out infinite;
+        }
+        @keyframes destBlink {
+          0%,100% { box-shadow: 0 0 0 0 var(--green-glow), inset 0 0 12px var(--green-glow); border-color: var(--green); }
+          50%      { box-shadow: 0 0 18px 6px var(--green-glow), inset 0 0 24px var(--green-glow); border-color: #a7f3c0; }
+        }
+
+        /* Footer bar glow */
+        .footer-glow {
+          animation: footerGlow 2s ease-in-out infinite;
+        }
+        @keyframes footerGlow {
+          0%,100% { box-shadow: 0 0 20px 4px var(--green-glow); }
+          50%      { box-shadow: 0 0 40px 12px var(--green-glow); }
         }
       `}</style>
 
-      {/* TopAppBar Component */}
-      <header className="bg-surface-dim flex justify-between items-center w-full px-container-margin py-4 border-b border-outline-variant relative z-10">
-        <div className="flex items-center gap-gutter text-primary-fixed-dim font-bold">
-          <span className="material-symbols-outlined text-primary-fixed-dim" style={{ fontVariationSettings: "'FILL' 1" }}>terminal</span>
-          <span className="text-tech-mono font-bold tracking-wider">BASENET TERMINAL</span>
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <header className="flex justify-between items-center w-full px-6 py-3 border-b border-[#0e2030] bg-[#050b10] z-10 shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-[var(--neon)] text-xl">table_chart</span>
+          <span className="font-mono font-bold tracking-widest text-[var(--neon)] text-sm">PETA ALOKASI A* GRAPH</span>
         </div>
-        <div className="text-on-surface font-medium flex items-center bg-surface-variant px-4 py-2 rounded">
-          <span>Tujuan Anda: Slot {slotId} | ID Transaksi: {idTransaksi}</span>
-        </div>
-        <div className="flex items-center gap-4 text-primary">
-          <span className="material-symbols-outlined font-tech-mono text-sm tracking-widest bg-black/50 px-2 py-1 rounded border border-primary/30">{platNomor}</span>
-          <span className="material-symbols-outlined">wifi</span>
-          <span className="material-symbols-outlined">sensors</span>
-          <span className="material-symbols-outlined">schedule</span>
+        <div className="font-mono text-sm bg-[#0c1922] border border-[#1e3040] px-4 py-1.5 rounded text-white">
+          Plat: <span className="text-[var(--neon)]">{platNomor}</span>
+          &nbsp;|&nbsp;Menuju: <span className="text-[var(--green)] font-bold">{slotId}</span>
         </div>
       </header>
 
-      {/* Main Content Canvas (Map) */}
-      <main className="flex-1 relative bg-bg-surface overflow-hidden">
-        <div className="absolute inset-0 map-grid flex items-center justify-center pointer-events-none">
-          {/* Map Container */}
-          <div className="relative w-[800px] h-[600px] bg-surface-container rounded-xl border border-outline-variant p-8 overflow-hidden shadow-2xl">
-            {/* Driveway / Path */}
-            <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
-              {/* Garis Koridor Dasar (Background) */}
-              <path d="M 100 300 L 740 300" fill="none" stroke="#30363a" strokeLinecap="round" strokeWidth="40"></path>
-              
-              {/* Garis Rute Dinamis (Glowing Neon Green) */}
-              {pathD && (
-                <path 
-                  className="glowing-route" 
-                  d={pathD} 
-                  fill="none" 
-                  stroke="#2E8B57" 
-                  strokeLinecap="square" 
-                  strokeLinejoin="miter" 
-                  strokeWidth="12"
-                ></path>
-              )}
-            </svg>
-            
-            {/* Start Point (Entrance Gate) */}
-            {jalur.length > 0 && (
-              <div 
-                className="absolute flex flex-col items-center"
-                style={{ left: startPoint.x - 12, top: startPoint.y - 12 }}
-              >
-                <div className="w-6 h-6 rounded-full bg-surface-variant border-4 border-outline z-10 flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-outline"></div>
-                </div>
-                <span className="text-tech-mono text-[12px] text-text-muted mt-2 bg-surface-container-high px-2 py-1 rounded whitespace-nowrap -ml-4">ENTRANCE</span>
-              </div>
-            )}
-            
-            {/* Destination Point (Slot Dinamis) */}
-            {jalur.length > 0 && (
-              <div 
-                className="absolute flex flex-col items-center"
-                style={{ left: endPoint.x - 16, top: endPoint.y - 16 }}
-              >
-                <div className="w-8 h-8 rounded-full bg-eco-success glowing-pulse z-10 flex items-center justify-center shadow-[0_0_15px_#2E8B57]">
-                  <span className="material-symbols-outlined text-white text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>location_on</span>
-                </div>
-                <span className="text-tech-mono text-[14px] text-eco-success font-bold z-10 mt-2 bg-black/60 px-2 py-1 rounded whitespace-nowrap -ml-2">{slotId}</span>
-              </div>
-            )}
+      {/* ── Map Canvas ─────────────────────────────────────────────────── */}
+      <main className="flex-1 flex items-center justify-center overflow-hidden relative scanline">
+        {/* Subtle grid bg */}
+        <div className="absolute inset-0 opacity-10"
+          style={{ backgroundImage: 'linear-gradient(#0e2030 1px,transparent 1px),linear-gradient(90deg,#0e2030 1px,transparent 1px)', backgroundSize: '48px 48px' }} />
 
-            {/* Environmental Details */}
-            <div className="absolute bottom-20 right-20 text-text-muted opacity-50">
-              <span className="material-symbols-outlined text-[48px]">local_parking</span>
-              <span className="font-tech-mono text-xs block mt-2">SEKTOR B1</span>
+        {/* Map card */}
+        <div
+          className="relative rounded-xl border border-[#0e2030] bg-[#080f16] shadow-2xl overflow-visible"
+          style={{ width: MAP_W + 40, padding: '24px 20px 24px 20px' }}
+        >
+
+          {/* ─ SVG Overlay: corridor + route ─────────────────── */}
+          <svg
+            style={{ position: 'absolute', left: 20, top: 24, width: MAP_W, height: MAP_H, pointerEvents: 'none', zIndex: 10 }}
+            viewBox={`0 0 ${MAP_W} ${MAP_H}`}
+          >
+            {/* Corridor shadow band */}
+            <rect x={GATE_X - 16} y={CORRIDOR_Y - 22} width={MAP_W - GATE_X + 16} height={44}
+              rx="8" fill="rgba(0,229,255,0.04)" />
+
+            {/* Corridor dashed guideline */}
+            <line x1={GATE_X} y1={CORRIDOR_Y} x2={MAP_W - 10} y2={CORRIDOR_Y}
+              stroke="#0e2a3a" strokeWidth="2" strokeDasharray="6 6" />
+
+            {/* Vertical connectors from corridor to each slot column */}
+            {Array.from({ length: TOTAL_COLS }, (_, ci) => {
+              const cx = COL_OFFSET + ci * COL_SPACING;
+              return (
+                <g key={ci}>
+                  <line x1={cx} y1={CORRIDOR_Y - 20} x2={cx} y2={SLOT_ABOVE_Y + 26}
+                    stroke="#0e2a3a" strokeWidth="1.5" />
+                  {ci < 7 && (
+                    <line x1={cx} y1={CORRIDOR_Y + 20} x2={cx} y2={SLOT_BELOW_Y - 26}
+                      stroke="#0e2a3a" strokeWidth="1.5" />
+                  )}
+                </g>
+              );
+            })}
+
+            {/* ── Glowing Route from backend ────────────────── */}
+            {pathD && (
+              <path
+                className="route-line"
+                d={pathD}
+                fill="none"
+                stroke="var(--green)"
+                strokeWidth="5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ '--route-len': routeLen }}
+              />
+            )}
+          </svg>
+
+          {/* ─ Layout HTML: Gate + Slots ──────────────────────────────── */}
+          <div style={{ position: 'relative', width: MAP_W, height: MAP_H }}>
+
+            {/* Gate marker */}
+            <div style={{ position: 'absolute', left: GATE_X - 18, top: CORRIDOR_Y - 18, zIndex: 20 }}
+              className="flex flex-col items-center">
+              <div className="gate-pulse w-9 h-9 rounded-full bg-[var(--neon)]/20 border-2 border-[var(--neon)] flex items-center justify-center">
+                <div className="w-3 h-3 rounded-full bg-[var(--neon)]" />
+              </div>
+              <span className="font-mono text-[9px] text-[var(--neon)] mt-1 tracking-widest">GATE</span>
             </div>
-          </div>
-        </div>
+
+            {/* Slot grid */}
+            {ALL_SLOTS.map((label) => {
+              const { x, y } = getSlotCoord(label);
+              const isTarget = label === slotId;
+              return (
+                <div
+                  key={label}
+                  style={{
+                    position: 'absolute',
+                    left: x - 28,
+                    top: y - 32,
+                    width: 56,
+                    height: 64,
+                    zIndex: 20,
+                  }}
+                  className={`
+                    flex flex-col items-center justify-center rounded-md border font-mono text-[11px] font-bold
+                    transition-all duration-300
+                    ${isTarget
+                      ? 'dest-slot bg-[var(--green)]/15 text-[var(--green)] border-[var(--green)]'
+                      : 'bg-[var(--slot-bg)] text-[#3a6070] border-[var(--slot-border)] hover:border-[#1e4060]'
+                    }
+                  `}
+                >
+                  {isTarget && (
+                    <span className="material-symbols-outlined text-[14px] mb-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>
+                      location_on
+                    </span>
+                  )}
+                  <span className={isTarget ? 'text-[var(--green)]' : 'text-[#3a6070]'}>{label}</span>
+                </div>
+              );
+            })}
+
+          </div>{/* end layout div */}
+        </div>{/* end map card */}
       </main>
 
-      {/* Bottom Prominent Status */}
-      <footer className="w-full bg-bg-surface p-container-margin flex justify-center pb-12 relative z-10">
-        <div className="w-full max-w-4xl bg-eco-success text-white py-6 px-8 rounded-xl flex items-center justify-center gap-6 shadow-[0_0_30px_rgba(46,139,87,0.4)] glowing-pulse">
-          <span className="material-symbols-outlined text-[48px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-          <span className="text-[32px] font-extrabold uppercase tracking-wide text-center">PALANG DIBUKA - SILAKAN MASUK</span>
+      {/* ── Footer CTA ─────────────────────────────────────────────────── */}
+      <footer className="shrink-0 flex justify-center items-center pb-8 pt-4 bg-[#050b10] z-10">
+        <div className="footer-glow flex items-center gap-4 bg-[var(--green)]/90 text-white rounded-xl px-10 py-4 font-bold text-2xl tracking-widest uppercase">
+          <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_forward</span>
+          SILAKAN IKUTI RUTE HIJAU
         </div>
       </footer>
     </div>
