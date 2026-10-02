@@ -18,6 +18,7 @@ const SEVERITY_CONFIG = {
 export default function AnomalyLogsPage() {
   const [anomalies, setAnomalies] = useState(INITIAL_ANOMALIES);
   const [filter, setFilter] = useState('ALL');
+  const [selectedAnomaly, setSelectedAnomaly] = useState(null);
 
   const handleAction = (id, action) => {
     setAnomalies(prev => prev.map(a =>
@@ -106,7 +107,7 @@ export default function AnomalyLogsPage() {
                         False Positive
                       </button>
                       <button
-                        onClick={() => handleAction(anomaly.id, 'acknowledge')}
+                        onClick={() => setSelectedAnomaly(anomaly)}
                         className="px-4 py-2 rounded-lg bg-alert-anomaly hover:bg-alert-anomaly/80 text-white text-xs font-bold font-mono transition-colors"
                       >
                         Tangani
@@ -126,6 +127,88 @@ export default function AnomalyLogsPage() {
           </div>
         )}
       </div>
+
+      {/* Prototype Overlay Modal: Acknowledge Anomaly */}
+      {selectedAnomaly && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-primary/80 backdrop-blur-sm p-4">
+          <div className="bg-surface w-full max-w-lg rounded-xl border border-surface-container-highest shadow-2xl overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-surface-container-highest bg-surface-container-low flex justify-between items-center relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-alert-anomaly"></div>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-alert-anomaly/10 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-alert-anomaly">warning</span>
+                </div>
+                <h3 className="text-headline-md font-headline-md text-on-surface">Acknowledge Anomaly</h3>
+              </div>
+              <button 
+                onClick={() => setSelectedAnomaly(null)}
+                className="text-on-surface-variant hover:text-on-surface p-1 rounded hover:bg-surface-bright transition-colors"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="p-6 flex flex-col gap-6">
+              {/* Meta Data Row */}
+              <div className="grid grid-cols-2 gap-4 bg-surface-container px-4 py-3 rounded-lg border border-outline-variant/20">
+                <div className="flex flex-col">
+                  <span className="text-xs font-tech-mono text-on-surface-variant uppercase tracking-wider mb-1">Target Slot</span>
+                  <span className="text-lg font-tech-mono text-on-surface font-bold">{selectedAnomaly.slot}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-tech-mono text-on-surface-variant uppercase tracking-wider mb-1">Detected At</span>
+                  <span className="text-lg font-tech-mono text-on-surface font-bold">{selectedAnomaly.time} <span className="text-sm opacity-50 font-normal">WIB</span></span>
+                </div>
+              </div>
+              
+              {/* Feed Placeholder / Map context */}
+              <div className="w-full h-48 bg-surface-container-low rounded-lg border border-surface-container-highest relative overflow-hidden flex items-center justify-center group">
+                {/* Faux Map/Feed Pattern */}
+                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary via-surface to-bg-primary"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-full h-px bg-outline-variant/20 absolute"></div>
+                  <div className="w-px h-full bg-outline-variant/20 absolute"></div>
+                </div>
+                {/* Alert Indicator on Map */}
+                <div className="relative z-10 flex flex-col items-center">
+                  <div className="w-12 h-12 rounded-full border-2 border-alert-anomaly flex items-center justify-center bg-surface shadow-[0_0_15px_rgba(255,69,0,0.5)]">
+                    <span className="material-symbols-outlined text-alert-anomaly">directions_car</span>
+                  </div>
+                  <span className="mt-2 text-xs font-tech-mono text-alert-anomaly bg-alert-anomaly/10 px-2 py-1 rounded backdrop-blur-sm border border-alert-anomaly/20">OCR: {selectedAnomaly.plate}</span>
+                </div>
+                {/* Top Right corner info */}
+                <div className="absolute top-2 right-2 flex items-center gap-1 bg-surface/80 px-2 py-1 rounded backdrop-blur text-[10px] font-tech-mono text-on-surface-variant border border-outline-variant/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-eco-success"></span> Cam {selectedAnomaly.slot} - Live
+                </div>
+              </div>
+              
+              {/* Action Context */}
+              <div>
+                <label className="block text-sm font-bold text-on-surface mb-2">Required Action</label>
+                <p className="text-body-base text-on-surface-variant">Anomaly Type: {selectedAnomaly.type}. {selectedAnomaly.desc} Reviewing footage suggests physical intervention required. Dispatch floor officer to clear slot {selectedAnomaly.slot}.</p>
+              </div>
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-surface-container-low border-t border-surface-container-highest flex justify-end gap-3">
+              <button 
+                onClick={() => { handleAction(selectedAnomaly.id, 'dismiss'); setSelectedAnomaly(null); }}
+                className="px-6 py-2.5 rounded-DEFAULT font-bold text-on-surface-variant border border-outline-variant/50 hover:bg-surface-bright hover:text-on-surface transition-colors flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-sm">block</span> Dismiss / False Positive
+              </button>
+              <button 
+                onClick={() => { handleAction(selectedAnomaly.id, 'acknowledge'); setSelectedAnomaly(null); }}
+                className="px-6 py-2.5 rounded-DEFAULT font-bold text-surface bg-eco-success hover:bg-eco-success/90 transition-colors shadow-[0_0_10px_rgba(46,139,87,0.4)] flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-sm">campaign</span> Dispatch Officer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }
