@@ -3,8 +3,21 @@ import { useNavigate } from 'react-router-dom';
 export default function ScanPage() {
   const navigate = useNavigate();
 
+  // Simulasi ALPR mendeteksi plat saat layar ditekan
+  const handleSimulateScan = () => {
+    navigate('/allocating', { 
+      state: { 
+        platNomor: 'AB 1234 XYZ', 
+        jenisKendaraan: 'MOBIL' 
+      } 
+    });
+  };
+
   return (
-    <div className="bg-bg-primary min-h-screen flex flex-col items-center justify-center relative overflow-hidden text-text-high-contrast" onClick={() => navigate('/allocating')}>
+    <div 
+      className="bg-bg-primary min-h-screen flex flex-col items-center justify-center relative overflow-hidden text-text-high-contrast cursor-pointer group" 
+      onClick={handleSimulateScan}
+    >
       {/* Top IoT Status Bar */}
       <header className="absolute top-0 left-0 w-full px-container-margin py-gutter flex justify-between items-start z-10">
         <div className="flex items-center gap-3 bg-surface-container/80 backdrop-blur-md px-4 py-2 rounded-full border border-surface-variant">
@@ -20,7 +33,7 @@ export default function ScanPage() {
       {/* Main Content Canvas */}
       <main className="flex flex-col items-center justify-center w-full max-w-lg mx-auto px-container-margin z-10 relative">
         {/* Static Scanner Reticle UI */}
-        <div className="relative w-full max-w-[320px] aspect-[16/9] border-2 border-surface-variant rounded-xl bg-surface/30 backdrop-blur-sm mb-12 flex items-center justify-center shadow-lg">
+        <div className="relative w-full max-w-[320px] aspect-[16/9] border-2 border-surface-variant rounded-xl bg-surface/30 backdrop-blur-sm mb-12 flex items-center justify-center shadow-lg group-hover:border-system-info transition-colors">
           {/* Reticle Target Corners */}
           <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-system-info rounded-tl-xl opacity-80"></div>
           <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-system-info rounded-tr-xl opacity-80"></div>
@@ -34,7 +47,12 @@ export default function ScanPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-system-info/5 via-transparent to-transparent rounded-xl"></div>
           
           {/* Center Icon Focus */}
-          <span className="material-symbols-outlined text-[64px] text-system-info/30" style={{ fontVariationSettings: "'FILL' 1" }}>directions_car</span>
+          <span className="material-symbols-outlined text-[64px] text-system-info/30 group-hover:text-system-info/60 transition-colors" style={{ fontVariationSettings: "'FILL' 1" }}>directions_car</span>
+          
+          {/* Instruction Text */}
+          <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 text-system-info font-tech-mono text-sm whitespace-nowrap animate-pulse">
+            [TAP LAYAR UNTUK SIMULASI KENDARAAN MASUK]
+          </div>
         </div>
 
         {/* Typography Display */}
@@ -42,7 +60,7 @@ export default function ScanPage() {
           <h1 className="font-display-lg text-[48px] font-bold text-text-high-contrast tracking-tight drop-shadow-md">
             SILAKAN MAJU
           </h1>
-          <div className="inline-flex items-center justify-center gap-3 bg-surface-container-high/80 px-6 py-3 rounded-full border border-surface-variant mx-auto">
+          <div className="inline-flex items-center justify-center gap-3 bg-surface-container-high/80 px-6 py-3 rounded-full border border-surface-variant mx-auto group-hover:bg-system-info/10 transition-colors">
             <span className="material-symbols-outlined text-system-info animate-spin">radar</span>
             <p className="font-headline-md text-system-info text-xl font-semibold">
               Scanning Vehicle...
