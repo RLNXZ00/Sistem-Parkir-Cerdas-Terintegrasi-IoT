@@ -151,29 +151,48 @@ export default function DashboardPage() {
           </div>
 
           {/* Live Gate Monitor */}
-          <div className="bg-bg-primary rounded-xl border border-surface-variant p-5 flex flex-col h-64">
+          <div className="bg-bg-primary rounded-xl border border-surface-variant p-5 flex flex-col">
             <h2 className="font-semibold text-lg text-on-surface flex items-center gap-2 mb-3">
               <span className="material-symbols-outlined text-primary">videocam</span>
               Live Gate Monitor
             </h2>
-            <div className="relative flex-1 bg-surface-container-lowest rounded overflow-hidden border border-surface-variant">
-              {/* Simulated CCTV look */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#1a2830] via-[#0e1418] to-[#1a1f24] flex items-center justify-center">
-                <span className="material-symbols-outlined text-[80px] text-surface-variant opacity-30">local_parking</span>
-              </div>
-              {/* HUD Top */}
-              <div className="absolute top-2 left-2 flex items-center gap-2 z-10">
-                <div className="w-2 h-2 bg-alert-anomaly rounded-full animate-pulse"></div>
-                <span className="font-mono text-xs text-white bg-black/50 px-1 rounded">CAM-GATE-S1</span>
-              </div>
-              {/* HUD Bottom */}
-              <div className="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm p-2 border-t border-primary/30 flex justify-between items-center z-10">
-                <div className="font-mono">
-                  <span className="text-xs text-outline block">Last Read:</span>
-                  <span className="text-primary font-bold tracking-widest text-sm">XYZ-7890</span>
+            <div className="grid grid-cols-2 gap-3 flex-1">
+              {[
+                { id: 'gate1', name: 'ENTRY-MOBIL', plate: 'B 1234 XYZ', status: 'MATCHED', type: 'success' },
+                { id: 'gate2', name: 'ENTRY-MOTOR', plate: 'D 5678 KLO', status: 'MATCHED', type: 'success' },
+                { id: 'gate3', name: 'EXIT-MOBIL', plate: 'AB 9012 DEF', status: 'SALDO KURANG', type: 'anomaly' },
+                { id: 'gate4', name: 'EXIT-MOTOR', plate: null, status: 'IDLE', type: 'idle' }
+              ].map(cam => (
+                <div key={cam.id} className="relative bg-surface-container-lowest rounded overflow-hidden border border-surface-variant aspect-video flex flex-col group">
+                  {/* Simulated CCTV look */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#1a2830] via-[#0e1418] to-[#1a1f24] flex items-center justify-center">
+                    {cam.plate 
+                      ? <span className="material-symbols-outlined text-[40px] text-surface-variant opacity-30 group-hover:opacity-50 transition-opacity">local_parking</span>
+                      : <span className="material-symbols-outlined text-[40px] text-text-muted opacity-10">videocam_off</span>
+                    }
+                  </div>
+                  {/* HUD Top */}
+                  <div className="absolute top-2 left-2 flex items-center gap-1.5 z-10">
+                    <div className={`w-1.5 h-1.5 rounded-full ${cam.type === 'idle' ? 'bg-outline-variant' : 'bg-alert-anomaly animate-pulse'}`}></div>
+                    <span className="font-mono text-[9px] text-white bg-black/60 px-1.5 py-0.5 rounded backdrop-blur-sm border border-outline-variant/30">{cam.name}</span>
+                  </div>
+                  {/* HUD Bottom */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-md p-2 border-t border-primary/30 flex justify-between items-center z-10">
+                    <div className="font-mono">
+                      <span className="text-[9px] text-outline block leading-none mb-0.5">Last Read:</span>
+                      <span className={`font-bold tracking-wider text-[11px] leading-none ${cam.type === 'anomaly' ? 'text-alert-anomaly' : cam.type === 'idle' ? 'text-text-muted' : 'text-primary'}`}>
+                        {cam.plate || '---'}
+                      </span>
+                    </div>
+                    <span className={`text-[9px] font-bold border px-1.5 py-0.5 rounded leading-none ${
+                      cam.type === 'anomaly' ? 'text-alert-anomaly border-alert-anomaly bg-alert-anomaly/10' :
+                      cam.type === 'success' ? 'text-eco-success border-eco-success bg-eco-success/10' : 'text-outline-variant border-outline-variant'
+                    }`}>
+                      {cam.status}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-eco-success text-xs font-bold border border-eco-success px-2 py-0.5 rounded">MATCHED</span>
-              </div>
+              ))}
             </div>
           </div>
         </div>
