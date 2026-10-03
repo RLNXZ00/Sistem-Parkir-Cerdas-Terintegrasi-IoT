@@ -2,6 +2,7 @@ package com.spct.controller;
 
 import com.spct.model.StatusResolusi;
 import com.spct.repository.LogOperasionalIoTRepository;
+import com.spct.repository.SlotParkirRepository;
 import com.spct.service.MonitoringFisikService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 // Deklarasi Controller: kelas penerima telemetri dari IoT Gateway (Raspberry Pi / MQTT Bridge)
 // Menjadi jembatan antara perangkat keras (sensor ultrasonik/kamera) dan logika bisnis sistem
 @RestController
-@RequestMapping("/api/iot") // Base URL: http://localhost:8080/api/iot
+@RequestMapping("/api/monitoring") // Base URL: http://localhost:8081/api/monitoring
 @CrossOrigin(origins = "*")  // Mengizinkan request dari IoT Gateway dan Frontend Dashboard
 public class MonitoringFisikController // Kelas controller untuk menerima dan memproses data sensor IoT
 {
@@ -35,6 +36,9 @@ public class MonitoringFisikController // Kelas controller untuk menerima dan me
 
     @Autowired
     private LogOperasionalIoTRepository logOperasionalIoTRepository; // Repository untuk endpoint manajemen log anomali
+
+    @Autowired
+    private SlotParkirRepository slotParkirRepository; // Repository untuk endpoint data slot real-time
 
 
     // =====================================================================
@@ -100,5 +104,32 @@ public class MonitoringFisikController // Kelas controller untuk menerima dan me
                 return ResponseEntity.ok("Log anomali [" + idLog + "] berhasil ditandai selesai divalidasi.");
             })
             .orElse(ResponseEntity.notFound().build()); // Jika log tidak ditemukan, kembalikan HTTP 404
+    }
+
+
+    // =====================================================================
+    // Endpoint GET: Data real-time untuk Dashboard Frontend
+    // =====================================================================
+
+    // GET /api/monitoring/slots - Semua slot parkir (status real-time untuk Peta Slot di Dashboard)
+    @GetMapping("/slots")
+    public ResponseEntity<?> getAllSlots()
+    {
+        return ResponseEntity.ok(slotParkirRepository.findAll());
+    }
+
+    // GET /api/monitoring/log-iot - Semua log IoT (untuk Alert Panel di Dashboard)
+    @GetMapping("/log-iot")
+    public ResponseEntity<?> getAllLogIoT()
+    {
+        return ResponseEntity.ok(
+            logOperasionalIoTRepository.findAll()
+                .stream()
+                .sorted(java.util.Comparator.comparing(
+                    com.spct.model.LogOperasionalIoT::getWaktuKejadian,
+                    java.util.Comparator.reverseOrder()
+                ))
+                .collect(java.util.stream.Collectors.toList())
+        );
     }
 }

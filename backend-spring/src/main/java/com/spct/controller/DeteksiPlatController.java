@@ -2,6 +2,7 @@ package com.spct.controller;
 
 import com.spct.dto.HasilDeteksiMasukDto;
 import com.spct.model.JenisKendaraan;
+import com.spct.repository.LogDeteksiPlatRepository;
 import com.spct.service.DeteksiPlatService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -18,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
  * 3. Mendelegasikan seluruh logika (registrasi, alokasi, transaksi) ke DeteksiPlatService.
  * 4. Mengembalikan HasilDeteksiMasukDto ke Frontend Kiosk Terminal.
  *
- * Endpoint Base URL: /api/gate
+ * Endpoint Base URL: /api/gate, /api/deteksi
  */
 
 // Deklarasi Controller: kelas penerima request HTTP dari kamera gerbang masuk (Python ALPR)
@@ -34,6 +35,9 @@ public class DeteksiPlatController // Kelas controller untuk mengelola seluruh a
 
     @Autowired
     private DeteksiPlatService deteksiPlatService; // Service yang berisi semua logika bisnis deteksi plat
+
+    @Autowired
+    private LogDeteksiPlatRepository logDeteksiPlatRepository; // Repository untuk mengambil riwayat log deteksi
 
 
     // =====================================================================
@@ -92,5 +96,25 @@ public class DeteksiPlatController // Kelas controller untuk mengelola seluruh a
 
         // Override berhasil -> kembalikan HTTP 200 OK
         return ResponseEntity.ok(hasil);
+    }
+
+
+    // =====================================================================
+    // Endpoint GET: Mengambil riwayat log deteksi plat (untuk GateLivePage)
+    // URL: GET /api/gate/log (di bawah base /api/gate yang sudah ada)
+    // =====================================================================
+    @GetMapping("/log")
+    public ResponseEntity<?> getAllLogDeteksi()
+    {
+        // Mengambil semua log deteksi plat, diurutkan terbaru di atas
+        return ResponseEntity.ok(
+            logDeteksiPlatRepository.findAll()
+                .stream()
+                .sorted(java.util.Comparator.comparing(
+                    com.spct.model.LogDeteksiPlat::getWaktuDeteksi,
+                    java.util.Comparator.reverseOrder()
+                ))
+                .collect(java.util.stream.Collectors.toList())
+        );
     }
 }

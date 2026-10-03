@@ -3,16 +3,50 @@ import { useNavigate } from 'react-router-dom';
 import AuthBrand from '../components/AuthBrand';
 import AuthFooter from '../components/AuthFooter';
 
+const API_BASE = 'http://localhost:8081';
+
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState('management');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Hubungkan ke Spring Boot API endpoint POST /api/auth/login
-    // Sementara redirect ke dashboard
-    navigate('/dashboard');
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        // Server mengembalikan error (401/403)
+        setError(data.pesan || 'Login gagal. Periksa username dan password Anda.');
+        return;
+      }
+
+      // Simpan sesi user ke sessionStorage agar bisa diakses halaman lain
+      sessionStorage.setItem('spct_user', JSON.stringify(data));
+
+      // Arahkan berdasarkan role
+      if (data.role === 'ADMIN') {
+        navigate('/dashboard-management');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch {
+      setError('Tidak dapat terhubung ke server. Pastikan backend berjalan di port 8081.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -51,29 +85,16 @@ export default function LoginPage() {
               </p>
             </div>
 
+            {/* Error Banner */}
+            {error && (
+              <div className="flex items-center gap-2 bg-red-950/40 border border-red-700/50 rounded-lg px-4 py-3 text-sm text-red-400 font-mono">
+                <span className="material-symbols-outlined text-[18px] shrink-0">error</span>
+                {error}
+              </div>
+            )}
+
             {/* Form */}
             <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-
-              {/* Role Selector */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-[#bcc8d1] uppercase tracking-wider font-mono flex items-center gap-1.5" htmlFor="role">
-                  <span className="material-symbols-outlined text-[16px] text-[#ffb86e]">shield_person</span>
-                  Access Role
-                </label>
-                <div className="relative">
-                  <select
-                    id="role"
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    className="w-full appearance-none bg-[#0e1418] border border-[#2b3540] hover:border-[#3d4c5c] focus:border-[#7ad0ff] rounded-lg px-4 py-3 text-[#dee3e8] focus:outline-none font-mono text-sm transition-colors cursor-pointer"
-                  >
-                    <option value="management">Manajemen RS (Monitoring & Audit)</option>
-                    <option value="field">Petugas Lapangan (Operasional Barrier)</option>
-                    <option value="technician">Teknisi Green-IoT (Sensors & Gate)</option>
-                  </select>
-                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[#8fa0b0] pointer-events-none">expand_more</span>
-                </div>
-              </div>
 
               {/* Username */}
               <div className="flex flex-col gap-1.5">
@@ -87,6 +108,8 @@ export default function LoginPage() {
                     id="username"
                     type="text"
                     placeholder="Enter credentials"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     required
                     className="w-full bg-[#0e1418] border border-[#2b3540] hover:border-[#3d4c5c] focus:border-[#7ad0ff] rounded-lg pl-10 pr-4 py-3 text-white placeholder-[#5d6f80] focus:outline-none font-mono text-sm transition-colors"
                   />
@@ -114,6 +137,8 @@ export default function LoginPage() {
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
                     className="w-full bg-[#0e1418] border border-[#2b3540] hover:border-[#3d4c5c] focus:border-[#7ad0ff] rounded-lg pl-10 pr-10 py-3 text-white placeholder-[#5d6f80] focus:outline-none font-mono text-sm transition-colors"
                   />
@@ -129,13 +154,31 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              {/* Hint akun demo */}
+              <div className="bg-[#0e1e2a] border border-[#1e3a50] rounded-lg px-4 py-3 text-xs font-mono text-[#7ad0ff] flex flex-col gap-0.5">
+                <span className="text-[#5d8099] uppercase tracking-wider text-[10px] mb-1">Demo Credentials</span>
+                <span>admin / admin123 <span className="text-[#ffd700] ml-2">[ADMIN]</span></span>
+                <span>petugas01 / petugas123 <span className="text-[#7ed99e] ml-2">[PETUGAS]</span></span>
+              </div>
+
               {/* Submit Button */}
               <button
+                id="btn-login"
                 type="submit"
-                className="mt-2 w-full bg-[#ea580c] hover:bg-[#c2410c] text-white font-semibold text-base py-3.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 shadow-lg shadow-orange-950/30 active:scale-[0.99] cursor-pointer"
+                disabled={isLoading}
+                className="mt-2 w-full bg-[#ea580c] hover:bg-[#c2410c] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-base py-3.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 shadow-lg shadow-orange-950/30 active:scale-[0.99] cursor-pointer"
               >
-                <span className="material-symbols-outlined text-[20px]">login</span>
-                Sign In
+                {isLoading ? (
+                  <>
+                    <span className="material-symbols-outlined text-[20px] animate-spin">progress_activity</span>
+                    Authenticating...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-[20px]">login</span>
+                    Sign In
+                  </>
+                )}
               </button>
 
               {/* System Status */}
