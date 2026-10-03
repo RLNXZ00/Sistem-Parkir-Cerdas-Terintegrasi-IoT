@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 
 @tailwind base;
@@ -7,14 +7,29 @@
 
 @layer base {
   body {
-    @apply bg-[#000000] text-text-high-contrast;
+    @apply bg-[#050B14] text-slate-100 antialiased overflow-hidden font-['Outfit'];
+    background-image: 
+      radial-gradient(circle at 15% 0%, rgba(14, 165, 233, 0.25) 0%, transparent 40%),
+      radial-gradient(circle at 85% 100%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
+      url('https://www.transparenttextures.com/patterns/stardust.png');
+    background-attachment: fixed;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-[#0B1526]/60 backdrop-blur-2xl border border-sky-500/20 shadow-[0_0_40px_rgba(14,165,233,0.1)];
+  }
+  
+  .glass-button {
+    @apply bg-sky-500/10 hover:bg-sky-500/30 border border-sky-400/50 text-sky-300 font-semibold tracking-wider uppercase transition-all duration-300 shadow-[0_0_15px_rgba(56,189,248,0.2)] hover:shadow-[0_0_25px_rgba(56,189,248,0.5)];
+  }
+  
+  .text-glow {
+    text-shadow: 0 0 20px rgba(56, 189, 248, 0.7);
   }
 }
 
 .material-symbols-outlined {
-  font-variation-settings:
-  'FILL' 1,
-  'wght' 400,
-  'GRAD' 0,
-  'opsz' 24
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
