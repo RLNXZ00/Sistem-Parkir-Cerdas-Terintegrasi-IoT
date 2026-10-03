@@ -138,10 +138,10 @@ public class TransaksiPembayaranService
         // Konversi menit ke jam (pembulatan ke atas, misal 65 menit = 2 jam)
         int durasiJam = (int) Math.ceil(durasiMenit / 60.0);
 
-        // Aturan 2: Rawat inap (di atas 12 jam) = Rp 100.000 (flat)
+        // Aturan 2: Rawat inap (di atas 12 jam) = Rp 10.000 (flat)
         if (durasiJam > 12)
         {
-            return new BigDecimal("100000");
+            return new BigDecimal("10000");
         }
 
         // Aturan 3: dibawah 5 jam pertama 5000, diatas 3 jam pertama 2000 per jam.
