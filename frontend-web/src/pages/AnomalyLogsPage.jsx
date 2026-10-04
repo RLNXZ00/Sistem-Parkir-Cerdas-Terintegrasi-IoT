@@ -1,13 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '../components/AppLayout';
 
-const INITIAL_ANOMALIES = [
-  { id: 1, slot: 'B-02', type: 'SALAH PARKIR', severity: 'CRITICAL', time: '10:42:15', desc: 'Kendaraan terdeteksi di slot yang tidak terdaftar. Sensor ultrasonic & YOLO konfirmasi.', plate: 'AB 1234 CD', status: 'BELUM_DITANGANI' },
-  { id: 2, slot: 'C-05', type: 'OBSTRUKSI SENSOR', severity: 'WARNING', time: '10:15:02', desc: 'Benda non-kendaraan (kemungkinan troli/barang) memicu sensor ultrasonik secara palsu.', plate: '-', status: 'BELUM_DITANGANI' },
-  { id: 3, slot: 'A-07', type: 'SALAH PARKIR', severity: 'CRITICAL', time: '09:55:44', desc: 'Plat nomor tidak dikenali di sistem. Kendaraan tidak terdaftar.', plate: 'UNKNOWN', status: 'BELUM_DITANGANI' },
-  { id: 4, slot: 'Gate N1', type: 'OCR MISMATCH', severity: 'WARNING', time: '09:12:30', desc: 'Confidence OCR di bawah threshold 70%. Perlu verifikasi manual.', plate: 'B 8877 XY', status: 'SELESAI_DIVALIDASI' },
-  { id: 5, slot: 'B-09', type: 'SENSOR TIMEOUT', severity: 'WARNING', time: '08:45:00', desc: 'Sensor slot B-09 tidak mengirim sinyal selama >5 menit.', plate: '-', status: 'SELESAI_DIVALIDASI' },
-];
+const API_BASE = 'http://localhost:8081';
 
 const SEVERITY_CONFIG = {
   CRITICAL: { cls: 'bg-alert-anomaly/10 border-l-4 border-alert-anomaly', badge: 'bg-error-container text-on-error-container', dot: 'bg-alert-anomaly animate-pulse', icon: 'dangerous' },
@@ -16,14 +10,52 @@ const SEVERITY_CONFIG = {
 };
 
 export default function AnomalyLogsPage() {
-  const [anomalies, setAnomalies] = useState(INITIAL_ANOMALIES);
+  const [anomalies, setAnomalies] = useState([]);
   const [filter, setFilter] = useState('ALL');
   const [selectedAnomaly, setSelectedAnomaly] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleAction = (id, action) => {
-    setAnomalies(prev => prev.map(a =>
-      a.id === id ? { ...a, status: action === 'acknowledge' ? 'SELESAI_DIVALIDASI' : 'SELESAI_DIVALIDASI' } : a
-    ));
+  const fetchAnomalies = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/monitoring/log-iot`);
+      if (res.ok) {
+        const data = await res.json();
+        // Map backend model to frontend structure
+        const mapped = data.map(log => ({
+          id: log.idLog,
+          slot: log.slotTerkait?.idSlot || '-',
+          type: log.jenisKejadian,
+          severity: log.tingkatKeparahan,
+          time: new Date(log.waktuKejadian).toLocaleTimeString('id-ID'),
+          desc: log.catatanDetail,
+          plate: log.slotTerkait?.kendaraanAktif?.platNomor || 'UNKNOWN',
+          status: log.statusResolusi
+        }));
+        setAnomalies(mapped);
+      }
+    } catch (e) {
+      console.error('Failed to fetch anomalies', e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAnomalies();
+    const interval = setInterval(fetchAnomalies, 5000); // Polling every 5 seconds
+    return () => clearInterval(interval);
+  }, [fetchAnomalies]);
+
+  const handleAction = async (id, action) => {
+    // Both 'acknowledge' and 'dismiss' will mark it as resolved in this simple prototype
+    try {
+      await fetch(`${API_BASE}/api/monitoring/anomali/${id}/selesai`, {
+        method: 'PUT'
+      });
+      fetchAnomalies(); // refresh
+    } catch (e) {
+      console.error('Failed to resolve anomaly', e);
+    }
   };
 
   const filtered = filter === 'ALL' ? anomalies : anomalies.filter(a => a.status === filter);
