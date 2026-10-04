@@ -1,7 +1,8 @@
 package com.spct.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import java.time.LocalDateTime; // Mengimpor kelas LocalDateTime untuk menyimpan waktu pemesanan slot
+import java.time.LocalDateTime;
 
 
 
@@ -9,6 +10,7 @@ import java.time.LocalDateTime; // Mengimpor kelas LocalDateTime untuk menyimpan
 // Setara dengan kelas Proyek.java yang mengimplementasikan Serializable untuk persistensi
 @Entity
 @Table(name = "slot_parkir") // Mendefinisikan nama tabel di database
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // Cegah error Jackson saat serialisasi proxy Hibernate
 public class SlotParkir // Kelas model untuk setiap unit slot parkir dalam gedung
 {
     // =====================================================================
@@ -39,8 +41,9 @@ public class SlotParkir // Kelas model untuk setiap unit slot parkir dalam gedun
     private LocalDateTime waktuDipesan; // Timestamp kapan slot ini mulai berstatus 'DIPESAN' (untuk deteksi timeout)
 
     // Relasi Foreign Key ke DataKendaraan (bisa NULL jika slot sedang kosong)
-    @ManyToOne(fetch = FetchType.LAZY) // Many slots bisa dimiliki oleh satu kendaraan secara historis
+    @ManyToOne(fetch = FetchType.EAGER) // EAGER: langsung load data kendaraan saat slot di-query
     @JoinColumn(name = "kendaraan_aktif_id", referencedColumnName = "id_kendaraan")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // Cegah circular JSON
     private DataKendaraan kendaraanAktif; // Kendaraan yang saat ini dialokasikan di slot ini (NULL jika KOSONG)
 
 

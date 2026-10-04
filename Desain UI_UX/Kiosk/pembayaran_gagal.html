@@ -1,0 +1,170 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Exit Gate Display - Failure</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500&amp;family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed": "#9af6b8",
+                        "on-tertiary-fixed": "#2c1600",
+                        "on-secondary": "#00391d",
+                        "inverse-primary": "#00668a",
+                        "secondary": "#7ed99e",
+                        "on-tertiary-container": "#653a00",
+                        "inverse-surface": "#dee3e8",
+                        "inverse-on-surface": "#2b3135",
+                        "surface-container-high": "#252b2f",
+                        "outline": "#87929b",
+                        "on-tertiary-fixed-variant": "#693c00",
+                        "text-muted": "#9E9E9E",
+                        "bg-surface": "#1E1E1E",
+                        "surface-variant": "#30363a",
+                        "system-info": "#00BFFF",
+                        "on-tertiary": "#492900",
+                        "tertiary-container": "#fb9c24",
+                        "text-high-contrast": "#FFFFFF",
+                        "outline-variant": "#3d4850",
+                        "eco-success": "#2E8B57",
+                        "surface-dim": "#0e1418",
+                        "surface": "#0e1418",
+                        "on-secondary-container": "#94f0b2",
+                        "on-primary-fixed": "#001e2c",
+                        "on-primary-container": "#004a65",
+                        "error-container": "#93000a",
+                        "warning-reserved": "#FFD700",
+                        "alert-anomaly": "#FF4500",
+                        "tertiary": "#ffc184",
+                        "tertiary-fixed": "#ffdcbd",
+                        "error": "#ffb4ab",
+                        "on-secondary-fixed-variant": "#00522d",
+                        "on-primary-fixed-variant": "#004c69",
+                        "background": "#0e1418",
+                        "primary-fixed": "#c3e8ff",
+                        "on-error-container": "#ffdad6",
+                        "surface-container-highest": "#30363a",
+                        "on-secondary-fixed": "#00210f",
+                        "surface-tint": "#7ad0ff",
+                        "surface-container": "#1a2024",
+                        "slot-empty": "#333333",
+                        "primary": "#8fd6ff",
+                        "on-surface": "#dee3e8",
+                        "bg-primary": "#121212",
+                        "on-primary": "#003549",
+                        "on-error": "#690005",
+                        "surface-container-low": "#161c20",
+                        "tertiary-fixed-dim": "#ffb86e",
+                        "secondary-fixed-dim": "#7ed99e",
+                        "primary-fixed-dim": "#7ad0ff",
+                        "primary-container": "#00bfff",
+                        "surface-bright": "#343a3e",
+                        "on-background": "#dee3e8",
+                        "secondary-container": "#00703f",
+                        "on-surface-variant": "#bcc8d1",
+                        "surface-container-lowest": "#090f13"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "container-margin": "24px",
+                        "unit": "4px",
+                        "card-padding": "20px"
+                    },
+                    "fontFamily": {
+                        "tech-mono": ["Space Grotesk"],
+                        "display-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-base": ["Inter"],
+                        "terminal-status": ["Inter"]
+                    },
+                    "fontSize": {
+                        "tech-mono": ["18px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "display-lg": ["48px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "body-base": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "terminal-status": ["32px", { "lineHeight": "1.1", "fontWeight": "800" }]
+                    },
+                    "animation": {
+                        'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(30, 30, 30, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 69, 0, 0.2);
+        }
+        .glow-red {
+            box-shadow: 0 0 40px rgba(255, 69, 0, 0.4);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-bg-primary text-on-surface h-screen w-screen overflow-hidden flex flex-col items-center justify-center relative">
+<!-- TopAppBar equivalent for Terminal -->
+
+<!-- Main Content Area -->
+<main class="w-full max-w-5xl mx-auto flex flex-col items-center justify-center gap-12 mt-24 px-container-margin z-10 relative">
+<!-- Large Warning Icon -->
+<div class="relative">
+<div class="absolute inset-0 bg-alert-anomaly opacity-20 blur-3xl rounded-full scale-150 animate-pulse"></div>
+<span class="material-symbols-outlined text-[120px] text-alert-anomaly relative z-10" style="font-variation-settings: 'FILL' 1;">error</span>
+</div>
+<!-- Typography: Main Error State -->
+<div class="text-center flex flex-col gap-4">
+<h2 class="font-display-lg text-display-lg text-alert-anomaly animate-pulse-fast uppercase tracking-widest drop-shadow-[0_0_15px_rgba(255,69,0,0.8)]">
+                SALDO KURANG
+            </h2>
+<p class="font-headline-md text-headline-md text-text-high-contrast opacity-90 max-w-2xl mx-auto leading-relaxed">
+                Mohon lakukan pengisian saldo atau gunakan kartu lain
+            </p>
+</div>
+<!-- Details Card -->
+<div class="glass-panel glow-red rounded-xl p-8 w-full max-w-xl flex flex-col items-center gap-6 mt-8">
+<span class="font-body-base text-body-base text-text-muted uppercase tracking-wider font-tech-mono">Detected License Plate</span>
+<div class="rounded-lg px-8 flex items-center justify-center w-full bg-on-surface/5 border-on-surface/10 py-6">
+<span class="font-tech-mono text-[40px] font-bold tracking-[0.2em] text-text-high-contrast">
+                    AB 1234 CD
+                </span>
+</div>
+<!-- Quick Actions -->
+<div class="flex w-full gap-4 mt-4">
+<button class="flex-1 hover:bg-surface-bright text-on-surface font-body-base text-body-base py-4 rounded-lg transition-colors border border-outline-variant flex items-center justify-center gap-2 bg-white/10"><span class="material-symbols-outlined">refresh</span><span class="font-tech-mono uppercase tracking-widest">RETRY CARD</span></button>
+<button class="flex-1 bg-alert-anomaly/20 hover:bg-alert-anomaly/30 text-alert-anomaly font-body-base text-body-base py-4 rounded-lg transition-colors border border-alert-anomaly flex items-center justify-center gap-2"><span class="material-symbols-outlined">support_agent</span><span class="font-tech-mono uppercase tracking-widest">CALL ASSISTANCE</span></button>
+</div>
+</div>
+</main>
+<!-- Decorative Background Elements -->
+<div class="absolute inset-0 z-0 pointer-events-none opacity-10" style="background-image: radial-gradient(circle at center, rgba(255, 69, 0, 0.3) 0%, transparent 70%);"></div>
+<div class="absolute inset-0 z-0 pointer-events-none" style="background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px);"></div>
+<!-- Footer BottomNavBar equivalent -->
+<div class="absolute bottom-8 flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-system-info" style="font-size: 18px;">cloud_done</span>
+<span class="font-tech-mono text-tech-mono text-sm tracking-widest opacity-80">SISTEM ONLINE</span>
+</div>
+
+
+
+
+
+
+</body></html>

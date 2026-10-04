@@ -7,108 +7,115 @@ export default function NavigationPage() {
   
   // Ambil data dari halaman sebelumnya
   const { slotData, platNomor } = location.state || {};
-  const targetSlot = slotData?.idSlot || "B1-10";
+  const targetSlot = slotData?.idSlot || "B1-01";
 
-  // Auto redirect kembali ke scan setelah beberapa detik untuk simulasi masuk selesai
+  // Auto redirect kembali ke scan setelah beberapa detik
   useEffect(() => {
     const timer = setTimeout(() => {
-      // Dalam sistem nyata, setelah navigasi selesai (mobil sampai), kembali ke layar standby (ScanPage)
       navigate('/');
-    }, 8000);
+    }, 12000);
     return () => clearTimeout(timer);
   }, [navigate]);
 
+  // Generate slots data
+  const topSlots = [1, 3, 5, 7, 9, 11, 13, 15].map(num => `B1-${num.toString().padStart(2, '0')}`);
+  const bottomSlots = [2, 4, 6, 8, 10, 12, 14].map(num => `B1-${num.toString().padStart(2, '0')}`);
+
   return (
-    <div className="bg-[#050B14] h-screen w-screen flex flex-col overflow-hidden select-none text-slate-100 font-['Outfit'] cursor-pointer" onClick={() => navigate('/')}>
+    <div className="bg-[#040810] h-screen w-screen flex flex-col overflow-hidden select-none font-['Inter'] cursor-pointer" onClick={() => navigate('/')}>
       <style>{`
-        .map-grid {
+        .map-grid-bg {
             background-image: 
-                linear-gradient(to right, rgba(14,165,233,0.1) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(14,165,233,0.1) 1px, transparent 1px);
-            background-size: 40px 40px;
-        }
-        .glowing-route {
-            filter: drop-shadow(0 0 10px #4ade80);
-            stroke-dashoffset: 1000;
-            animation: dash 3s linear forwards;
-        }
-        @keyframes dash {
-            to { stroke-dashoffset: 0; }
-        }
-        .pulse-glow {
-            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-        }
-        @keyframes pulse-ring {
-            0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
-            70% { box-shadow: 0 0 0 20px rgba(74, 222, 128, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+                linear-gradient(to right, rgba(14,165,233,0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(14,165,233,0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
         }
       `}</style>
 
-      {/* TopAppBar Component */}
-      <header className="glass-panel flex justify-between items-center w-full px-8 py-4 border-b border-sky-500/20 relative z-10">
-        <div className="flex items-center gap-4 text-sky-400 font-bold">
-          <span className="material-symbols-outlined text-sky-400" style={{ fontVariationSettings: "'FILL' 1" }}>terminal</span>
-          <span className="font-['Space_Grotesk'] font-bold tracking-[0.2em]">SPCT NAVIGATION SYSTEM</span>
+      {/* Map Background Pattern */}
+      <div className="absolute inset-0 map-grid-bg pointer-events-none"></div>
+
+      {/* TopAppBar */}
+      <header className="flex justify-between items-center w-full px-12 py-8 relative z-10">
+        <div className="flex items-center gap-3 text-sky-400">
+          <span className="material-symbols-outlined text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>map</span>
+          <span className="font-['Space_Grotesk'] text-[18px] font-bold tracking-[0.2em] text-sky-200">PETA ALOKASI A* GRAPH</span>
         </div>
-        <div className="text-slate-100 font-medium flex items-center bg-sky-900/40 border border-sky-500/30 px-6 py-2 rounded-full shadow-[0_0_15px_rgba(14,165,233,0.2)]">
-          <span className="tracking-wider">Plat: <strong className="text-sky-300">{platNomor || "D 1234 SPCT"}</strong> | Tujuan: <strong className="text-green-400">{targetSlot}</strong></span>
-        </div>
-        <div className="flex items-center gap-4 text-sky-400">
-          <span className="material-symbols-outlined">wifi</span>
-          <span className="material-symbols-outlined">sensors</span>
-          <span className="material-symbols-outlined animate-spin-slow">radar</span>
+        <div className="text-slate-300 font-medium text-[15px] flex items-center bg-[#071324] border border-sky-900/50 px-6 py-2 rounded-full">
+          <span>Plat: <strong className="text-sky-300">{platNomor || "D 1234 SPCT"}</strong> | Menuju: <strong className="text-green-400">{targetSlot}</strong></span>
         </div>
       </header>
 
       {/* Main Content Canvas (Map) */}
-      <main className="flex-1 relative overflow-hidden flex items-center justify-center">
-        <div className="absolute inset-0 map-grid flex items-center justify-center pointer-events-none"></div>
+      <main className="flex-1 relative flex items-center justify-center -mt-12 z-10">
         
-        {/* Map Container */}
-        <div className="relative w-[800px] h-[600px] glass-panel rounded-3xl p-8 overflow-hidden z-10 border border-sky-500/30">
+        {/* Container Peta (Border melengkung) */}
+        <div className="relative w-[900px] h-[450px] bg-[#0A101C] border border-[#1E293B] rounded-[2rem] flex flex-col items-center justify-center shadow-2xl">
           
-          {/* Driveway / Path */}
-          <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
-            {/* Base Paths */}
-            <path d="M 100 500 L 100 400 Q 100 350 150 350 L 600 350 Q 650 350 650 300 L 650 150" fill="none" stroke="rgba(14,165,233,0.1)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="40"></path>
-            {/* Glowing Route (Nature Green) */}
-            <path className="glowing-route" d="M 100 500 L 100 400 Q 100 350 150 350 L 600 350 Q 650 350 650 300 L 650 150" fill="none" stroke="#4ade80" strokeDasharray="1000" strokeLinecap="round" strokeLinejoin="round" strokeWidth="6"></path>
-          </svg>
-          
-          {/* Start Point (Entrance Gate) */}
-          <div className="absolute bottom-12 left-20 flex flex-col items-center">
-            <div className="w-8 h-8 rounded-full bg-sky-900 border-4 border-sky-400 z-10 flex items-center justify-center shadow-[0_0_15px_rgba(56,189,248,0.5)]">
-              <div className="w-2 h-2 rounded-full bg-sky-300"></div>
-            </div>
-            <span className="font-['Space_Grotesk'] text-[12px] text-sky-300 mt-2 bg-sky-900/60 border border-sky-500/30 px-3 py-1 rounded-full uppercase font-bold tracking-widest">GATE IN</span>
+          {/* Lorong Tengah (Driveway Hitam transparan) */}
+          <div className="absolute w-[80%] h-[50px] bg-[#1E293B]/40 rounded-full left-[10%] top-1/2 -translate-y-1/2 flex items-center">
+             {/* Lingkaran Gate */}
+             <div className="absolute -left-2 flex flex-col items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-sky-500 flex items-center justify-center shadow-[0_0_20px_rgba(14,165,233,0.5)] border-4 border-[#0A101C] z-20">
+                  <div className="w-4 h-4 rounded-full bg-sky-200"></div>
+                </div>
+                <span className="absolute top-[110%] text-[11px] font-bold text-sky-400 tracking-wider">GATE</span>
+             </div>
           </div>
-          
-          {/* Destination Point */}
-          <div className="absolute top-24 right-24 flex flex-col items-center">
-            <div className="w-10 h-10 rounded-full bg-green-500 pulse-glow z-10 flex items-center justify-center shadow-[0_0_20px_#4ade80]">
-              <span className="material-symbols-outlined text-white text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>location_on</span>
+
+          {/* Grid Layout untuk Slot */}
+          <div className="absolute inset-0 px-24 py-16 flex flex-col justify-between">
+            
+            {/* BARIS ATAS (Top Slots) */}
+            <div className="flex justify-between w-full z-10">
+              {topSlots.map(slot => {
+                const isTarget = slot === targetSlot;
+                return (
+                  <div key={slot} className="relative flex flex-col items-center">
+                    {/* Kotak Slot */}
+                    <div className={`w-[60px] h-[90px] rounded-md flex items-center justify-center border-2 transition-all duration-500
+                      ${isTarget 
+                        ? 'border-green-500 bg-green-500/10 shadow-[0_0_20px_rgba(34,197,94,0.3)]' 
+                        : 'border-[#1E293B] bg-[#0F172A]/80'}`}>
+                      <span className={`text-[12px] font-bold ${isTarget ? 'text-green-400' : 'text-slate-500'}`}>{slot}</span>
+                    </div>
+                    {/* Garis penghubung ke lorong */}
+                    <div className="w-[30px] h-[25px] bg-[#1E293B]/40 mt-1 rounded-sm"></div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* BARIS BAWAH (Bottom Slots) */}
+            <div className="flex justify-between w-full pl-[95px] pr-2 z-10">
+              {bottomSlots.map(slot => {
+                const isTarget = slot === targetSlot;
+                return (
+                  <div key={slot} className="relative flex flex-col items-center">
+                    {/* Garis penghubung ke lorong */}
+                    <div className="w-[30px] h-[25px] bg-[#1E293B]/40 mb-1 rounded-sm"></div>
+                    {/* Kotak Slot */}
+                    <div className={`w-[60px] h-[90px] rounded-md flex items-center justify-center border-2 transition-all duration-500
+                      ${isTarget 
+                        ? 'border-green-500 bg-green-500/10 shadow-[0_0_20px_rgba(34,197,94,0.3)]' 
+                        : 'border-[#1E293B] bg-[#0F172A]/80'}`}>
+                      <span className={`text-[12px] font-bold ${isTarget ? 'text-green-400' : 'text-slate-500'}`}>{slot}</span>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
 
-          {/* Parking Slots Representation */}
-          <div className="absolute top-16 right-36 flex gap-3">
-            <div className="w-20 h-28 border border-slate-600 bg-slate-800/50 rounded-lg flex items-center justify-center backdrop-blur-sm"><span className="font-['Space_Grotesk'] text-[12px] text-slate-500 font-bold">A-01</span></div>
-            <div className="w-20 h-28 border border-slate-600 bg-slate-800/50 rounded-lg flex items-center justify-center backdrop-blur-sm"><span className="font-['Space_Grotesk'] text-[12px] text-slate-500 font-bold">A-02</span></div>
-            <div className="w-20 h-28 border-2 border-green-400 bg-green-900/30 rounded-lg flex items-center justify-center relative overflow-hidden backdrop-blur-md shadow-[0_0_15px_rgba(74,222,128,0.3)]">
-              <div className="absolute inset-0 bg-green-400 opacity-20 animate-pulse"></div>
-              <span className="font-['Space_Grotesk'] text-[16px] text-green-400 font-extrabold z-10">{targetSlot}</span>
-            </div>
-          </div>
         </div>
       </main>
 
-      {/* Bottom Prominent Status */}
-      <footer className="w-full p-8 flex justify-center relative z-10">
-        <div className="w-full max-w-4xl bg-green-500/20 border border-green-400/50 text-green-300 py-6 px-8 rounded-2xl flex items-center justify-center gap-6 shadow-[0_0_30px_rgba(74,222,128,0.2)] backdrop-blur-xl">
-          <span className="material-symbols-outlined text-[48px] animate-bounce" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_circle_up</span>
-          <span className="text-[32px] font-extrabold uppercase tracking-[0.2em] text-center drop-shadow-md">SILAKAN IKUTI RUTE HIJAU</span>
-        </div>
+      {/* Bottom Button */}
+      <footer className="w-full pb-16 flex justify-center z-10">
+        <button className="bg-[#0B1E13] border border-green-500/40 text-green-400 py-4 px-24 rounded-full flex items-center gap-4 hover:bg-[#112F1D] transition-colors shadow-[0_4px_20px_rgba(34,197,94,0.15)]">
+          <span className="material-symbols-outlined font-light">arrow_forward</span>
+          <span className="text-[16px] font-bold tracking-[0.15em] uppercase">SILAKAN IKUTI RUTE HIJAU</span>
+        </button>
       </footer>
     </div>
   );

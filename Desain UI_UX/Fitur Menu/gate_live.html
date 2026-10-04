@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PARK_OS - Gate OCR Feed</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .fill-icon {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Custom scrollbar for data dense areas */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0e1418;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #30363a;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3d4850;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed": "#00210f",
+                        "on-error-container": "#ffdad6",
+                        "surface-tint": "#7ad0ff",
+                        "surface-container": "#1a2024",
+                        "outline-variant": "#3d4850",
+                        "on-tertiary-fixed": "#2c1600",
+                        "error": "#ffb4ab",
+                        "inverse-primary": "#00668a",
+                        "bg-surface": "#1E1E1E",
+                        "surface-container-high": "#252b2f",
+                        "system-info": "#00BFFF",
+                        "on-error": "#690005",
+                        "primary-container": "#00bfff",
+                        "eco-success": "#2E8B57",
+                        "error-container": "#93000a",
+                        "surface-container-low": "#161c20",
+                        "on-tertiary-fixed-variant": "#693c00",
+                        "on-primary-container": "#004a65",
+                        "secondary-fixed": "#9af6b8",
+                        "secondary": "#7ed99e",
+                        "secondary-fixed-dim": "#7ed99e",
+                        "on-tertiary": "#492900",
+                        "on-background": "#dee3e8",
+                        "inverse-surface": "#dee3e8",
+                        "primary-fixed-dim": "#7ad0ff",
+                        "primary-fixed": "#c3e8ff",
+                        "primary": "#8fd6ff",
+                        "on-secondary": "#00391d",
+                        "surface-container-highest": "#30363a",
+                        "warning-reserved": "#FFD700",
+                        "tertiary-fixed": "#ffdcbd",
+                        "text-high-contrast": "#FFFFFF",
+                        "on-surface": "#dee3e8",
+                        "tertiary-fixed-dim": "#ffb86e",
+                        "surface-dim": "#0e1418",
+                        "alert-anomaly": "#FF4500",
+                        "inverse-on-surface": "#2b3135",
+                        "secondary-container": "#00703f",
+                        "text-muted": "#9E9E9E",
+                        "slot-empty": "#333333",
+                        "surface-container-lowest": "#090f13",
+                        "on-primary-fixed": "#001e2c",
+                        "on-tertiary-container": "#653a00",
+                        "on-secondary-fixed-variant": "#00522d",
+                        "surface-variant": "#30363a",
+                        "outline": "#87929b",
+                        "bg-primary": "#121212",
+                        "on-primary-fixed-variant": "#004c69",
+                        "surface": "#0e1418",
+                        "tertiary-container": "#fb9c24",
+                        "on-surface-variant": "#bcc8d1",
+                        "background": "#0e1418",
+                        "on-primary": "#003549",
+                        "tertiary": "#ffc184",
+                        "on-secondary-container": "#94f0b2",
+                        "surface-bright": "#343a3e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "gutter": "16px",
+                        "card-padding": "20px",
+                        "container-margin": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "terminal-status": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-base": ["Inter"],
+                        "tech-mono": ["Space Grotesk"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "terminal-status": ["32px", { "lineHeight": "1.1", "fontWeight": "800" }],
+                        "display-lg": ["48px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "body-base": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "tech-mono": ["18px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-base text-body-base h-screen overflow-hidden flex">
+<!-- SideNavBar (Shared Component) -->
+<nav class="bg-surface dark:bg-surface w-20 lg:w-64 h-screen fixed left-0 top-0 border-r border-surface-container-low flex flex-col py-6 z-20">
+<div class="px-4 lg:px-6 mb-8 flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary">admin_panel_settings</span>
+</div>
+<div class="hidden lg:block overflow-hidden">
+<h1 class="font-headline-md text-[16px] leading-tight text-primary truncate">Smart Parking</h1>
+<p class="font-tech-mono text-[12px] text-text-muted truncate">Green Earth System</p>
+</div>
+</div>
+<ul class="flex flex-col flex-1 gap-2 px-2 lg:px-4">
+<!-- Inactive Tab -->
+<li>
+<a class="flex items-center gap-4 px-3 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="hidden lg:block whitespace-nowrap">Live Dashboard</span>
+</a>
+</li>
+<!-- Active Tab -->
+<li>
+<a class="flex items-center gap-4 px-3 py-3 rounded-lg text-primary font-bold border-r-4 border-primary bg-secondary-container/10 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined fill-icon" data-icon="videocam">videocam</span>
+<span class="hidden lg:block whitespace-nowrap">Gate OCR Feed</span>
+</a>
+</li>
+<!-- Inactive Tabs -->
+<li>
+<a class="flex items-center gap-4 px-3 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="report_problem">report_problem</span>
+<span class="hidden lg:block whitespace-nowrap">Anomaly Logs</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-4 px-3 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="bar_chart">bar_chart</span>
+<span class="hidden lg:block whitespace-nowrap">Reports</span>
+</a>
+</li>
+</ul>
+<ul class="flex flex-col gap-2 px-2 lg:px-4 mt-auto">
+<li>
+<a class="flex items-center gap-4 px-3 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="hidden lg:block whitespace-nowrap">Settings</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-4 px-3 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="hidden lg:block whitespace-nowrap">Logout</span>
+</a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 ml-20 lg:ml-64 flex flex-col h-screen relative">
+<!-- TopAppBar (Shared Component) -->
+<header class="bg-surface dark:bg-surface border-b border-surface-container flex justify-between items-center h-16 px-container-margin w-full fixed top-0 z-10 w-[calc(100%-5rem)] lg:w-[calc(100%-16rem)]">
+<div class="flex items-center gap-4">
+<nav class="flex text-on-surface-variant font-tech-mono text-tech-mono text-sm">
+<a class="hover:text-primary transition-colors cursor-pointer active:scale-95" href="#">Dashboard</a>
+<span class="mx-2 opacity-50">/</span>
+<span class="text-primary font-semibold">Gate OCR Feed</span>
+</nav>
+</div>
+<div class="flex items-center gap-6">
+<!-- System Status Indicator -->
+<div class="hidden md:flex items-center gap-2 bg-surface-container-high px-3 py-1.5 rounded-full border border-outline-variant">
+<div class="w-2.5 h-2.5 rounded-full bg-eco-success shadow-[0_0_8px_rgba(46,139,87,0.8)]"></div>
+<span class="font-tech-mono text-[12px] text-on-surface">IoT Connected</span>
+</div>
+<!-- Actions -->
+<div class="flex items-center gap-3">
+<button class="text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:scale-95 w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-high">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:scale-95 w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-high">
+<span class="material-symbols-outlined" data-icon="wifi">wifi</span>
+</button>
+<button class="text-eco-success hover:text-primary transition-colors cursor-pointer active:scale-95 w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-high">
+<span class="material-symbols-outlined" data-icon="eco">eco</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Viewport Area -->
+<main class="flex-1 overflow-y-auto mt-16 p-container-margin bg-bg-surface flex flex-col gap-container-margin relative">
+<!-- Header Title -->
+<div class="flex justify-between items-end border-b border-surface-container-highest pb-unit">
+<div>
+<h1 class="font-display-lg text-display-lg text-text-high-contrast tracking-tight">Live OCR Feed</h1>
+<p class="text-text-muted font-tech-mono text-tech-mono text-sm mt-1">GATE_A_CLUSTER // REAL-TIME MONITORING</p>
+</div>
+<div class="flex gap-2">
+<button class="bg-surface-container-high hover:bg-surface-container-highest text-on-surface border border-outline-variant px-3 py-1.5 rounded text-sm font-tech-mono text-tech-mono transition-colors">EXPORT</button>
+<button class="bg-primary-container text-on-primary-container hover:brightness-110 px-3 py-1.5 rounded text-sm font-tech-mono text-tech-mono font-bold transition-all">REFRESH FEED</button>
+</div>
+</div>
+<!-- Quad View Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-card-padding h-[614px] min-h-[500px]">
+<!-- Camera 1 -->
+<div class="relative bg-black rounded-lg border border-outline-variant overflow-hidden group shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]">
+<div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?ixlib=rb-4.0.3&amp;auto=format&amp;fit=crop&amp;w=800&amp;q=80')] bg-cover bg-center opacity-40 mix-blend-luminosity" data-alt="A security camera view of a modern car approaching a toll gate in a dimly lit, high-tech basement parking facility. The lighting is harsh and directional, emphasizing the vehicle's license plate. The overall aesthetic is dark, gritty, and utilitarian, fitting a dark-mode industrial dashboard."></div>
+<!-- UI Overlay -->
+<div class="absolute top-0 left-0 w-full p-3 flex justify-between items-start bg-gradient-to-b from-black/80 to-transparent z-10">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-system-info text-sm">videocam</span>
+<span class="font-tech-mono text-tech-mono text-xs text-system-info font-bold tracking-widest">Entry-Mobil (A)</span>
+</div>
+<span class="bg-eco-success/20 text-eco-success border border-eco-success/30 px-2 py-0.5 rounded text-[10px] font-tech-mono text-tech-mono font-bold tracking-wider backdrop-blur-sm flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-eco-success"></span> E-Toll LUNAS
+                        </span>
+</div>
+<!-- Plate Overlay -->
+<div class="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black via-black/80 to-transparent z-10">
+<div class="flex justify-between items-end">
+<div>
+<p class="text-[10px] text-text-muted font-tech-mono text-tech-mono uppercase tracking-widest mb-1">Detected Plate</p>
+<p class="font-tech-mono text-tech-mono text-2xl text-primary font-bold tracking-widest drop-shadow-[0_0_8px_rgba(143,214,255,0.5)]">B 1234 XYZ</p>
+</div>
+<div class="text-right">
+<p class="text-[10px] text-text-muted font-tech-mono text-tech-mono uppercase tracking-widest mb-1">Confidence</p>
+<p class="font-tech-mono text-tech-mono text-sm text-eco-success">98.5%</p>
+</div>
+</div>
+</div>
+<!-- Scanning HUD Elements -->
+<div class="absolute inset-0 border-[0.5px] border-system-info/20 m-6 rounded pointer-events-none"></div>
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-16 border border-eco-success/50 bg-eco-success/5 rounded pointer-events-none flex items-center justify-center">
+<div class="w-full h-[1px] bg-eco-success/30 absolute top-1/2 -translate-y-1/2"></div>
+</div>
+</div>
+<!-- Camera 2 -->
+<div class="relative bg-black rounded-lg border border-outline-variant overflow-hidden group shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]">
+<div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1558981806-ec527fa84c39?ixlib=rb-4.0.3&amp;auto=format&amp;fit=crop&amp;w=800&amp;q=80')] bg-cover bg-center opacity-40 mix-blend-luminosity" data-alt="A security camera view of a motorcycle approaching a toll barrier in a dark, concrete parking garage. The scene is lit by stark, artificial security lights casting deep shadows. The visual tone is high-contrast, industrial, and integrated into a dark-mode tech interface."></div>
+<div class="absolute top-0 left-0 w-full p-3 flex justify-between items-start bg-gradient-to-b from-black/80 to-transparent z-10">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-system-info text-sm">videocam</span>
+<span class="font-tech-mono text-tech-mono text-xs text-system-info font-bold tracking-widest">Entry-Motor (B)</span>
+</div>
+<span class="bg-eco-success/20 text-eco-success border border-eco-success/30 px-2 py-0.5 rounded text-[10px] font-tech-mono text-tech-mono font-bold tracking-wider backdrop-blur-sm flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-eco-success"></span> E-Toll LUNAS
+                        </span>
+</div>
+<div class="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black via-black/80 to-transparent z-10">
+<div class="flex justify-between items-end">
+<div>
+<p class="text-[10px] text-text-muted font-tech-mono text-tech-mono uppercase tracking-widest mb-1">Detected Plate</p>
+<p class="font-tech-mono text-tech-mono text-2xl text-primary font-bold tracking-widest drop-shadow-[0_0_8px_rgba(143,214,255,0.5)]">D 5678 KLO</p>
+</div>
+<div class="text-right">
+<p class="text-[10px] text-text-muted font-tech-mono text-tech-mono uppercase tracking-widest mb-1">Confidence</p>
+<p class="font-tech-mono text-tech-mono text-sm text-eco-success">95.2%</p>
+</div>
+</div>
+</div>
+<div class="absolute inset-0 border-[0.5px] border-system-info/20 m-6 rounded pointer-events-none"></div>
+</div>
+<!-- Camera 3 -->
+<div class="relative bg-black rounded-lg border border-alert-anomaly/50 overflow-hidden group shadow-[inset_0_0_20px_rgba(255,69,0,0.1)]">
+<div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?ixlib=rb-4.0.3&amp;auto=format&amp;fit=crop&amp;w=800&amp;q=80')] bg-cover bg-center opacity-40 mix-blend-luminosity grayscale" data-alt="A grainy, high-contrast security camera feed showing a car stopped at an exit gate in a dark underground facility. The lighting is dramatic, emphasizing a potential issue. The overall style is gritty, technical, and designed for a dark-mode anomaly alert state."></div>
+<div class="absolute inset-0 bg-alert-anomaly/10 pointer-events-none"></div>
+<div class="absolute top-0 left-0 w-full p-3 flex justify-between items-start bg-gradient-to-b from-black/80 to-transparent z-10">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-alert-anomaly text-sm">videocam</span>
+<span class="font-tech-mono text-tech-mono text-xs text-alert-anomaly font-bold tracking-widest">Exit-Mobil</span>
+</div>
+<span class="bg-alert-anomaly/20 text-alert-anomaly border border-alert-anomaly/30 px-2 py-0.5 rounded text-[10px] font-tech-mono text-tech-mono font-bold tracking-wider backdrop-blur-sm flex items-center gap-1 animate-pulse">
+<span class="w-1.5 h-1.5 rounded-full bg-alert-anomaly"></span> SALDO KURANG
+                        </span>
+</div>
+<div class="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black via-black/80 to-transparent z-10">
+<div class="flex justify-between items-end">
+<div>
+<p class="text-[10px] text-alert-anomaly/80 font-tech-mono text-tech-mono uppercase tracking-widest mb-1">Detected Plate</p>
+<p class="font-tech-mono text-tech-mono text-2xl text-alert-anomaly font-bold tracking-widest drop-shadow-[0_0_8px_rgba(255,69,0,0.5)]">AB 9012 DEF</p>
+</div>
+<div class="text-right">
+<p class="text-[10px] text-text-muted font-tech-mono text-tech-mono uppercase tracking-widest mb-1">Action Required</p>
+<button class="bg-alert-anomaly text-white px-2 py-1 rounded text-xs font-tech-mono text-tech-mono font-bold mt-1">OVERRIDE</button>
+</div>
+</div>
+</div>
+<div class="absolute inset-0 border-[0.5px] border-alert-anomaly/30 m-6 rounded pointer-events-none"></div>
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-16 border border-alert-anomaly/50 bg-alert-anomaly/5 rounded pointer-events-none flex items-center justify-center">
+<span class="material-symbols-outlined text-alert-anomaly text-3xl opacity-50">warning</span>
+</div>
+</div>
+<!-- Camera 4 -->
+<div class="relative bg-black rounded-lg border border-outline-variant overflow-hidden group shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]">
+<div class="absolute inset-0 flex items-center justify-center opacity-20">
+<span class="material-symbols-outlined text-6xl text-text-muted">videocam_off</span>
+</div>
+<div class="absolute top-0 left-0 w-full p-3 flex justify-between items-start bg-gradient-to-b from-black/80 to-transparent z-10">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-text-muted text-sm">videocam</span>
+<span class="font-tech-mono text-tech-mono text-xs text-text-muted font-bold tracking-widest">Exit-Motor</span>
+</div>
+<span class="bg-surface-variant text-on-surface-variant border border-outline-variant px-2 py-0.5 rounded text-[10px] font-tech-mono text-tech-mono font-bold tracking-wider backdrop-blur-sm flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-outline-variant"></span> IDLE
+                        </span>
+</div>
+<div class="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black via-black/80 to-transparent z-10 flex justify-center">
+<p class="font-tech-mono text-tech-mono text-xs text-text-muted tracking-widest">WAITING FOR VEHICLE...</p>
+</div>
+<div class="absolute inset-0 border-[0.5px] border-outline-variant/20 m-6 rounded pointer-events-none"></div>
+</div>
+</div>
+<!-- Activity Stream Bottom Section -->
+<div class="bg-surface-container rounded-xl border border-surface-container-highest p-card-padding flex flex-col gap-3 mt-auto">
+<div class="flex justify-between items-center border-b border-surface-container-highest pb-2">
+<h3 class="font-tech-mono text-tech-mono text-sm text-on-surface font-bold tracking-wider">Activity Stream</h3>
+<span class="text-xs text-text-muted font-tech-mono text-tech-mono">LIVE UPDATES</span>
+</div>
+<div class="flex flex-col gap-1 h-32 overflow-y-auto pr-2 custom-scrollbar">
+<div class="flex items-center justify-between py-2 border-b border-surface-container-lowest hover:bg-surface-container-high px-2 rounded transition-colors group">
+<div class="flex items-center gap-4">
+<span class="font-tech-mono text-tech-mono text-xs text-text-muted">14:02:45</span>
+<span class="bg-surface-container-highest text-primary px-2 py-0.5 rounded text-xs font-tech-mono text-tech-mono border border-surface-variant">B 1234 XYZ</span>
+<span class="text-xs font-body-base text-body-base text-on-surface-variant">Entry-Mobil (A)</span>
+</div>
+<span class="text-xs font-tech-mono text-tech-mono text-eco-success">SUCCESS</span>
+</div>
+<div class="flex items-center justify-between py-2 border-b border-surface-container-lowest hover:bg-surface-container-high px-2 rounded transition-colors group bg-alert-anomaly/5 border-l-2 border-l-alert-anomaly">
+<div class="flex items-center gap-4">
+<span class="font-tech-mono text-tech-mono text-xs text-text-muted">14:01:12</span>
+<span class="bg-surface-container-highest text-alert-anomaly px-2 py-0.5 rounded text-xs font-tech-mono text-tech-mono border border-alert-anomaly/30">AB 9012 DEF</span>
+<span class="text-xs font-body-base text-body-base text-on-surface-variant">Exit-Mobil</span>
+</div>
+<span class="text-xs font-tech-mono text-tech-mono text-alert-anomaly">SALDO KURANG</span>
+</div>
+<div class="flex items-center justify-between py-2 border-b border-surface-container-lowest hover:bg-surface-container-high px-2 rounded transition-colors group">
+<div class="flex items-center gap-4">
+<span class="font-tech-mono text-tech-mono text-xs text-text-muted">13:58:30</span>
+<span class="bg-surface-container-highest text-primary px-2 py-0.5 rounded text-xs font-tech-mono text-tech-mono border border-surface-variant">D 5678 KLO</span>
+<span class="text-xs font-body-base text-body-base text-on-surface-variant">Entry-Motor (B)</span>
+</div>
+<span class="text-xs font-tech-mono text-tech-mono text-eco-success">SUCCESS</span>
+</div>
+<div class="flex items-center justify-between py-2 border-b border-surface-container-lowest hover:bg-surface-container-high px-2 rounded transition-colors group">
+<div class="flex items-center gap-4">
+<span class="font-tech-mono text-tech-mono text-xs text-text-muted">13:55:05</span>
+<span class="bg-surface-container-highest text-primary px-2 py-0.5 rounded text-xs font-tech-mono text-tech-mono border border-surface-variant">L 9988 MN</span>
+<span class="text-xs font-body-base text-body-base text-on-surface-variant">Exit-Mobil</span>
+</div>
+<span class="text-xs font-tech-mono text-tech-mono text-eco-success">SUCCESS</span>
+</div>
+<div class="flex items-center justify-between py-2 border-b border-surface-container-lowest hover:bg-surface-container-high px-2 rounded transition-colors group">
+<div class="flex items-center gap-4">
+<span class="font-tech-mono text-tech-mono text-xs text-text-muted">13:50:22</span>
+<span class="bg-surface-container-highest text-primary px-2 py-0.5 rounded text-xs font-tech-mono text-tech-mono border border-surface-variant">AG 3344 TY</span>
+<span class="text-xs font-body-base text-body-base text-on-surface-variant">Entry-Mobil (A)</span>
+</div>
+<span class="text-xs font-tech-mono text-tech-mono text-eco-success">SUCCESS</span>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

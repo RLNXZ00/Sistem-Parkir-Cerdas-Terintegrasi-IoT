@@ -44,31 +44,54 @@ public class DeteksiPlatController // Kelas controller untuk mengelola seluruh a
     // Endpoint POST: Menerima data deteksi plat dari ALPR Python Microservice
     // =====================================================================
 
-    // Endpoint utama yang dipanggil oleh ALPR (Python/YOLOv11) setiap ada kendaraan di gerbang masuk
-    // Payload JSON: { "platNomor": "AB1234XY", "jenisKendaraan": "MOBIL", "confidence": 0.95 }
-    @PostMapping("/masuk") // URL lengkap: POST /api/gate/masuk
+    // Endpoint utama yang dipanggil oleh Kiosk (Simulasi) dan ALPR (Python/YOLOv11)
+    // Mendukung dua cara pengiriman:
+    // 1. JSON Body (dari Kiosk React): { "platNomor": "D 1234 SPCT", "jenisKendaraan": "MOBIL" }
+    // 2. Query Param (dari ALPR Python): POST /api/gate/masuk?platNomor=D1234XY&jenisKendaraan=MOBIL
+    @PostMapping("/masuk")
     public ResponseEntity<HasilDeteksiMasukDto> prosesKendaraanMasuk(
-        @RequestParam String platNomor,                     // Plat nomor hasil baca OCR dari Python
-        @RequestParam JenisKendaraan jenisKendaraan,        // Jenis kendaraan: MOBIL atau MOTOR
-        @RequestParam(defaultValue = "1.0") double confidence) // Confidence score hasil YOLO (default 1.0 jika tidak dikirim)
+        @RequestBody(required = false) java.util.Map<String, String> body,
+        @RequestParam(required = false) String platNomor,
+        @RequestParam(required = false) String jenisKendaraanParam,
+        @RequestParam(defaultValue = "1.0") double confidence)
     {
+        // Ambil platNomor dan jenisKendaraan dari body JSON (kiosk) atau query param (ALPR)
+        String platFinal = (body != null && body.containsKey("platNomor"))
+            ? body.get("platNomor") : platNomor;
+
+        String jeniStr = (body != null && body.containsKey("jenisKendaraan"))
+            ? body.get("jenisKendaraan") : jenisKendaraanParam;
+
+        // Default ke MOBIL jika tidak dikirim (simulasi kiosk sederhana)
+        JenisKendaraan jenis;
+        try {
+            jenis = (jeniStr != null) ? JenisKendaraan.valueOf(jeniStr.toUpperCase()) : JenisKendaraan.MOBIL;
+        } catch (IllegalArgumentException e) {
+            jenis = JenisKendaraan.MOBIL;
+        }
+
+        // Validasi: platNomor wajib ada
+        if (platFinal == null || platFinal.isBlank()) {
+            HasilDeteksiMasukDto err = new HasilDeteksiMasukDto();
+            err.setStatus("ERROR");
+            err.setPesanKeterangan("Parameter platNomor wajib diisi.");
+            return ResponseEntity.badRequest().body(err);
+        }
+
         // Mendelegasikan seluruh pemrosesan ke DeteksiPlatService
-        HasilDeteksiMasukDto hasil = deteksiPlatService.prosesKendaraanMasuk(platNomor, jenisKendaraan, confidence);
+        HasilDeteksiMasukDto hasil = deteksiPlatService.prosesKendaraanMasuk(platFinal, jenis, confidence);
 
         // Branching berdasarkan status hasil yang dikembalikan oleh service
         if ("CONFIDENCE_RENDAH".equals(hasil.getStatus()))
         {
-            // Confidence OCR terlalu rendah -> HTTP 422 Unprocessable Entity: butuh validasi manual petugas
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(hasil);
         }
 
         if ("BASEMENT_PENUH".equals(hasil.getStatus()))
         {
-            // Tidak ada slot tersedia -> HTTP 409 Conflict: kendaraan tidak bisa masuk
             return ResponseEntity.status(HttpStatus.CONFLICT).body(hasil);
         }
 
-        // Proses berhasil -> HTTP 200 OK dengan semua data yang dibutuhkan Kiosk (slot, rute, transaksi)
         return ResponseEntity.ok(hasil);
     }
 

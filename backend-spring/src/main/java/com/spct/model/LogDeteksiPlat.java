@@ -1,5 +1,6 @@
 package com.spct.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -23,6 +24,7 @@ import java.time.LocalDateTime;
 // Sebagai gantinya, hanya menyimpan Foreign Key 'id_kendaraan'.
 @Entity
 @Table(name = "log_deteksi_plat")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class LogDeteksiPlat
 {
     // =====================================================================
@@ -51,16 +53,16 @@ public class LogDeteksiPlat
     private BigDecimal confidenceScore; // Contoh: 0.9523 = 95.23% yakin
 
     // Relasi FK ke KameraAnpr: log ini berasal dari kamera mana?
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_kamera", nullable = false) // FK ke tabel kamera_anpr
-    private KameraAnpr kameraAsal; // Kamera ALPR yang menghasilkan deteksi ini
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_kamera", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    private KameraAnpr kameraAsal;
 
-    // Relasi FK ke DataKendaraan (NULLABLE): 
-    // Null jika hasilDeteksi = "GAGAL" (plat tidak terbaca sehingga kendaraan tidak dikenali)
-    // Berisi FK jika hasilDeteksi = "BERHASIL" (menggantikan kolom plat_nomor - ini 3NF!)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_kendaraan") // Boleh NULL jika deteksi gagal
-    private DataKendaraan kendaraanTerdeteksi; // Kendaraan yang berhasil diidentifikasi
+    // Relasi FK ke DataKendaraan (NULLABLE)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_kendaraan")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    private DataKendaraan kendaraanTerdeteksi;
 
 
     // =====================================================================
