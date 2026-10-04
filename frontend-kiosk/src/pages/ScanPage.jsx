@@ -28,8 +28,14 @@ export default function ScanPage() {
       const data = await response.json();
       console.log("Response dari Backend:", data);
       
-      // Lanjut ke halaman alokasi rute sambil membawa plat nomor
-      navigate('/allocating', { state: { platNomor: dummyPlate } });
+        // Lanjut ke halaman alokasi rute sambil membawa plat nomor dan hasil backend
+        navigate('/allocating', { 
+          state: { 
+            platNomor: dummyPlate,
+            slotDialokasikan: data.hasilAlokasiRute?.idSlotDialokasikan,
+            slotData: data.hasilAlokasiRute
+          } 
+        });
 
     } catch (error) {
       console.error("Gagal terhubung ke server:", error);
