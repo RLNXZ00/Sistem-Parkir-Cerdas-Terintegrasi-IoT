@@ -4,6 +4,7 @@ import com.spct.dto.DataDashboardDto;
 import com.spct.dto.DataDashboardDto.DataOkupansiJamDto;
 import com.spct.model.StatusResolusi;
 import com.spct.model.StatusSlot;
+import com.spct.repository.DataKendaraanRepository;
 import com.spct.repository.LogOperasionalIoTRepository;
 import com.spct.repository.SlotParkirRepository;
 import com.spct.repository.TransaksiParkirRepository;
@@ -46,6 +47,9 @@ public class AnalitikLaporanService // Kelas service yang mengumpulkan dan mengo
     @Autowired
     private SlotParkirRepository slotParkirRepository; // Akses ke tabel slot (kapasitas real-time)
 
+    @Autowired
+    private DataKendaraanRepository dataKendaraanRepository; // Akses ke tabel kendaraan (volume total)
+
 
     // =====================================================================
     // Method Utama: Mengumpulkan semua data metrik untuk Dashboard Manajemen
@@ -63,15 +67,25 @@ public class AnalitikLaporanService // Kelas service yang mengumpulkan dan mengo
         // Memanggil kueri SUM dari TransaksiParkirRepository
         BigDecimal pendapatanTotal = transaksiParkirRepository
             .hitungTotalPendapatanDalamRentangWaktu(awalPeriode, akhirPeriode);
-
-        // Jika tidak ada transaksi lunas dalam periode, pastikan hasilnya 0 bukan null
         if (pendapatanTotal == null) { pendapatanTotal = BigDecimal.ZERO; }
 
+        // Hitung pendapatan kemarin untuk persentase (Bulan ini vs Bulan lalu / Kemarin vs Hari ini)
+        LocalDateTime awalKemarin = awalPeriode.minusDays(1);
+        LocalDateTime akhirKemarin = akhirPeriode.minusDays(1);
+        BigDecimal pendapatanKemarin = transaksiParkirRepository
+            .hitungTotalPendapatanDalamRentangWaktu(awalKemarin, akhirKemarin);
+        if (pendapatanKemarin == null) { pendapatanKemarin = BigDecimal.ZERO; }
+        
+        Double persentasePendapatan = 0.0;
+        if (pendapatanKemarin.compareTo(BigDecimal.ZERO) > 0) {
+            persentasePendapatan = (pendapatanTotal.doubleValue() - pendapatanKemarin.doubleValue()) / pendapatanKemarin.doubleValue() * 100.0;
+        } else if (pendapatanTotal.compareTo(BigDecimal.ZERO) > 0) {
+            persentasePendapatan = 100.0;
+        }
 
-        // --- Langkah 2: Agregasi Volume Kendaraan ---
-        // Memanggil kueri COUNT dari TransaksiParkirRepository
-        Long totalKendaraan = transaksiParkirRepository
-            .countByWaktuMasukBetween(awalPeriode, akhirPeriode);
+        // --- Langkah 2: Agregasi Volume Kendaraan Keseluruhan (History) ---
+        // Memanggil kueri COUNT dari DataKendaraanRepository (bukan hanya hari ini)
+        Long totalKendaraan = dataKendaraanRepository.count();
 
 
         // --- Langkah 3: Agregasi Jumlah Anomali ---
@@ -89,6 +103,9 @@ public class AnalitikLaporanService // Kelas service yang mengumpulkan dan mengo
         // --- Langkah 5: Kalkulasi Eco-Metrics CO2 (Fitur Green-IoT Khas SPCT) ---
         // Rumus: Waktu Hemat (menit) * Emisi Idle (gram/menit) * Volume Kendaraan → konversi gram ke kg
         double totalReduksiCo2Kg = hitungReduksiCo2(totalKendaraan);
+        
+        // Persentase reduksi terhadap angka benchmark pencemaran CO2 terburuk (misal: 2000kg)
+        double persentaseCo2 = Math.min((totalReduksiCo2Kg / 2000.0) * 100.0, 100.0);
 
 
         // --- Langkah 6: Menyusun Data Grafik Okupansi Per Jam ---
@@ -99,11 +116,13 @@ public class AnalitikLaporanService // Kelas service yang mengumpulkan dan mengo
         // --- Langkah 7: Susun dan kembalikan DTO lengkap ke Controller ---
         return new DataDashboardDto(
             pendapatanTotal,    // Total pendapatan di periode ini
-            totalKendaraan,     // Total kendaraan yang masuk
+            Math.round(persentasePendapatan * 10.0) / 10.0, // Persentase kenaikan/penurunan (1 desimal)
+            totalKendaraan,     // Total kendaraan seluruh history
             totalAnomali,       // Jumlah anomali aktif
             slotKosong,         // Slot kosong saat ini (real-time)
             slotTerisi,         // Slot terisi saat ini (real-time)
             totalReduksiCo2Kg,  // Reduksi emisi CO2 yang berhasil dicegah
+            Math.round(persentaseCo2 * 10.0) / 10.0, // Persentase goal tercapai (1 desimal)
             grafikOkupansi      // Data series grafik per jam untuk Chart.js
         );
     }

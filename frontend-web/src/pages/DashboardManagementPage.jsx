@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import AppLayout from '../components/AppLayout';
 
 const ZONES = [
@@ -5,14 +6,53 @@ const ZONES = [
   { name: 'Zona Motor', desc: 'Basement Lantai 1', pct: 42, color: 'warning-reserved', status: 'Normal', borderColor: 'border-warning-reserved', gradFrom: 'from-warning-reserved/10' },
 ];
 
-const KPI_DATA = [
-  { label: 'Pendapatan Hari Ini', value: 'Rp 24.892.500', sub: '+14.2% vs Kemarin', icon: 'payments', color: 'text-eco-success', accent: 'eco-success' },
-  { label: 'Total Kendaraan', value: '1.348', sub: 'Sejak 00:00', icon: 'directions_car', color: 'text-primary', accent: 'primary' },
-  { label: 'CO2 Dicegah', value: '124.5 kg', sub: 'Minggu ini', icon: 'eco', color: 'text-secondary', accent: 'eco-success' },
-  { label: 'Avg Fee / Kendaraan', value: 'Rp 18.450', sub: '↑ 2.1%', icon: 'receipt_long', color: 'text-tertiary', accent: 'tertiary' },
-];
-
 export default function DashboardManagementPage() {
+  const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('http://localhost:8081/api/analitik/dashboard')
+      .then(res => res.json())
+      .then(res => {
+        setData(res);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error("Gagal mengambil data analitik:", err);
+        setIsLoading(false);
+      });
+  }, []);
+
+  if (isLoading) {
+    return (
+      <AppLayout breadcrumb="Management Oversight" status="Loading...">
+        <div className="flex h-full items-center justify-center">
+          <div className="text-xl text-primary font-mono">Memuat Data Analitik...</div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Fallback data jika backend gagal
+  const safeData = data || {
+    pendapatanTotal: 0,
+    persentasePendapatan: 0,
+    totalKendaraan: 0,
+    totalAnomali: 0,
+    reduksiCo2Kg: 0,
+    persentaseCo2: 0,
+    slotKosongSaatIni: 0,
+    slotTerisiSaatIni: 0,
+    grafikOkupansiPerJam: []
+  };
+
+  const KPI_DATA = [
+    { label: 'Pendapatan Hari Ini', value: `Rp ${safeData.pendapatanTotal.toLocaleString('id-ID')}`, sub: `${safeData.persentasePendapatan >= 0 ? '+' : ''}${safeData.persentasePendapatan}% vs Kemarin`, icon: 'payments', color: 'text-eco-success', accent: 'eco-success' },
+    { label: 'Total Kendaraan', value: safeData.totalKendaraan.toLocaleString('id-ID'), sub: 'History', icon: 'directions_car', color: 'text-primary', accent: 'primary' },
+    { label: 'CO2 Dicegah', value: `${safeData.reduksiCo2Kg} kg`, sub: `${safeData.persentaseCo2}% vs Worst Case`, icon: 'eco', color: 'text-secondary', accent: 'eco-success' },
+    { label: 'Avg Fee / Kendaraan', value: safeData.totalKendaraan > 0 ? `Rp ${(safeData.pendapatanTotal / safeData.totalKendaraan).toLocaleString('id-ID', {maximumFractionDigits: 0})}` : 'Rp 0', sub: 'Per Kendaraan', icon: 'receipt_long', color: 'text-tertiary', accent: 'tertiary' },
+  ];
+
   return (
     <AppLayout breadcrumb="Management Oversight" status="System Optimal">
       <div className="p-6 bg-background min-h-full flex flex-col gap-6">
@@ -52,11 +92,11 @@ export default function DashboardManagementPage() {
                 <h2 className="text-xl font-semibold text-on-surface">Pendapatan Bulanan</h2>
               </div>
               <span className="px-2.5 py-1 bg-eco-success/20 text-eco-success rounded text-xs font-mono font-bold border border-eco-success/30">
-                +14.2% vs Bulan Lalu
+                {safeData.persentasePendapatan >= 0 ? '+' : ''}{safeData.persentasePendapatan}% vs Kemarin
               </span>
             </div>
             <div className="text-[48px] font-bold text-eco-success tracking-tighter leading-none mb-4">
-              Rp 24.892.500
+              Rp {safeData.pendapatanTotal.toLocaleString('id-ID')}
             </div>
             {/* SVG Chart */}
             <div className="h-32 w-full relative border-b border-l border-outline-variant/50">
@@ -85,9 +125,9 @@ export default function DashboardManagementPage() {
             <div className="bg-surface-container p-4 rounded-lg border border-outline-variant/20">
               <span className="font-mono text-sm text-on-surface-variant block mb-1">Avg Fee per Vehicle</span>
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl text-primary font-bold">Rp 18.450</span>
+                <span className="text-3xl text-primary font-bold">Rp {safeData.totalKendaraan > 0 ? (safeData.pendapatanTotal / safeData.totalKendaraan).toLocaleString('id-ID', {maximumFractionDigits: 0}) : 0}</span>
                 <span className="text-eco-success font-mono text-sm flex items-center">
-                  <span className="material-symbols-outlined text-[16px]">arrow_upward</span>2.1%
+                  <span className="material-symbols-outlined text-[16px]">info</span>Avg
                 </span>
               </div>
             </div>
@@ -113,17 +153,17 @@ export default function DashboardManagementPage() {
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="40" fill="transparent" stroke="#30363a" strokeWidth="12" />
                 <circle cx="50" cy="50" r="40" fill="transparent" stroke="#2E8B57" strokeWidth="12"
-                  strokeDasharray="251.2" strokeDashoffset="62.8" strokeLinecap="round"
+                  strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * safeData.persentaseCo2 / 100)} strokeLinecap="round"
                   className="drop-shadow-[0_0_6px_rgba(46,139,87,0.6)]" />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-4xl text-eco-success font-bold tracking-tighter">75%</span>
-                <span className="font-mono text-xs text-text-muted uppercase tracking-wider">Goal Reached</span>
+                <span className="text-4xl text-eco-success font-bold tracking-tighter">{safeData.persentaseCo2}%</span>
+                <span className="font-mono text-xs text-text-muted uppercase tracking-wider">Tercapai</span>
               </div>
             </div>
             <div className="mt-4 text-center">
-              <div className="font-mono text-2xl text-on-surface font-bold">1.245 kg</div>
-              <div className="text-sm text-on-surface-variant">Emisi dicegah minggu ini</div>
+              <div className="font-mono text-2xl text-on-surface font-bold">{safeData.reduksiCo2Kg} kg</div>
+              <div className="text-sm text-on-surface-variant">Emisi dicegah total</div>
             </div>
           </div>
 
