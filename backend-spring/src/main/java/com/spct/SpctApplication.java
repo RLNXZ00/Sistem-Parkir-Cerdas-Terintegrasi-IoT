@@ -10,6 +10,8 @@ import org.springframework.context.annotation.Bean;
 import com.spct.model.SlotParkir;
 import com.spct.model.StatusSlot;
 import com.spct.repository.SlotParkirRepository;
+import com.spct.model.User;
+import com.spct.repository.UserRepository;
 
 @SpringBootApplication
 public class SpctApplication 
@@ -22,10 +24,17 @@ public class SpctApplication
         System.out.println("==========================================================");
     }
 
-    // Seeder Otomatis: Membuat 15 Slot Parkir jika database masih kosong
+    // Seeder Otomatis: Membuat 15 Slot Parkir dan Akun Manajer jika database masih kosong
     @Bean
-    public CommandLineRunner seederData(SlotParkirRepository slotRepo) {
+    public CommandLineRunner seederData(SlotParkirRepository slotRepo, UserRepository userRepo) {
         return args -> {
+            System.out.println("SINKRONISASI AKUN DEFAULT...");
+            if (userRepo.findByUsername("manajer").isEmpty()) {
+                User manajer = new User("manajer", "manajer123", "Manajer RS Panti Rapih", "Manajemen RS");
+                userRepo.save(manajer);
+                System.out.println("AKUN MANAJER BERHASIL DIBUAT (user: manajer, pass: manajer123)");
+            }
+
             System.out.println("SINKRONISASI KOORDINAT SLOT PARKIR (GRID)...");
             for (int i = 1; i <= 15; i++) {
                 String idSlot = "B1-" + String.format("%02d", i);
