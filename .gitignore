@@ -19,3 +19,13 @@ Evaluasi SPCT IoT.txt
 # Abaikan file sistem OS
 .DS_Store
 Thumbs.db
+
+# Backend: hasil build Maven (JANGAN pernah di-track Git)
+backend-spring/target/
+backend-spring/.mvn/wrapper/maven-wrapper.jar
+
+# Frontend: dependency dan hasil build (JANGAN pernah di-track Git)
+frontend-web/node_modules/
+frontend-web/dist/
+frontend-kiosk/node_modules/
+frontend-kiosk/dist/
