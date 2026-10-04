@@ -32,8 +32,11 @@ export default function ScanPage() {
         navigate('/allocating', { 
           state: { 
             platNomor: dummyPlate,
-            slotDialokasikan: data.hasilAlokasiRute?.idSlotDialokasikan,
-            slotData: data.hasilAlokasiRute
+            slotDialokasikan: data.slotDialokasikan,
+            slotData: {
+              idSlotDialokasikan: data.slotDialokasikan,
+              urutan: data.jalurRuteGraf
+            }
           } 
         });
 

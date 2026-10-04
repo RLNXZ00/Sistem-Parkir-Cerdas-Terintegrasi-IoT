@@ -4,8 +4,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 const navItems = [
   { to: '/dashboard', icon: 'dashboard', label: 'Live Dashboard' },
   { to: '/gate-live', icon: 'videocam', label: 'Gate OCR Feed' },
-  { to: '/anomaly-logs', icon: 'report_problem', label: 'Anomaly Logs' },
-  { to: '/reports', icon: 'bar_chart', label: 'Reports' },
+  { to: '/anomaly-logs', icon: 'report_problem', label: 'Anomaly Logs' }
 ];
 
 export default function Sidebar() {
