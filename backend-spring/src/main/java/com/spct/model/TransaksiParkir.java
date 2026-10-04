@@ -1,16 +1,18 @@
 package com.spct.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import java.math.BigDecimal;   // Mengimpor BigDecimal untuk menyimpan nominal uang agar presisi
-import java.time.LocalDateTime; // Mengimpor LocalDateTime untuk menyimpan waktu masuk dan keluar
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 
 
 // Deklarasi Entity: merepresentasikan tabel 'transaksi_parkir' di Database Relasional
 // Tabel ini bersifat Transaksional: bertambah terus setiap ada kendaraan masuk/keluar
 @Entity
-@Table(name = "transaksi_parkir") // Mendefinisikan nama tabel di database
-public class TransaksiParkir // Kelas model untuk mencatat riwayat lengkap setiap sesi parkir
+@Table(name = "transaksi_parkir")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+public class TransaksiParkir
 {
     // =====================================================================
     // Deklarasi Atribut: Kolom-kolom tabel 'transaksi_parkir'
@@ -41,15 +43,17 @@ public class TransaksiParkir // Kelas model untuk mencatat riwayat lengkap setia
     @Column(name = "metode_pembayaran")
     private MetodePembayaran metodePembayaran; // Metode yang digunakan saat membayar (bisa NULL sebelum bayar)
 
-    // Relasi Foreign Key ke DataKendaraan (Many-to-One: banyak transaksi bisa dimiliki satu kendaraan)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_kendaraan", nullable = false) // Kolom FK di tabel transaksi_parkir
-    private DataKendaraan kendaraan; // Kendaraan pemilik transaksi ini (wajib ada, tidak boleh NULL)
+    // Relasi Foreign Key ke DataKendaraan
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_kendaraan", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    private DataKendaraan kendaraan;
 
-    // Relasi Foreign Key ke SlotParkir (Many-to-One: banyak transaksi historis bisa terjadi di satu slot)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_slot_dipilih") // Menyimpan histori slot mana yang ditempati
-    private SlotParkir slotDipilih; // Slot yang dialokasikan pada transaksi ini (berguna untuk laporan)
+    // Relasi Foreign Key ke SlotParkir
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_slot_dipilih")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "kendaraanAktif"})
+    private SlotParkir slotDipilih;
 
 
     // =====================================================================

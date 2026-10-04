@@ -19,3 +19,8 @@ Evaluasi SPCT IoT.txt
 # Abaikan file sistem OS
 .DS_Store
 Thumbs.db
+
+# Build artifacts & dependencies
+node_modules/
+target/
+*.jar

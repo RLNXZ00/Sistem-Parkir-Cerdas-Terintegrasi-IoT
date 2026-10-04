@@ -1,15 +1,17 @@
 package com.spct.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import java.time.LocalDateTime; // Mengimpor LocalDateTime untuk menyimpan waktu kejadian sensor yang presisi
+import java.time.LocalDateTime;
 
 
 
 // Deklarasi Entity: merepresentasikan tabel 'log_operasional_iot' di Database Relasional
 // Tabel ini bersifat Log/History: sangat besar, mencatat setiap perubahan sensor secara real-time
 @Entity
-@Table(name = "log_operasional_iot") // Mendefinisikan nama tabel di database
-public class LogOperasionalIoT // Kelas model untuk mencatat semua pergerakan dan kejadian sensor IoT
+@Table(name = "log_operasional_iot")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+public class LogOperasionalIoT
 {
     // =====================================================================
     // Deklarasi Atribut: Kolom-kolom tabel 'log_operasional_iot'
@@ -38,10 +40,11 @@ public class LogOperasionalIoT // Kelas model untuk mencatat semua pergerakan da
     @Column(name = "catatan_detail", length = 500)
     private String catatanDetail; // Penjelasan detail kejadian (misal: "Slot B1-12: status DB=KOSONG, sensor=TERISI")
 
-    // Relasi Foreign Key ke SlotParkir (Many-to-One: banyak log bisa terjadi di satu slot)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_slot", nullable = false) // Kolom FK di tabel log_operasional_iot
-    private SlotParkir slotTerkait; // Slot parkir mana yang terkait dengan kejadian ini
+    // Relasi Foreign Key ke SlotParkir (Many-to-One)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_slot", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "kendaraanAktif"})
+    private SlotParkir slotTerkait;
 
 
     // =====================================================================

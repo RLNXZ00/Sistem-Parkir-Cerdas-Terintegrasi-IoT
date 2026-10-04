@@ -1,5 +1,6 @@
 package com.spct.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 
 // Deklarasi Entity: merepresentasikan tabel 'sensor_iot' di Database Relasional
@@ -8,6 +9,7 @@ import jakarta.persistence.*;
 // Arsitektur: Sensor mengirim sinyal ke backend melalui endpoint IoT Gateway
 @Entity
 @Table(name = "sensor_iot")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // Cegah error Jackson saat serialisasi proxy Hibernate
 public class SensorIoT
 {
     // =====================================================================
@@ -25,8 +27,9 @@ public class SensorIoT
 
     // Relasi ke SlotParkir: tiap sensor memantau TEPAT SATU slot (One-to-One)
     // Satu slot juga hanya punya satu sensor
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER) // EAGER: langsung load data slot saat sensor di-query
     @JoinColumn(name = "id_slot", nullable = false, unique = true) // FK unik ke slot_parkir
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "kendaraanAktif"}) // Cegah circular reference ke DataKendaraan
     private SlotParkir slotDipantau; // Slot parkir yang dipantau sensor ini
 
 

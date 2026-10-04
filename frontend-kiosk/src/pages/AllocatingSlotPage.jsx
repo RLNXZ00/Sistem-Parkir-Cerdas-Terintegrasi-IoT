@@ -7,47 +7,36 @@ export default function AllocatingSlotPage() {
   const [slot, setSlot] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
 
-  // Ambil plat nomor dari state yang dikirim oleh ScanPage
-  const platNomor = location.state?.platNomor || "D 1234 SPCT";
+  // Ambil data yang dikirim dari ScanPage
+  const { platNomor = "D 1234 SPCT", slotDialokasikan = null, jalurRuteGraf = null, error = null } = location.state || {};
 
   useEffect(() => {
     let isMounted = true;
 
-    const fetchSlot = async () => {
-      try {
-        // 1. Panggil API Alokasi Rute dari Backend Spring Boot
-        const response = await fetch(`/api/alokasi-rute/proses?platNomor=${encodeURIComponent(platNomor)}&jenisKendaraan=MOBIL`, {
-          method: 'POST'
-        });
+    if (error) {
+      setErrorMsg(error);
+      setTimeout(() => navigate('/'), 3000);
+      return;
+    }
 
-        if (!response.ok) {
-          throw new Error('Gagal mendapatkan slot parkir');
-        }
-
-        const data = await response.json();
-        
+    if (slotDialokasikan) {
+      setSlot({ idSlot: slotDialokasikan });
+      
+      // Setelah 3 detik tampilkan slot, pindah ke halaman peta
+      const timer = setTimeout(() => {
         if (isMounted) {
-          setSlot(data);
-          // 2. Setelah dapat slot, tunggu 3 detik biar user bisa baca, lalu pindah ke peta navigasi
-          setTimeout(() => {
-            navigate('/navigation', { state: { slotData: data, platNomor } });
-          }, 3000);
+          navigate('/navigation', { state: location.state });
         }
-
-      } catch (error) {
-        console.error(error);
-        if (isMounted) {
-          setErrorMsg("Maaf, parkiran penuh atau terjadi kesalahan server.");
-          // Kembali ke halaman awal setelah 3 detik jika error
-          setTimeout(() => navigate('/'), 3000);
-        }
-      }
-    };
-
-    fetchSlot();
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    } else {
+      // Jika tidak ada data state, kembali ke home
+      navigate('/');
+    }
 
     return () => { isMounted = false; };
-  }, [navigate, platNomor]);
+  }, [navigate, slotDialokasikan, error, location.state]);
 
   return (
     <div className="bg-[#050B14] h-screen w-screen overflow-hidden flex items-center justify-center font-['Outfit'] text-slate-100">

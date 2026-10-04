@@ -1,0 +1,188 @@
+<!DOCTYPE html><html class="dark" lang="id"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Visitor Terminal Display - Navigation Mode</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed-variant": "#004c69",
+                        "on-primary-container": "#004a65",
+                        "on-tertiary-fixed": "#2c1600",
+                        "on-secondary-fixed": "#00210f",
+                        "surface-container": "#1a2024",
+                        "surface-variant": "#30363a",
+                        "inverse-on-surface": "#2b3135",
+                        "bg-surface": "#1E1E1E",
+                        "on-tertiary": "#492900",
+                        "slot-empty": "#333333",
+                        "surface-container-highest": "#30363a",
+                        "secondary-container": "#00703f",
+                        "inverse-surface": "#dee3e8",
+                        "tertiary-fixed-dim": "#ffb86e",
+                        "on-tertiary-container": "#653a00",
+                        "secondary": "#7ed99e",
+                        "surface-tint": "#7ad0ff",
+                        "system-info": "#00BFFF",
+                        "surface-bright": "#343a3e",
+                        "on-surface-variant": "#bcc8d1",
+                        "surface-container-high": "#252b2f",
+                        "text-muted": "#9E9E9E",
+                        "on-secondary-fixed-variant": "#00522d",
+                        "tertiary-container": "#fb9c24",
+                        "surface": "#0e1418",
+                        "eco-success": "#2E8B57",
+                        "on-background": "#dee3e8",
+                        "on-tertiary-fixed-variant": "#693c00",
+                        "on-primary-fixed": "#001e2c",
+                        "secondary-fixed-dim": "#7ed99e",
+                        "primary-fixed-dim": "#7ad0ff",
+                        "on-secondary-container": "#94f0b2",
+                        "surface-container-low": "#161c20",
+                        "on-primary": "#003549",
+                        "background": "#0e1418",
+                        "secondary-fixed": "#9af6b8",
+                        "inverse-primary": "#00668a",
+                        "alert-anomaly": "#FF4500",
+                        "tertiary-fixed": "#ffdcbd",
+                        "error-container": "#93000a",
+                        "outline": "#87929b",
+                        "warning-reserved": "#FFD700",
+                        "surface-dim": "#0e1418",
+                        "bg-primary": "#121212",
+                        "primary-fixed": "#c3e8ff",
+                        "primary": "#8fd6ff",
+                        "tertiary": "#ffc184",
+                        "on-secondary": "#00391d",
+                        "on-surface": "#dee3e8",
+                        "on-error": "#690005",
+                        "surface-container-lowest": "#090f13",
+                        "on-error-container": "#ffdad6",
+                        "text-high-contrast": "#FFFFFF",
+                        "outline-variant": "#3d4850",
+                        "primary-container": "#00bfff",
+                        "error": "#ffb4ab"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "container-margin": "24px",
+                        "unit": "4px",
+                        "card-padding": "20px"
+                    },
+                    "fontFamily": {
+                        "terminal-status": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "tech-mono": ["Space Grotesk"],
+                        "body-base": ["Inter"]
+                    },
+                    "fontSize": {
+                        "terminal-status": ["32px", { "lineHeight": "1.1", "fontWeight": "800" }],
+                        "headline-md": ["24px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "tech-mono": ["18px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "body-base": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .map-grid {
+            background-image: 
+                linear-gradient(to right, #30363a 1px, transparent 1px),
+                linear-gradient(to bottom, #30363a 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        .glowing-route {
+            filter: drop-shadow(0 0 8px #2E8B57);
+        }
+        .glowing-pulse {
+            animation: pulse-glow 2s infinite;
+        }
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 0 0 rgba(46, 139, 87, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(46, 139, 87, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(46, 139, 87, 0); }
+        }
+    </style>
+</head>
+<body class="bg-bg-primary h-screen w-screen flex flex-col overflow-hidden select-none">
+<!-- TopAppBar Component (Shared Component Execution) -->
+<header class="bg-surface-dim dark:bg-surface-dim flex justify-between items-center w-full px-container-margin py-4 border-b border-outline-variant dark:border-outline-variant flat no shadows relative z-10">
+<div class="flex items-center gap-gutter text-primary-fixed-dim font-bold">
+<span class="material-symbols-outlined text-primary-fixed-dim" style="font-variation-settings: 'FILL' 1;">terminal</span>
+<span class="text-tech-mono font-tech-mono font-bold text-primary-fixed-dim dark:text-primary-fixed-dim tracking-wider">BASENET TERMINAL</span>
+</div>
+<div class="text-on-surface text-body-base font-body-base font-medium flex items-center bg-surface-variant px-4 py-2 rounded">
+<span>Tujuan Anda: Slot B1-10 | ID: 021</span>
+</div>
+<div class="flex items-center gap-4 text-primary dark:text-primary">
+<span class="material-symbols-outlined" data-icon="wifi">wifi</span>
+<span class="material-symbols-outlined" data-icon="sensors">sensors</span>
+<span class="material-symbols-outlined" data-icon="schedule">schedule</span>
+</div>
+</header>
+<!-- Main Content Canvas (Map) -->
+<main class="flex-1 relative bg-bg-surface overflow-hidden">
+<!-- 2D Navigation Map -->
+<div class="absolute inset-0 map-grid flex items-center justify-center pointer-events-none">
+<!-- Map Container -->
+<div class="relative w-[800px] h-[600px] bg-surface-container rounded-xl border border-outline-variant p-8 overflow-hidden shadow-2xl">
+<!-- Driveway / Path -->
+<svg class="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+<!-- Base Paths -->
+<path d="M 100 500 L 100 400 Q 100 350 150 350 L 600 350 Q 650 350 650 300 L 650 150" fill="none" stroke="#30363a" stroke-linecap="round" stroke-linejoin="round" stroke-width="40"></path>
+<!-- Glowing Route (Nature Green) -->
+<path class="glowing-route" d="M 100 500 L 100 400 Q 100 350 150 350 L 600 350 Q 650 350 650 300 L 650 150" fill="none" stroke="#2E8B57" stroke-dasharray="16, 8" stroke-linecap="round" stroke-linejoin="round" stroke-width="8"></path>
+</svg>
+<!-- Start Point (Entrance Gate) -->
+<div class="absolute bottom-12 left-20 flex flex-col items-center">
+<div class="w-6 h-6 rounded-full bg-surface-variant border-4 border-outline z-10 flex items-center justify-center">
+<div class="w-2 h-2 rounded-full bg-outline"></div>
+</div>
+<span class="text-tech-mono font-tech-mono text-[12px] text-text-muted mt-2 bg-surface-container-high px-2 py-1 rounded">ENTRANCE</span>
+</div>
+<!-- Destination Point (Slot B1-10) -->
+<div class="absolute top-24 right-24 flex flex-col items-center">
+<div class="w-8 h-8 rounded-full bg-eco-success glowing-pulse z-10 flex items-center justify-center shadow-[0_0_15px_#2E8B57]">
+<span class="material-symbols-outlined text-white text-[16px]" style="font-variation-settings: 'FILL' 1;">location_on</span>
+</div>
+</div>
+<!-- Parking Slots Representation -->
+<div class="absolute top-16 right-36 flex gap-2">
+<div class="w-16 h-24 border-2 border-outline-variant bg-slot-empty rounded flex items-center justify-center"><span class="text-tech-mono font-tech-mono text-[10px] text-text-muted">B1-08</span></div>
+<div class="w-16 h-24 border-2 border-outline-variant bg-surface-variant rounded flex items-center justify-center"><span class="text-tech-mono font-tech-mono text-[10px] text-text-muted">B1-09</span></div>
+<div class="w-16 h-24 border-2 border-eco-success bg-[rgba(46,139,87,0.1)] rounded flex items-center justify-center relative overflow-hidden">
+<div class="absolute inset-0 bg-eco-success opacity-20"></div>
+<span class="text-tech-mono font-tech-mono text-[14px] text-eco-success font-bold z-10">B1-10</span>
+</div>
+<div class="w-16 h-24 border-2 border-outline-variant bg-slot-empty rounded flex items-center justify-center"><span class="text-tech-mono font-tech-mono text-[10px] text-text-muted">B1-11</span></div>
+</div>
+<!-- Environmental Details -->
+<div class="absolute bottom-20 right-20 text-text-muted opacity-50">
+<span class="material-symbols-outlined text-[48px]">local_parking</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Prominent Status -->
+<footer class="w-full bg-bg-surface p-container-margin flex justify-center pb-12 relative z-10">
+<div class="w-full max-w-4xl bg-eco-success text-white py-6 px-8 rounded-xl flex items-center justify-center gap-6 shadow-[0_0_30px_rgba(46,139,87,0.4)] glowing-pulse">
+<span class="material-symbols-outlined text-[48px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-terminal-status font-terminal-status uppercase tracking-wide text-center">PALANG DIBUKA - SILAKAN MASUK</span>
+</div>
+</footer>
+</body></html>
