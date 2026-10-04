@@ -7,6 +7,11 @@ import NavigationPage from './pages/NavigationPage';
 import SuccessPage from './pages/SuccessPage';
 import FailedPage from './pages/FailedPage';
 
+// Exit Pages
+import ExitScanPage from './pages/ExitScanPage';
+import ExitSuccessPage from './pages/ExitSuccessPage';
+import ExitFailedPage from './pages/ExitFailedPage';
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -17,8 +22,9 @@ export default function App() {
         <Route path="/navigation" element={<NavigationPage />} />
         
         {/* === Exit Gate Flow === */}
-        <Route path="/success" element={<SuccessPage />} />
-        <Route path="/failed" element={<FailedPage />} />
+        <Route path="/exit" element={<ExitScanPage />} />
+        <Route path="/exit/success" element={<ExitSuccessPage />} />
+        <Route path="/exit/failed" element={<ExitFailedPage />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -11,38 +11,25 @@ export default function ScanPage() {
     setIsScanning(true);
     setErrorMsg(null);
     
-    // Plat nomor dummy untuk simulasi (seolah-olah dibaca kamera ALPR)
+    // Plat nomor dummy untuk simulasi
     const dummyPlate = "D 1234 SPCT";
 
     try {
-      // Panggil API Deteksi Plat Masuk — mengirim JSON body ke backend
-      const response = await fetch('/api/gate/masuk', {
+      // 1. Panggil API Deteksi Plat Masuk (Backend Port 8081 via Proxy Vite)
+      // Perhatian: Backend Spring Boot menggunakan @RequestParam, jadi data dikirim lewat URL query string
+      const response = await fetch(`/api/gate/masuk?platNomor=${encodeURIComponent(dummyPlate)}&jenisKendaraan=MOBIL&confidence=1.0`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platNomor: dummyPlate, jenisKendaraan: 'MOBIL' })
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       
       const data = await response.json();
       console.log("Response dari Backend:", data);
-
-      if (!response.ok) {
-        // Backend mengembalikan error (409 penuh, 400 bad request, dll.)
-        setErrorMsg(data.pesanKeterangan || `Server error: ${response.status}`);
-        setIsScanning(false);
-        return;
-      }
       
-      // Sukses → lanjut ke halaman alokasi rute, bawa seluruh data respons
-      navigate('/allocating', { 
-        state: { 
-          platNomor: dummyPlate,
-          idTransaksi: data.idTransaksi,
-          slotDialokasikan: data.slotDialokasikan,
-          lantaiSlot: data.lantaiSlot,
-          jalurRuteGraf: data.jalurRuteGraf,
-          waktuMasuk: data.waktuMasuk,
-        } 
-      });
+      // Lanjut ke halaman alokasi rute sambil membawa plat nomor
+      navigate('/allocating', { state: { platNomor: dummyPlate } });
 
     } catch (error) {
       console.error("Gagal terhubung ke server:", error);
@@ -56,12 +43,21 @@ export default function ScanPage() {
       {/* Top IoT Status Bar */}
       <header className="absolute top-0 left-0 w-full px-container-margin py-gutter flex justify-between items-start z-10 mt-4 px-8">
         <div className="flex items-center gap-3 bg-[#0B1526]/80 backdrop-blur-md px-4 py-2 rounded-full border border-slate-700/50">
-          <span className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse"></span>
-          <span className="font-['Space_Grotesk'] text-green-400 uppercase text-[14px] font-semibold tracking-wider">System Ready</span>
+          <span className="w-3 h-3 rounded-full bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.6)] animate-pulse"></span>
+          <span className="font-['Space_Grotesk'] text-sky-400 uppercase text-[14px] font-semibold">System Ready</span>
         </div>
-        <div className="flex items-center gap-2 text-slate-400 font-['Space_Grotesk'] text-[14px] bg-[#0B1526]/50 px-3 py-1 rounded-full border border-slate-800 tracking-wider">
-          <span className="material-symbols-outlined text-[18px]">videocam</span>
-          <span>PG_005_LIVE</span>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => navigate('/exit')}
+            className="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 px-4 py-1.5 rounded-full border border-slate-600 transition-colors cursor-pointer text-sm font-['Space_Grotesk']"
+          >
+            <span className="material-symbols-outlined text-[18px]">swap_horiz</span>
+            Switch to Exit
+          </button>
+          <div className="flex items-center gap-2 text-slate-400 font-['Space_Grotesk'] text-[14px] bg-[#0B1526]/50 px-3 py-1 rounded-full border border-slate-800">
+            <span className="material-symbols-outlined text-[18px]">videocam</span>
+            <span>GATE_IN_01_LIVE</span>
+          </div>
         </div>
       </header>
 
@@ -97,18 +93,14 @@ export default function ScanPage() {
             </p>
           )}
 
-          {/* SIMULATION BUTTON */}
+          {/* SIMULATION BUTTON (MENGGANTIKAN WEBCAM FISIK SEMENTARA) */}
           <button 
             onClick={simulateCarArrival}
             disabled={isScanning}
-            className="bg-[#0f1b2e] hover:bg-[#1a2c47] border border-slate-700 text-sky-400 px-8 py-4 rounded-xl mt-4 w-full max-w-sm mx-auto flex items-center justify-center gap-3 transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
+            className="glass-button px-8 py-4 rounded-xl mt-4 w-full flex items-center justify-center gap-3"
           >
-            <span className="material-symbols-outlined font-light">
-              {isScanning ? "sync" : "radar"}
-            </span>
-            <span className="font-semibold tracking-wide">
-              {isScanning ? "Scanning Vehicle..." : "Scanning Vehicle..."}
-            </span>
+            <span className="material-symbols-outlined animate-spin">radar</span>
+            <span>{isScanning ? "Menghubungi Server..." : "Simulasi Mobil Datang"}</span>
           </button>
         </div>
       </main>
@@ -116,7 +108,7 @@ export default function ScanPage() {
       {/* Bottom Tech Branding */}
       <footer className="absolute bottom-0 left-0 w-full pb-8 px-container-margin flex justify-center items-center z-10">
         <div className="flex items-center gap-4 border-t border-slate-700/50 pt-4 w-full max-w-md justify-center">
-          <span className="font-['Space_Grotesk'] text-slate-500 text-[12px] uppercase tracking-widest font-semibold">Powered by PARK-TECH</span>
+          <span className="font-['Space_Grotesk'] text-slate-500 text-[12px] uppercase tracking-widest">Powered by SPCT IoT Team</span>
         </div>
       </footer>
     </div>

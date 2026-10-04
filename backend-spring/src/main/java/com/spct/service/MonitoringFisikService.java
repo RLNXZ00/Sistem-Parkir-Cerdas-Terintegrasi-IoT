@@ -105,6 +105,7 @@ public class MonitoringFisikService // Kelas service yang mengorkestrasi semua l
             TingkatKeparahan.INFO,                            // Level: informasi biasa (hijau di Dashboard)
             "Slot " + slot.getIdSlot() + ": kendaraan yang dialokasikan telah tiba. Status diubah menjadi TERISI."
         );
+        log.setStatusResolusi(StatusResolusi.SELESAI_DIVALIDASI); // Laporannya sudah valid/bukan anomali
         logOperasionalIoTRepository.save(log); // Simpan log ke database
 
         // PUSH WebSocket: Kirim pembaruan status denah ke Dashboard Admin (Redraw peta)
@@ -127,6 +128,7 @@ public class MonitoringFisikService // Kelas service yang mengorkestrasi semua l
             TingkatKeparahan.INFO,                             // Level: informasi biasa (hijau di Dashboard)
             "Slot " + slot.getIdSlot() + ": kendaraan telah keluar. Status diubah menjadi KOSONG."
         );
+        log.setStatusResolusi(StatusResolusi.SELESAI_DIVALIDASI); // Laporannya sudah valid/bukan anomali
         logOperasionalIoTRepository.save(log); // Simpan log ke database
 
         // PUSH WebSocket: Kirim pembaruan status denah ke Dashboard Admin (Redraw peta)

@@ -1,13 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '../components/AppLayout';
 
-const INITIAL_ANOMALIES = [
-  { id: 1, slot: 'B-02', type: 'SALAH PARKIR', severity: 'CRITICAL', time: '10:42:15', desc: 'Kendaraan terdeteksi di slot yang tidak terdaftar. Sensor ultrasonic & YOLO konfirmasi.', plate: 'AB 1234 CD', status: 'BELUM_DITANGANI' },
-  { id: 2, slot: 'C-05', type: 'OBSTRUKSI SENSOR', severity: 'WARNING', time: '10:15:02', desc: 'Benda non-kendaraan (kemungkinan troli/barang) memicu sensor ultrasonik secara palsu.', plate: '-', status: 'BELUM_DITANGANI' },
-  { id: 3, slot: 'A-07', type: 'SALAH PARKIR', severity: 'CRITICAL', time: '09:55:44', desc: 'Plat nomor tidak dikenali di sistem. Kendaraan tidak terdaftar.', plate: 'UNKNOWN', status: 'BELUM_DITANGANI' },
-  { id: 4, slot: 'Gate N1', type: 'OCR MISMATCH', severity: 'WARNING', time: '09:12:30', desc: 'Confidence OCR di bawah threshold 70%. Perlu verifikasi manual.', plate: 'B 8877 XY', status: 'SELESAI_DIVALIDASI' },
-  { id: 5, slot: 'B-09', type: 'SENSOR TIMEOUT', severity: 'WARNING', time: '08:45:00', desc: 'Sensor slot B-09 tidak mengirim sinyal selama >5 menit.', plate: '-', status: 'SELESAI_DIVALIDASI' },
-];
+const API_BASE = 'http://localhost:8081';
 
 const SEVERITY_CONFIG = {
   CRITICAL: { cls: 'bg-alert-anomaly/10 border-l-4 border-alert-anomaly', badge: 'bg-error-container text-on-error-container', dot: 'bg-alert-anomaly animate-pulse', icon: 'dangerous' },
@@ -16,14 +10,58 @@ const SEVERITY_CONFIG = {
 };
 
 export default function AnomalyLogsPage() {
-  const [anomalies, setAnomalies] = useState(INITIAL_ANOMALIES);
+  const [anomalies, setAnomalies] = useState([]);
   const [filter, setFilter] = useState('ALL');
   const [selectedAnomaly, setSelectedAnomaly] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Form State for Dispatch Modal
+  const [jenisAnomali, setJenisAnomali] = useState('Salah Parkir');
+  const [pesanLain, setPesanLain] = useState('');
 
-  const handleAction = (id, action) => {
-    setAnomalies(prev => prev.map(a =>
-      a.id === id ? { ...a, status: action === 'acknowledge' ? 'SELESAI_DIVALIDASI' : 'SELESAI_DIVALIDASI' } : a
-    ));
+  const fetchAnomalies = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/monitoring/log-iot`);
+      if (res.ok) {
+        const data = await res.json();
+        // Map backend model to frontend structure
+        const mapped = data.map(log => ({
+          id: log.idLog,
+          slot: log.slotTerkait?.idSlot || '-',
+          type: log.jenisKejadian,
+          severity: log.tingkatKeparahan,
+          time: new Date(log.waktuKejadian).toLocaleTimeString('id-ID'),
+          desc: log.catatanDetail,
+          plate: log.slotTerkait?.kendaraanAktif?.platNomor || 'UNKNOWN',
+          status: log.statusResolusi
+        }));
+        setAnomalies(mapped);
+      }
+    } catch (e) {
+      console.error('Failed to fetch anomalies', e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAnomalies();
+    const interval = setInterval(fetchAnomalies, 5000); // Polling every 5 seconds
+    return () => clearInterval(interval);
+  }, [fetchAnomalies]);
+
+  const handleAction = async (id, action) => {
+    try {
+      // You could pass jenisAnomali and pesanLain to backend if the API supported it
+      // but for now we just resolve it
+      await fetch(`${API_BASE}/api/monitoring/anomali/${id}/selesai`, {
+        method: 'PUT'
+      });
+      fetchAnomalies(); // refresh
+      setSelectedAnomaly(null);
+    } catch (e) {
+      console.error('Failed to resolve anomaly', e);
+    }
   };
 
   const filtered = filter === 'ALL' ? anomalies : anomalies.filter(a => a.status === filter);
@@ -71,7 +109,7 @@ export default function AnomalyLogsPage() {
         <div className="flex flex-col gap-3">
           {filtered.map(anomaly => {
             const cfg = SEVERITY_CONFIG[anomaly.severity] || SEVERITY_CONFIG.WARNING;
-            const resolved = anomaly.status === 'SELESAI_DIVALIDASI';
+            const resolved = anomaly.status === 'SELESAI_DIVALIDASI' || anomaly.severity === 'INFO';
             return (
               <div key={anomaly.id} className={`rounded-xl p-5 transition-all ${cfg.cls} ${resolved ? 'opacity-60' : 'hover:brightness-110'}`}>
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -184,26 +222,44 @@ export default function AnomalyLogsPage() {
                 </div>
               </div>
               
-              {/* Action Context */}
-              <div>
-                <label className="block text-sm font-bold text-on-surface mb-2">Required Action</label>
-                <p className="text-body-base text-on-surface-variant">Anomaly Type: {selectedAnomaly.type}. {selectedAnomaly.desc} Reviewing footage suggests physical intervention required. Dispatch floor officer to clear slot {selectedAnomaly.slot}.</p>
+              <div className="flex flex-col mb-4">
+                <label className="block text-sm font-bold text-on-surface mb-2">Jenis Anomali</label>
+                <select 
+                  className="w-full bg-surface-container border border-outline-variant rounded p-2 text-on-surface focus:outline-none focus:border-primary"
+                  value={jenisAnomali}
+                  onChange={(e) => setJenisAnomali(e.target.value)}
+                >
+                  <option value="Salah Parkir">Salah Parkir</option>
+                  <option value="Benda Asing">Benda Asing</option>
+                  <option value="Keberadaan Manusia">Keberadaan Manusia</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col">
+                <label className="block text-sm font-bold text-on-surface mb-2">Lain-lain:</label>
+                <textarea 
+                  rows="3"
+                  className="w-full bg-surface-container border border-outline-variant rounded p-2 text-on-surface focus:outline-none focus:border-primary resize-none placeholder:text-on-surface-variant/50"
+                  placeholder="Detail kasus..."
+                  value={pesanLain}
+                  onChange={(e) => setPesanLain(e.target.value)}
+                ></textarea>
               </div>
             </div>
             
             {/* Modal Footer */}
             <div className="px-6 py-4 bg-surface-container-low border-t border-surface-container-highest flex justify-end gap-3">
               <button 
-                onClick={() => { handleAction(selectedAnomaly.id, 'dismiss'); setSelectedAnomaly(null); }}
-                className="px-6 py-2.5 rounded-DEFAULT font-bold text-on-surface-variant border border-outline-variant/50 hover:bg-surface-bright hover:text-on-surface transition-colors flex items-center gap-2"
+                onClick={() => setSelectedAnomaly(null)}
+                className="px-6 py-2.5 rounded-DEFAULT font-bold text-on-surface-variant border border-outline-variant/50 hover:bg-surface-bright hover:text-on-surface transition-colors"
               >
-                <span className="material-symbols-outlined text-sm">block</span> Dismiss / False Positive
+                Batal
               </button>
               <button 
-                onClick={() => { handleAction(selectedAnomaly.id, 'acknowledge'); setSelectedAnomaly(null); }}
+                onClick={() => handleAction(selectedAnomaly.id, 'acknowledge')}
                 className="px-6 py-2.5 rounded-DEFAULT font-bold text-surface bg-eco-success hover:bg-eco-success/90 transition-colors shadow-[0_0_10px_rgba(46,139,87,0.4)] flex items-center gap-2"
               >
-                <span className="material-symbols-outlined text-sm">campaign</span> Dispatch Officer
+                <span className="material-symbols-outlined text-sm">campaign</span> Kirim Dispatch
               </button>
             </div>
           </div>
