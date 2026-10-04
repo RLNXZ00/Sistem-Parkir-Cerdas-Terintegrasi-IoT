@@ -29,7 +29,10 @@ export default function AllocatingSlotPage() {
         }
       }, 3000);
       
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        isMounted = false;
+      };
     } else {
       // Jika tidak ada data state, kembali ke home
       navigate('/');
@@ -56,7 +59,7 @@ export default function AllocatingSlotPage() {
           ) : (
             <>
               <h1 className="text-[140px] leading-none font-extrabold tracking-tighter text-green-400 drop-shadow-[0_0_30px_rgba(74,222,128,0.6)] animate-pulse">
-                {slot ? slot.idSlotDialokasikan : "..."}
+                {slot ? slot.idSlot : "..."}
               </h1>
               <h2 className="text-2xl text-slate-300 tracking-[0.2em] uppercase font-light">
                 SLOT PARKIR ANDA
