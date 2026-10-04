@@ -14,6 +14,10 @@ export default function AnomalyLogsPage() {
   const [filter, setFilter] = useState('ALL');
   const [selectedAnomaly, setSelectedAnomaly] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Form State for Dispatch Modal
+  const [jenisAnomali, setJenisAnomali] = useState('Salah Parkir');
+  const [pesanLain, setPesanLain] = useState('');
 
   const fetchAnomalies = useCallback(async () => {
     try {
@@ -47,12 +51,14 @@ export default function AnomalyLogsPage() {
   }, [fetchAnomalies]);
 
   const handleAction = async (id, action) => {
-    // Both 'acknowledge' and 'dismiss' will mark it as resolved in this simple prototype
     try {
+      // You could pass jenisAnomali and pesanLain to backend if the API supported it
+      // but for now we just resolve it
       await fetch(`${API_BASE}/api/monitoring/anomali/${id}/selesai`, {
         method: 'PUT'
       });
       fetchAnomalies(); // refresh
+      setSelectedAnomaly(null);
     } catch (e) {
       console.error('Failed to resolve anomaly', e);
     }
@@ -103,7 +109,7 @@ export default function AnomalyLogsPage() {
         <div className="flex flex-col gap-3">
           {filtered.map(anomaly => {
             const cfg = SEVERITY_CONFIG[anomaly.severity] || SEVERITY_CONFIG.WARNING;
-            const resolved = anomaly.status === 'SELESAI_DIVALIDASI';
+            const resolved = anomaly.status === 'SELESAI_DIVALIDASI' || anomaly.severity === 'INFO';
             return (
               <div key={anomaly.id} className={`rounded-xl p-5 transition-all ${cfg.cls} ${resolved ? 'opacity-60' : 'hover:brightness-110'}`}>
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -216,26 +222,44 @@ export default function AnomalyLogsPage() {
                 </div>
               </div>
               
-              {/* Action Context */}
-              <div>
-                <label className="block text-sm font-bold text-on-surface mb-2">Required Action</label>
-                <p className="text-body-base text-on-surface-variant">Anomaly Type: {selectedAnomaly.type}. {selectedAnomaly.desc} Reviewing footage suggests physical intervention required. Dispatch floor officer to clear slot {selectedAnomaly.slot}.</p>
+              <div className="flex flex-col mb-4">
+                <label className="block text-sm font-bold text-on-surface mb-2">Jenis Anomali</label>
+                <select 
+                  className="w-full bg-surface-container border border-outline-variant rounded p-2 text-on-surface focus:outline-none focus:border-primary"
+                  value={jenisAnomali}
+                  onChange={(e) => setJenisAnomali(e.target.value)}
+                >
+                  <option value="Salah Parkir">Salah Parkir</option>
+                  <option value="Benda Asing">Benda Asing</option>
+                  <option value="Keberadaan Manusia">Keberadaan Manusia</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col">
+                <label className="block text-sm font-bold text-on-surface mb-2">Lain-lain:</label>
+                <textarea 
+                  rows="3"
+                  className="w-full bg-surface-container border border-outline-variant rounded p-2 text-on-surface focus:outline-none focus:border-primary resize-none placeholder:text-on-surface-variant/50"
+                  placeholder="Detail kasus..."
+                  value={pesanLain}
+                  onChange={(e) => setPesanLain(e.target.value)}
+                ></textarea>
               </div>
             </div>
             
             {/* Modal Footer */}
             <div className="px-6 py-4 bg-surface-container-low border-t border-surface-container-highest flex justify-end gap-3">
               <button 
-                onClick={() => { handleAction(selectedAnomaly.id, 'dismiss'); setSelectedAnomaly(null); }}
-                className="px-6 py-2.5 rounded-DEFAULT font-bold text-on-surface-variant border border-outline-variant/50 hover:bg-surface-bright hover:text-on-surface transition-colors flex items-center gap-2"
+                onClick={() => setSelectedAnomaly(null)}
+                className="px-6 py-2.5 rounded-DEFAULT font-bold text-on-surface-variant border border-outline-variant/50 hover:bg-surface-bright hover:text-on-surface transition-colors"
               >
-                <span className="material-symbols-outlined text-sm">block</span> Dismiss / False Positive
+                Batal
               </button>
               <button 
-                onClick={() => { handleAction(selectedAnomaly.id, 'acknowledge'); setSelectedAnomaly(null); }}
+                onClick={() => handleAction(selectedAnomaly.id, 'acknowledge')}
                 className="px-6 py-2.5 rounded-DEFAULT font-bold text-surface bg-eco-success hover:bg-eco-success/90 transition-colors shadow-[0_0_10px_rgba(46,139,87,0.4)] flex items-center gap-2"
               >
-                <span className="material-symbols-outlined text-sm">campaign</span> Dispatch Officer
+                <span className="material-symbols-outlined text-sm">campaign</span> Kirim Dispatch
               </button>
             </div>
           </div>

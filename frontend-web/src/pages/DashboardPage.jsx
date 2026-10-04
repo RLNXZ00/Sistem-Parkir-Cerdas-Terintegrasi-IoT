@@ -71,6 +71,11 @@ export default function DashboardPage() {
     acc[lantai].push(slot);
     return acc;
   }, {});
+  
+  // Urutkan slot berdasarkan ID agar tidak acak posisinya
+  Object.keys(groupedSlots).forEach(key => {
+    groupedSlots[key].sort((a, b) => a.idSlot.localeCompare(b.idSlot, undefined, { numeric: true, sensitivity: 'base' }));
+  });
 
   return (
     <AppLayout breadcrumb="Field Operations">
@@ -93,7 +98,7 @@ export default function DashboardPage() {
             { label: 'Kosong',           val: slotKosong,           icon: 'check_circle',      color: 'text-text-muted' },
             { label: 'Kamera Online',    val: `${kameraOnline}/4`,  icon: 'videocam',          color: 'text-[#7ad0ff]' },
             { label: 'Sensor Online',    val: `${sensorOnline}/${sensorList.length}`, icon: 'sensors', color: 'text-[#ffd700]' },
-            { label: 'Alert Aktif',      val: logBelumDitangani,    icon: 'warning',           color: 'text-alert-anomaly' },
+            { label: 'Alert Aktif',      val: logBelumDitangani,    icon: 'warning',           color: 'text-warning-reserved' },
           ].map(s => (
             <div key={s.label} className="bg-bg-primary rounded-xl border border-surface-variant p-4 flex flex-col gap-1">
               <div className="flex items-center gap-2">
@@ -227,11 +232,11 @@ export default function DashboardPage() {
             <div className="bg-bg-primary rounded-xl border border-surface-variant p-5 flex flex-col flex-1">
               <div className="flex justify-between items-center mb-4 border-b border-surface-variant pb-3">
                 <h2 className="font-semibold text-lg text-on-surface flex items-center gap-2">
-                  <span className="material-symbols-outlined text-alert-anomaly">warning</span>
+                  <span className="material-symbols-outlined text-warning-reserved">warning</span>
                   Active Alerts
                 </h2>
-                <span className="bg-error-container text-on-error-container px-2 py-0.5 rounded text-xs font-bold">
-                  {logBelumDitangani} Critical
+                <span className="bg-warning-reserved/20 text-warning-reserved border border-warning-reserved/50 px-2 py-0.5 rounded text-xs font-bold">
+                  {logBelumDitangani} Alerts
                 </span>
               </div>
               <div className="flex flex-col gap-3 overflow-y-auto pr-1 max-h-72">
@@ -244,18 +249,18 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   logs.slice(0, 10).map(log => {
-                    const resolved = log.statusResolusi === 'SUDAH_DITANGANI';
+                    const resolved = log.statusResolusi === 'SELESAI_DIVALIDASI';
                     return (
                       <div
                         key={log.idLog}
                         className={`border-l-4 p-3 rounded shadow-sm transition-colors ${
                           resolved
                             ? 'bg-surface-container border-outline-variant opacity-60'
-                            : 'bg-surface-container border-alert-anomaly hover:bg-surface-container-high'
+                            : log.tingkatKeparahan === 'CRITICAL' ? 'bg-surface-container border-alert-anomaly' : 'bg-surface-container border-warning-reserved'
                         }`}
                       >
                         <div className="flex justify-between items-start mb-1">
-                          <span className={`font-mono text-sm font-bold ${resolved ? 'text-on-surface-variant line-through' : 'text-alert-anomaly'}`}>
+                          <span className={`font-mono text-sm font-bold ${resolved ? 'text-on-surface-variant line-through' : (log.tingkatKeparahan === 'CRITICAL' ? 'text-alert-anomaly' : 'text-warning-reserved')}`}>
                             {log.slotTerkait?.idSlot || '-'} — {log.jenisKejadian}
                           </span>
                           <span className="text-xs text-on-surface-variant font-mono">
@@ -263,9 +268,19 @@ export default function DashboardPage() {
                           </span>
                         </div>
                         <p className="text-xs text-on-surface">{log.catatanDetail}</p>
-                        <span className={`mt-1.5 inline-block text-[10px] font-mono px-2 py-0.5 rounded border ${log.tingkatKeparahan === 'CRITICAL' ? 'text-red-400 border-red-700/40' : log.tingkatKeparahan === 'WARNING' ? 'text-[#ffd700] border-yellow-700/40' : 'text-[#5d8099] border-outline-variant'}`}>
-                          {log.tingkatKeparahan}
-                        </span>
+                        
+                          <span className={`inline-block text-[10px] font-mono px-2 py-0.5 rounded border ${log.tingkatKeparahan === 'CRITICAL' ? 'text-red-400 border-red-700/40' : log.tingkatKeparahan === 'WARNING' ? 'text-[#ffd700] border-yellow-700/40' : 'text-[#5d8099] border-outline-variant'}`}>
+                            {log.tingkatKeparahan}
+                          </span>
+                          {(!resolved && log.tingkatKeparahan !== 'INFO') && (
+                            <button
+                              onClick={() => window.location.href = '/anomaly-logs'}
+                              className="px-3 py-1 bg-primary text-on-primary text-xs font-semibold rounded hover:bg-primary/90 transition-colors"
+                            >
+                              Tangani
+                            </button>
+                          )}
+                        </div>
                       </div>
                     );
                   })
