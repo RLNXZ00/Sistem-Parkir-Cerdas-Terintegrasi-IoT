@@ -1,10 +1,8 @@
 import AppLayout from '../components/AppLayout';
 
-const SECTORS = [
-  { name: 'Sector Alpha', desc: 'Premium Parking', pct: 85, color: 'eco-success', status: 'Full', borderColor: 'border-eco-success', gradFrom: 'from-eco-success/10' },
-  { name: 'Sector Beta', desc: 'General Access', pct: 42, color: 'warning-reserved', status: 'Moderate', borderColor: 'border-warning-reserved', gradFrom: 'from-warning-reserved/10' },
-  { name: 'Sector Gamma', desc: 'Long Term', pct: 15, color: 'slot-empty', status: 'Open', borderColor: 'border-slot-empty', gradFrom: 'from-slot-empty/30' },
-  { name: 'Sector Delta ⚡', desc: 'EV Charging', pct: 92, color: 'primary', status: 'Peak', borderColor: 'border-primary', gradFrom: 'from-primary/10' },
+const ZONES = [
+  { name: 'Zona Mobil', desc: 'Basement Lantai 1', pct: 85, color: 'eco-success', status: 'Padat', borderColor: 'border-eco-success', gradFrom: 'from-eco-success/10' },
+  { name: 'Zona Motor', desc: 'Basement Lantai 1', pct: 42, color: 'warning-reserved', status: 'Normal', borderColor: 'border-warning-reserved', gradFrom: 'from-warning-reserved/10' },
 ];
 
 const KPI_DATA = [
@@ -51,10 +49,10 @@ export default function DashboardManagementPage() {
             <div className="flex justify-between items-start mb-6">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-eco-success">payments</span>
-                <h2 className="text-xl font-semibold text-on-surface">Daily Revenue</h2>
+                <h2 className="text-xl font-semibold text-on-surface">Pendapatan Bulanan</h2>
               </div>
               <span className="px-2.5 py-1 bg-eco-success/20 text-eco-success rounded text-xs font-mono font-bold border border-eco-success/30">
-                +14.2% vs Yesterday
+                +14.2% vs Bulan Lalu
               </span>
             </div>
             <div className="text-[48px] font-bold text-eco-success tracking-tighter leading-none mb-4">
@@ -184,12 +182,12 @@ export default function DashboardManagementPage() {
           </div>
         </div>
 
-        {/* Sector Occupancy */}
+        {/* Zone Occupancy */}
         <div className="bg-bg-surface rounded-xl p-5 border border-outline-variant/30">
           <div className="flex justify-between items-center mb-5">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-on-surface">map</span>
-              <h2 className="text-xl font-semibold text-on-surface">Sector Occupancy Overview</h2>
+              <h2 className="text-xl font-semibold text-on-surface">Tingkat Kepadatan per Zona</h2>
             </div>
             <div className="flex gap-4 text-sm">
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-eco-success inline-block"></span><span className="text-text-muted font-mono">High</span></span>
@@ -197,8 +195,8 @@ export default function DashboardManagementPage() {
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-slot-empty inline-block"></span><span className="text-text-muted font-mono">Low</span></span>
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {SECTORS.map(sector => (
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+            {ZONES.map(sector => (
               <div key={sector.name} className={`bg-surface-container rounded-lg p-4 ${sector.borderColor} border-l-4 hover:bg-surface-bright transition-colors cursor-pointer relative overflow-hidden`}>
                 <div className={`absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l ${sector.gradFrom} to-transparent`}></div>
                 <h3 className="font-mono text-base text-on-surface font-bold mb-1">{sector.name}</h3>
