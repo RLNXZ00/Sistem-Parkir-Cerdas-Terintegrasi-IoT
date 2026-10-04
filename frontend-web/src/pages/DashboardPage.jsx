@@ -164,12 +164,12 @@ export default function DashboardPage() {
                               <div
                                 key={slot.idSlot}
                                 title={`${slot.idSlot} — ${slot.statusSlot}${slot.kendaraanAktif ? ` | ${slot.kendaraanAktif.platNomor}` : ''}`}
-                                className={`h-10 rounded flex items-center justify-center font-mono text-xs relative ${styleClass}`}
+                                className={`group h-10 rounded flex items-center justify-center font-mono text-xs relative ${styleClass}`}
                               >
                                 {slot.idSlot}
                                 {isAnomali && (
                                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-surface-container-high border border-alert-anomaly p-3 rounded shadow-lg hidden group-hover:block z-50 text-left">
-                                    <p className="text-xs text-alert-anomaly font-bold mb-1">SENSOR OFFLINE</p>
+                                    <p className="text-xs text-alert-anomaly font-bold mb-1">ANOMALI SLOT</p>
                                     <p className="text-xs text-on-surface-variant font-mono">Slot: {slot.idSlot}</p>
                                     {slot.kendaraanAktif && (
                                       <p className="text-xs text-on-surface-variant font-mono">Plat: {slot.kendaraanAktif.platNomor}</p>
