@@ -37,7 +37,7 @@ export default function LoginPage() {
       sessionStorage.setItem('spct_user', JSON.stringify(data));
 
       // Arahkan berdasarkan role
-      if (data.role === 'ADMIN') {
+      if (data.role === 'ADMIN' || data.role === 'Manajemen RS') {
         navigate('/dashboard-management');
       } else {
         navigate('/dashboard');

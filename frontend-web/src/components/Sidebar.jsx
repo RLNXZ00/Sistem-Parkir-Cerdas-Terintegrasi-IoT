@@ -1,14 +1,23 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 
-// Definisi menu navigasi
-const navItems = [
-  { to: '/dashboard', icon: 'dashboard', label: 'Live Dashboard' },
-  { to: '/gate-live', icon: 'videocam', label: 'Gate OCR Feed' },
-  { to: '/anomaly-logs', icon: 'report_problem', label: 'Anomaly Logs' }
-];
-
 export default function Sidebar() {
   const navigate = useNavigate();
+
+  // Ambil data user dari session
+  const userData = JSON.parse(sessionStorage.getItem('spct_user') || '{}');
+  const isManager = userData.role === 'ADMIN' || userData.role === 'Manajemen RS';
+
+  // Menu dinamis berdasarkan role
+  const navItems = isManager 
+    ? [
+        { to: '/dashboard-management', icon: 'dashboard', label: 'Live Dashboard' },
+        { to: '/reports', icon: 'bar_chart', label: 'Reports' }
+      ]
+    : [
+        { to: '/dashboard', icon: 'dashboard', label: 'Live Dashboard' },
+        { to: '/gate-live', icon: 'videocam', label: 'Gate OCR Feed' },
+        { to: '/anomaly-logs', icon: 'report_problem', label: 'Anomaly Logs' }
+      ];
 
   return (
     <nav className="bg-surface w-20 lg:w-64 h-screen fixed left-0 top-0 border-r border-surface-container-low flex flex-col py-6 z-20">
