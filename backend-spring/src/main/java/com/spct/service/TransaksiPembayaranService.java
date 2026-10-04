@@ -36,7 +36,7 @@ public class TransaksiPembayaranService
     {
         // 1. Kueri transaksi aktif berdasarkan plat nomor (Status = BELUM_LUNAS)
         TransaksiParkir transaksiAktif = transaksiParkirRepository
-            .findByKendaraan_PlatNomorAndStatusPembayaran(platNomor, StatusPembayaran.BELUM_LUNAS)
+            .findFirstByKendaraan_PlatNomorAndStatusPembayaranOrderByWaktuMasukDesc(platNomor, StatusPembayaran.BELUM_LUNAS)
             .orElse(null);
 
         if (transaksiAktif == null)

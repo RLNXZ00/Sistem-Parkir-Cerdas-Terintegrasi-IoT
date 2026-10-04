@@ -25,7 +25,7 @@ public interface TransaksiParkirRepository extends JpaRepository<TransaksiParkir
     // Digunakan oleh TransaksiPembayaranController saat kendaraan tiba di gerbang keluar
     // Setara: SELECT * FROM transaksi_parkir t JOIN data_kendaraan dk ON ...
     //         WHERE dk.plat_nomor = ? AND t.status_pembayaran = 'BELUM_LUNAS'
-    Optional<TransaksiParkir> findByKendaraan_PlatNomorAndStatusPembayaran(
+    Optional<TransaksiParkir> findFirstByKendaraan_PlatNomorAndStatusPembayaranOrderByWaktuMasukDesc(
         String platNomor, StatusPembayaran statusPembayaran);
 
     // Mengambil semua transaksi dalam rentang waktu tertentu (digunakan untuk laporan bulanan)
