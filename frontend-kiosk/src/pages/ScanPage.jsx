@@ -55,9 +55,18 @@ export default function ScanPage() {
           <span className="w-3 h-3 rounded-full bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.6)] animate-pulse"></span>
           <span className="font-['Space_Grotesk'] text-sky-400 uppercase text-[14px] font-semibold">System Ready</span>
         </div>
-        <div className="flex items-center gap-2 text-slate-400 font-['Space_Grotesk'] text-[14px] bg-[#0B1526]/50 px-3 py-1 rounded-full border border-slate-800">
-          <span className="material-symbols-outlined text-[18px]">videocam</span>
-          <span>GATE_IN_01_LIVE</span>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => navigate('/exit')}
+            className="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 px-4 py-1.5 rounded-full border border-slate-600 transition-colors cursor-pointer text-sm font-['Space_Grotesk']"
+          >
+            <span className="material-symbols-outlined text-[18px]">swap_horiz</span>
+            Switch to Exit
+          </button>
+          <div className="flex items-center gap-2 text-slate-400 font-['Space_Grotesk'] text-[14px] bg-[#0B1526]/50 px-3 py-1 rounded-full border border-slate-800">
+            <span className="material-symbols-outlined text-[18px]">videocam</span>
+            <span>GATE_IN_01_LIVE</span>
+          </div>
         </div>
       </header>
 
