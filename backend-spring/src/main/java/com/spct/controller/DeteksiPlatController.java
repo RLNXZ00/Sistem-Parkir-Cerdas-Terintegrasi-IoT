@@ -121,7 +121,6 @@ public class DeteksiPlatController // Kelas controller untuk mengelola seluruh a
         return ResponseEntity.ok(hasil);
     }
 
-
     // =====================================================================
     // Endpoint GET: Mengambil riwayat log deteksi plat (untuk GateLivePage)
     // URL: GET /api/gate/log (di bawah base /api/gate yang sudah ada)
@@ -139,5 +138,34 @@ public class DeteksiPlatController // Kelas controller untuk mengelola seluruh a
                 ))
                 .collect(java.util.stream.Collectors.toList())
         );
+    }
+
+    // =====================================================================
+    // Endpoint POST: Menerima data kendaraan KELUAR
+    // =====================================================================
+    @PostMapping("/keluar")
+    public ResponseEntity<com.spct.dto.HasilDeteksiKeluarDto> prosesKendaraanKeluar(
+        @RequestBody(required = false) java.util.Map<String, String> body,
+        @RequestParam(required = false) String platNomor,
+        @RequestParam(defaultValue = "50000.00") java.math.BigDecimal saldoEwallet) 
+    {
+        String platFinal = (body != null && body.containsKey("platNomor")) ? body.get("platNomor") : platNomor;
+        
+        if (platFinal == null || platFinal.isBlank()) {
+            return ResponseEntity.badRequest().body(new com.spct.dto.HasilDeteksiKeluarDto("ERROR", null, null, null, 0, java.math.BigDecimal.ZERO, "Parameter platNomor wajib diisi."));
+        }
+
+        com.spct.dto.HasilDeteksiKeluarDto hasil = deteksiPlatService.prosesKendaraanKeluar(platFinal, saldoEwallet);
+        
+        if ("KENDARAAN_TIDAK_DITEMUKAN".equals(hasil.getStatus())) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(hasil);
+        }
+        
+        if ("SALDO_KURANG".equals(hasil.getStatus())) {
+            // Mengembalikan status Payment Required
+            return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body(hasil);
+        }
+
+        return ResponseEntity.ok(hasil);
     }
 }

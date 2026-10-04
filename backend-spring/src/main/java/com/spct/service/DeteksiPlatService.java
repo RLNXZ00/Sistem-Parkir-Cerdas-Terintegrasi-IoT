@@ -2,7 +2,10 @@ package com.spct.service;
 
 import com.spct.dto.HasilAlokasiRuteDto;
 import com.spct.dto.HasilDeteksiMasukDto;
+import com.spct.dto.HasilDeteksiKeluarDto;
 import com.spct.model.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import com.spct.repository.DataKendaraanRepository;
 import com.spct.repository.SlotParkirRepository;
 import com.spct.repository.TransaksiParkirRepository;
@@ -39,6 +42,9 @@ public class DeteksiPlatService // Kelas service yang mengelola alur lengkap saa
 
     @Autowired
     private AlokasiRuteService alokasiRuteService; // Service alokasi slot dan Algoritma A*
+
+    @Autowired
+    private com.spct.repository.PembayaranRepository pembayaranRepository;
 
 
     // =====================================================================
@@ -124,5 +130,62 @@ public class DeteksiPlatService // Kelas service yang mengelola alur lengkap saa
                 DataKendaraan kendaraanBaru = new DataKendaraan(platNomor, jenisKendaraan);
                 return dataKendaraanRepository.save(kendaraanBaru); // Simpan kendaraan baru dan kembalikan objeknya
             });
+    }
+
+    // =====================================================================
+    // Method: Mengorkestrasi pemrosesan kendaraan keluar
+    // =====================================================================
+    @Transactional
+    public HasilDeteksiKeluarDto prosesKendaraanKeluar(String platNomor, BigDecimal saldoEwallet)
+    {
+        // 1. Cari transaksi yang belum lunas
+        TransaksiParkir transaksi = transaksiParkirRepository.findByKendaraan_PlatNomorAndStatusPembayaran(
+                platNomor, StatusPembayaran.BELUM_LUNAS).orElse(null);
+
+        if (transaksi == null) {
+            return new HasilDeteksiKeluarDto("KENDARAAN_TIDAK_DITEMUKAN", platNomor, null, null, 0, BigDecimal.ZERO, "Kendaraan tidak ditemukan atau sudah lunas.");
+        }
+
+        LocalDateTime waktuMasuk = transaksi.getWaktuMasuk();
+        LocalDateTime waktuKeluar = LocalDateTime.now();
+        
+        // 2. Hitung durasi (minimal 1 jam)
+        java.time.Duration duration = java.time.Duration.between(waktuMasuk, waktuKeluar);
+        long minutes = duration.toMinutes();
+        long hours = (long) Math.ceil(minutes / 60.0);
+        if (hours < 1) hours = 1; 
+        
+        // 3. Hitung biaya (Rp 5.000 / jam)
+        BigDecimal tarifPerJam = new BigDecimal("5000.00");
+        BigDecimal totalBiaya = tarifPerJam.multiply(new BigDecimal(hours));
+
+        // 4. Proses Simulasi Pembayaran
+        if (saldoEwallet.compareTo(totalBiaya) >= 0) {
+            // Lunas
+            transaksi.setWaktuKeluar(waktuKeluar);
+            transaksi.setDurasiTotalMenit((int) minutes);
+            transaksi.setNominalTagihan(totalBiaya);
+            transaksi.setStatusPembayaran(StatusPembayaran.LUNAS);
+            transaksi.setMetodePembayaran(MetodePembayaran.E_TOLL);
+            
+            // Kosongkan Slot
+            SlotParkir slot = transaksi.getSlotDipilih();
+            if (slot != null) {
+                slot.setStatusSlot(StatusSlot.KOSONG);
+                slotParkirRepository.save(slot);
+            }
+            
+            transaksiParkirRepository.save(transaksi);
+
+            Pembayaran pembayaran = new Pembayaran(transaksi, totalBiaya, MetodePembayaran.E_TOLL);
+            pembayaran.setStatusPembayaran(StatusPembayaran.LUNAS);
+            pembayaran.setWaktuPembayaran(waktuKeluar);
+            pembayaranRepository.save(pembayaran);
+
+            return new HasilDeteksiKeluarDto("SUKSES", platNomor, waktuMasuk, waktuKeluar, hours, totalBiaya, "Pembayaran berhasil. Silakan keluar.");
+        } else {
+            // Saldo Kurang - Transaksi tetap aktif
+            return new HasilDeteksiKeluarDto("SALDO_KURANG", platNomor, waktuMasuk, waktuKeluar, hours, totalBiaya, "Saldo E-Wallet tidak mencukupi.");
+        }
     }
 }
