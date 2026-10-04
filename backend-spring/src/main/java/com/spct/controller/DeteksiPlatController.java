@@ -93,4 +93,26 @@ public class DeteksiPlatController // Kelas controller untuk mengelola seluruh a
         // Override berhasil -> kembalikan HTTP 200 OK
         return ResponseEntity.ok(hasil);
     }
+
+    // =====================================================================
+    // Endpoint POST: Menerima data kendaraan KELUAR
+    // =====================================================================
+    @PostMapping("/keluar")
+    public ResponseEntity<com.spct.dto.HasilDeteksiKeluarDto> prosesKendaraanKeluar(
+        @RequestParam String platNomor,
+        @RequestParam(defaultValue = "50000.00") java.math.BigDecimal saldoEwallet) 
+    {
+        com.spct.dto.HasilDeteksiKeluarDto hasil = deteksiPlatService.prosesKendaraanKeluar(platNomor, saldoEwallet);
+        
+        if ("KENDARAAN_TIDAK_DITEMUKAN".equals(hasil.getStatus())) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(hasil);
+        }
+        
+        if ("SALDO_KURANG".equals(hasil.getStatus())) {
+            // Mengembalikan status Payment Required
+            return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body(hasil);
+        }
+
+        return ResponseEntity.ok(hasil);
+    }
 }
