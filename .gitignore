@@ -20,7 +20,12 @@ Evaluasi SPCT IoT.txt
 .DS_Store
 Thumbs.db
 
-# Build artifacts & dependencies
-node_modules/
-target/
-*.jar
+# Backend: hasil build Maven (JANGAN pernah di-track Git)
+backend-spring/target/
+backend-spring/.mvn/wrapper/maven-wrapper.jar
+
+# Frontend: dependency dan hasil build (JANGAN pernah di-track Git)
+frontend-web/node_modules/
+frontend-web/dist/
+frontend-kiosk/node_modules/
+frontend-kiosk/dist/
