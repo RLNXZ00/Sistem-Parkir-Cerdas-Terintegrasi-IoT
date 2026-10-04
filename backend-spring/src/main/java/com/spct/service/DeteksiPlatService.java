@@ -166,7 +166,7 @@ public class DeteksiPlatService // Kelas service yang mengelola alur lengkap saa
             transaksi.setDurasiTotalMenit((int) minutes);
             transaksi.setNominalTagihan(totalBiaya);
             transaksi.setStatusPembayaran(StatusPembayaran.LUNAS);
-            transaksi.setMetodePembayaran(MetodePembayaran.E_TOLL);
+            transaksi.setMetodePembayaran(MetodePembayaran.ETOLL_MANDIRI);
             
             // Kosongkan Slot
             SlotParkir slot = transaksi.getSlotDipilih();
@@ -177,7 +177,7 @@ public class DeteksiPlatService // Kelas service yang mengelola alur lengkap saa
             
             transaksiParkirRepository.save(transaksi);
 
-            Pembayaran pembayaran = new Pembayaran(transaksi, totalBiaya, MetodePembayaran.E_TOLL);
+            Pembayaran pembayaran = new Pembayaran(transaksi, totalBiaya, MetodePembayaran.ETOLL_MANDIRI);
             pembayaran.setStatusPembayaran(StatusPembayaran.LUNAS);
             pembayaran.setWaktuPembayaran(waktuKeluar);
             pembayaranRepository.save(pembayaran);

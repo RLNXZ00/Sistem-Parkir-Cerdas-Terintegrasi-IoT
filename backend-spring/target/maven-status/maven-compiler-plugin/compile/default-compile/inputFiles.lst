@@ -31,6 +31,7 @@ D:\Proyek Perangkat Lunak\Aplikasi\Desktop\Sistem Parkir Cerdas Terintegrasi IoT
 D:\Proyek Perangkat Lunak\Aplikasi\Desktop\Sistem Parkir Cerdas Terintegrasi IoT\backend-spring\src\main\java\com\spct\repository\DataKendaraanRepository.java
 D:\Proyek Perangkat Lunak\Aplikasi\Desktop\Sistem Parkir Cerdas Terintegrasi IoT\backend-spring\src\main\java\com\spct\SpctApplication.java
 D:\Proyek Perangkat Lunak\Aplikasi\Desktop\Sistem Parkir Cerdas Terintegrasi IoT\backend-spring\src\main\java\com\spct\controller\AnalitikLaporanController.java
+D:\Proyek Perangkat Lunak\Aplikasi\Desktop\Sistem Parkir Cerdas Terintegrasi IoT\backend-spring\src\main\java\com\spct\dto\HasilDeteksiKeluarDto.java
 D:\Proyek Perangkat Lunak\Aplikasi\Desktop\Sistem Parkir Cerdas Terintegrasi IoT\backend-spring\src\main\java\com\spct\repository\PembayaranRepository.java
 D:\Proyek Perangkat Lunak\Aplikasi\Desktop\Sistem Parkir Cerdas Terintegrasi IoT\backend-spring\src\main\java\com\spct\model\SensorIoT.java
 D:\Proyek Perangkat Lunak\Aplikasi\Desktop\Sistem Parkir Cerdas Terintegrasi IoT\backend-spring\src\main\java\com\spct\model\JenisKejadian.java

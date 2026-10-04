@@ -4,7 +4,6 @@ com\spct\dto\HasilAlokasiRuteDto.class
 com\spct\repository\TransaksiParkirRepository.class
 com\spct\model\LogDeteksiPlat.class
 com\spct\model\SlotParkir.class
-com\spct\service\DeteksiPlatService.class
 com\spct\model\Pembayaran.class
 com\spct\dto\DataDashboardDto$DataOkupansiJamDto.class
 com\spct\repository\SensorIoTRepository.class
@@ -29,7 +28,6 @@ com\spct\service\AnalitikLaporanService.class
 com\spct\controller\AlokasiRuteController.class
 com\spct\controller\HardwareStatusController.class
 com\spct\service\TransaksiPembayaranService.class
-com\spct\config\WebSocketConfig.class
 com\spct\dto\TitikRuteDto.class
 com\spct\controller\AnalitikLaporanController.class
 com\spct\model\DataKendaraan.class
