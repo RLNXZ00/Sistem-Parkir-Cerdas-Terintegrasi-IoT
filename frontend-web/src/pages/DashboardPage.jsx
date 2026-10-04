@@ -269,6 +269,7 @@ export default function DashboardPage() {
                         </div>
                         <p className="text-xs text-on-surface">{log.catatanDetail}</p>
                         
+                        <div className="flex items-center justify-between mt-2">
                           <span className={`inline-block text-[10px] font-mono px-2 py-0.5 rounded border ${log.tingkatKeparahan === 'CRITICAL' ? 'text-red-400 border-red-700/40' : log.tingkatKeparahan === 'WARNING' ? 'text-[#ffd700] border-yellow-700/40' : 'text-[#5d8099] border-outline-variant'}`}>
                             {log.tingkatKeparahan}
                           </span>
