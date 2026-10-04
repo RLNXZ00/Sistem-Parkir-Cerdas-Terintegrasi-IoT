@@ -61,6 +61,14 @@ export default function DashboardPage() {
 
   const getSlotStyle = (slot) => {
     if (getSensorStatus(slot.idSlot) === 'OFF') return SLOT_STYLES.ANOMALI;
+    
+    const hasUnresolvedCriticalLog = logs.some(
+      log => log.slotTerkait?.idSlot === slot.idSlot && 
+             log.tingkatKeparahan === 'CRITICAL' && 
+             log.statusResolusi !== 'SELESAI_DIVALIDASI'
+    );
+    if (hasUnresolvedCriticalLog) return SLOT_STYLES.ANOMALI;
+    
     return SLOT_STYLES[slot.statusSlot] || SLOT_STYLES.KOSONG;
   };
 
