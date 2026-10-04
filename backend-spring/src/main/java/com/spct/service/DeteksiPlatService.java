@@ -139,7 +139,7 @@ public class DeteksiPlatService // Kelas service yang mengelola alur lengkap saa
     public HasilDeteksiKeluarDto prosesKendaraanKeluar(String platNomor, BigDecimal saldoEwallet)
     {
         // 1. Cari transaksi yang belum lunas
-        TransaksiParkir transaksi = transaksiParkirRepository.findByKendaraan_PlatNomorAndStatusPembayaran(
+        TransaksiParkir transaksi = transaksiParkirRepository.findFirstByKendaraan_PlatNomorAndStatusPembayaranOrderByWaktuMasukDesc(
                 platNomor, StatusPembayaran.BELUM_LUNAS).orElse(null);
 
         if (transaksi == null) {
