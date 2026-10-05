@@ -6,18 +6,24 @@ export default function ScanPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
 
+  const [customPlate, setCustomPlate] = useState(() => `B ${Math.floor(1000 + Math.random() * 9000)} SPCT`);
+
+  const generateNewPlate = () => {
+    const newPlate = `B ${Math.floor(1000 + Math.random() * 9000)} SPCT`;
+    setCustomPlate(newPlate);
+    return newPlate;
+  };
+
   const simulateCarArrival = async () => {
     if (isScanning) return;
     setIsScanning(true);
     setErrorMsg(null);
     
-    // Plat nomor dummy untuk simulasi
-    const dummyPlate = "D 1234 SPCT";
+    const activePlate = customPlate || `B ${Math.floor(1000 + Math.random() * 9000)} SPCT`;
 
     try {
       // 1. Panggil API Deteksi Plat Masuk (Backend Port 8081 via Proxy Vite)
-      // Perhatian: Backend Spring Boot menggunakan @RequestParam, jadi data dikirim lewat URL query string
-      const response = await fetch(`/api/gate/masuk?platNomor=${encodeURIComponent(dummyPlate)}&jenisKendaraan=MOBIL&confidence=1.0`, {
+      const response = await fetch(`/api/gate/masuk?platNomor=${encodeURIComponent(activePlate)}&jenisKendaraan=MOBIL&confidence=1.0`, {
         method: 'POST',
       });
       
@@ -28,17 +34,20 @@ export default function ScanPage() {
       const data = await response.json();
       console.log("Response dari Backend:", data);
       
-        // Lanjut ke halaman alokasi rute sambil membawa plat nomor dan hasil backend
-        navigate('/allocating', { 
-          state: { 
-            platNomor: dummyPlate,
-            slotDialokasikan: data.slotDialokasikan,
-            slotData: {
-              idSlotDialokasikan: data.slotDialokasikan,
-              urutan: data.jalurRuteGraf
-            }
-          } 
-        });
+      // Siapkan plat berikutnya untuk simulasi selanjutnya
+      const nextPlate = `B ${Math.floor(1000 + Math.random() * 9000)} SPCT`;
+      
+      // Lanjut ke halaman alokasi rute sambil membawa plat nomor dan hasil backend
+      navigate('/allocating', { 
+        state: { 
+          platNomor: activePlate,
+          slotDialokasikan: data.slotDialokasikan,
+          slotData: {
+            idSlotDialokasikan: data.slotDialokasikan,
+            urutan: data.jalurRuteGraf
+          }
+        } 
+      });
 
     } catch (error) {
       console.error("Gagal terhubung ke server:", error);
@@ -102,11 +111,29 @@ export default function ScanPage() {
             </p>
           )}
 
+          {/* SIMULATION PLATE BADGE */}
+          <div className="flex items-center justify-between bg-slate-900/60 border border-slate-700/60 rounded-xl px-4 py-2.5 backdrop-blur-md">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-sky-400 text-sm">tag</span>
+              <span className="text-xs uppercase tracking-wider text-slate-400 font-['Space_Grotesk']">Plat Simulasi:</span>
+              <span className="font-mono font-bold text-sky-300 text-sm">{customPlate}</span>
+            </div>
+            <button
+              type="button"
+              onClick={generateNewPlate}
+              className="text-xs text-slate-400 hover:text-sky-300 flex items-center gap-1 transition-colors px-2 py-1 rounded bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700"
+              title="Acak Plat Lain"
+            >
+              <span className="material-symbols-outlined text-xs">autorenew</span>
+              <span>Acak</span>
+            </button>
+          </div>
+
           {/* SIMULATION BUTTON (MENGGANTIKAN WEBCAM FISIK SEMENTARA) */}
           <button 
             onClick={simulateCarArrival}
             disabled={isScanning}
-            className="glass-button px-8 py-4 rounded-xl mt-4 w-full flex items-center justify-center gap-3"
+            className="glass-button px-8 py-4 rounded-xl w-full flex items-center justify-center gap-3 cursor-pointer"
           >
             <span className="material-symbols-outlined animate-spin">radar</span>
             <span>{isScanning ? "Menghubungi Server..." : "Simulasi Mobil Datang"}</span>

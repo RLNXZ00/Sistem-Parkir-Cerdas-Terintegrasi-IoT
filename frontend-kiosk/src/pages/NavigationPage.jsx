@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 export default function NavigationPage() {
   const navigate = useNavigate();
@@ -10,13 +10,68 @@ export default function NavigationPage() {
   const targetSlot = slotData?.idSlotDialokasikan || "B1-01";
   const ruteKoordinat = slotData?.urutan || []; // Array of TitikRuteDto {id, x, y}
 
-  // Animasi Auto-redirect
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [isParked, setIsParked] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const timerRef = useRef(null);
+
+  // Stopwatch berjalan sejak masuk gerbang
   useEffect(() => {
-    const timer = setTimeout(() => {
-      navigate('/');
-    }, 10000); // Tahan layar selama 10 detik agar user bisa melihat rute
-    return () => clearTimeout(timer);
-  }, [navigate]);
+    if (isParked) return;
+    const interval = setInterval(() => {
+      setElapsedSeconds(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isParked]);
+
+  // Polling status slot dari backend untuk mendeteksi tembakan webhook sensor
+  useEffect(() => {
+    if (isParked) return;
+
+    const checkSlotStatus = async () => {
+      try {
+        const res = await fetch('/api/monitoring/slots');
+        if (res.ok) {
+          const slots = await res.json();
+          const target = slots.find(s => s.idSlot === targetSlot);
+          if (target && target.statusSlot === 'TERISI') {
+            setIsParked(true);
+          }
+        }
+      } catch (e) {
+        console.error("Gagal polling status slot:", e);
+      }
+    };
+
+    const pollInterval = setInterval(checkSlotStatus, 1500);
+    return () => clearInterval(pollInterval);
+  }, [targetSlot, isParked]);
+
+  // Format detik ke MM:SS
+  const formatTime = (secs) => {
+    const mins = Math.floor(secs / 60);
+    const remainingSecs = secs % 60;
+    return `${mins.toString().padStart(2, '0')}:${remainingSecs.toString().padStart(2, '0')}`;
+  };
+
+  const curlCommand = `curl -X POST "http://localhost:8081/api/monitoring/webhook?idSlot=${targetSlot}&statusSensor=TERISI"`;
+
+  const copyCurl = () => {
+    navigator.clipboard.writeText(curlCommand);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const triggerWebhookDirectly = async () => {
+    try {
+      await fetch(`/api/monitoring/webhook?idSlot=${encodeURIComponent(targetSlot)}&statusSensor=TERISI`, {
+        method: 'POST'
+      });
+      setIsParked(true);
+    } catch (e) {
+      console.error("Gagal trigger webhook langsung:", e);
+    }
+  };
 
   // Generate 15 Slot Statis untuk digambar di Peta sebagai latar belakang
   const allSlots = Array.from({length: 15}, (_, i) => {
@@ -35,7 +90,7 @@ export default function NavigationPage() {
   };
 
   return (
-    <div className="bg-[#050B14] h-screen w-screen flex flex-col overflow-hidden select-none text-slate-100 font-['Outfit'] cursor-pointer" onClick={() => navigate('/')}>
+    <div className="bg-[#050B14] h-screen w-screen flex flex-col overflow-hidden select-none text-slate-100 font-['Outfit']">
       <style>{`
         .map-grid {
             background-image: 
@@ -77,13 +132,32 @@ export default function NavigationPage() {
           <span className="material-symbols-outlined text-sky-400" style={{ fontVariationSettings: "'FILL' 1" }}>map</span>
           <span className="font-['Space_Grotesk'] font-bold tracking-[0.2em]">PETA ALOKASI A* GRAPH</span>
         </div>
-        <div className="text-slate-100 font-medium flex items-center bg-sky-900/40 border border-sky-500/30 px-6 py-2 rounded-full shadow-[0_0_15px_rgba(14,165,233,0.2)]">
-          <span className="tracking-wider">Plat: <strong className="text-sky-300">{platNomor || "D 1234 SPCT"}</strong> | Menuju: <strong className="text-green-400">{targetSlot}</strong></span>
+        
+        {/* Right Info: Live Timer & Plat */}
+        <div className="flex items-center gap-4">
+          {/* Live Timer */}
+          <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full border ${isParked ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-300' : 'bg-amber-950/60 border-amber-500/50 text-amber-300 animate-pulse'}`}>
+            <span className="material-symbols-outlined text-lg">timer</span>
+            <span className="font-mono font-bold text-sm tracking-widest">{formatTime(elapsedSeconds)}</span>
+            <span className="text-xs uppercase">{isParked ? '(PARKIR TIBA)' : '(BERJALAN)'}</span>
+          </div>
+
+          <div className="text-slate-100 font-medium flex items-center bg-sky-900/40 border border-sky-500/30 px-5 py-1.5 rounded-full shadow-[0_0_15px_rgba(14,165,233,0.2)]">
+            <span className="tracking-wider text-sm">Plat: <strong className="text-sky-300">{platNomor || "D 1234 SPCT"}</strong> | Slot: <strong className="text-green-400">{targetSlot}</strong></span>
+          </div>
+
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full border border-slate-600 transition-colors text-xs font-['Space_Grotesk'] cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-sm">close</span>
+            <span>Kembali</span>
+          </button>
         </div>
       </header>
 
       {/* Main Content Canvas (Map) */}
-      <main className="flex-1 relative overflow-hidden flex items-center justify-center p-8">
+      <main className="flex-1 relative overflow-hidden flex items-center justify-center p-6">
         <div className="absolute inset-0 map-grid flex items-center justify-center pointer-events-none"></div>
         
         {/* Map Container */}
@@ -107,9 +181,9 @@ export default function NavigationPage() {
                   width="12" 
                   height="20" 
                   rx="1"
-                  fill={slot.isTarget ? "rgba(74,222,128,0.2)" : "rgba(30,41,59,0.8)"}
-                  stroke={slot.isTarget ? "#4ade80" : "rgba(100,116,139,0.5)"}
-                  strokeWidth="0.5"
+                  fill={slot.isTarget ? (isParked ? "rgba(16,185,129,0.4)" : "rgba(74,222,128,0.2)") : "rgba(30,41,59,0.8)"}
+                  stroke={slot.isTarget ? (isParked ? "#10b981" : "#4ade80") : "rgba(100,116,139,0.5)"}
+                  strokeWidth={slot.isTarget ? "1.5" : "0.5"}
                   className={slot.isTarget ? "pulse-glow" : ""}
                 />
                 {/* Teks ID Slot */}
@@ -117,7 +191,7 @@ export default function NavigationPage() {
                   x={slot.x} 
                   y={slot.y === 30 ? 26 : 76} 
                   fontSize="3" 
-                  fill={slot.isTarget ? "#4ade80" : "#64748b"} 
+                  fill={slot.isTarget ? (isParked ? "#10b981" : "#4ade80") : "#64748b"} 
                   textAnchor="middle" 
                   fontFamily="Space Grotesk" 
                   fontWeight="bold"
@@ -145,7 +219,7 @@ export default function NavigationPage() {
             )}
           </svg>
 
-          {/* Ikon Mobil Navigasi Bergerak (Jika browser support CSS offset-path) */}
+          {/* Ikon Mobil Navigasi Bergerak */}
           {ruteKoordinat && ruteKoordinat.length > 0 && (
             <div className="absolute car-anim w-4 h-4 rounded-full bg-white shadow-[0_0_10px_white] z-50 pointer-events-none flex items-center justify-center mix-blend-screen" style={{ marginTop: '-2px', marginLeft: '-2px' }}>
                 <span className="material-symbols-outlined text-green-500 text-[10px]">my_location</span>
@@ -155,12 +229,72 @@ export default function NavigationPage() {
         </div>
       </main>
 
-      {/* Bottom Prominent Status */}
-      <footer className="w-full pb-8 pt-2 flex justify-center relative z-10">
-        <div className="w-full max-w-4xl bg-green-500/20 border border-green-400/50 text-green-300 py-4 px-8 rounded-2xl flex items-center justify-center gap-6 shadow-[0_0_20px_rgba(74,222,128,0.2)] backdrop-blur-xl">
-          <span className="material-symbols-outlined text-[36px] animate-bounce" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_forward</span>
-          <span className="text-[24px] font-extrabold uppercase tracking-[0.2em] text-center drop-shadow-md">SILAKAN IKUTI RUTE HIJAU</span>
-        </div>
+      {/* Bottom Prominent Status & Webhook Helper Bar */}
+      <footer className="w-full pb-6 pt-2 flex flex-col items-center gap-3 relative z-10 px-6">
+        {isParked ? (
+          /* State 1: Kendaraan Sudah Tiba (Webhook Ditembak) */
+          <div className="w-full max-w-4xl bg-emerald-500/20 border border-emerald-400/60 text-emerald-300 py-3.5 px-6 rounded-2xl flex items-center justify-between shadow-[0_0_25px_rgba(16,185,129,0.3)] backdrop-blur-xl animate-fade-in">
+            <div className="flex items-center gap-4">
+              <span className="material-symbols-outlined text-3xl text-emerald-400">check_circle</span>
+              <div>
+                <div className="text-lg font-bold">KENDARAAN TELAH TIBA DI SLOT {targetSlot}!</div>
+                <div className="text-xs text-emerald-200/80">
+                  Waktu tempuh aktual: <strong>{elapsedSeconds} detik</strong> ({formatTime(elapsedSeconds)} menit) telah dicatat ke database & diakumulasikan ke metrik reduksi CO2.
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/')}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-5 py-2 rounded-xl text-sm transition-all shadow-md cursor-pointer flex items-center gap-1.5"
+            >
+              <span>Selesai (Kembali)</span>
+              <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            </button>
+          </div>
+        ) : (
+          /* State 2: Sedang Berjalan Menuju Slot (Menunggu Webhook) */
+          <div className="w-full max-w-4xl flex flex-col gap-2">
+            <div className="bg-green-500/20 border border-green-400/50 text-green-300 py-2.5 px-6 rounded-2xl flex items-center justify-between shadow-[0_0_20px_rgba(74,222,128,0.2)] backdrop-blur-xl">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-2xl animate-bounce" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_forward</span>
+                <span className="text-lg font-bold tracking-wider">SILAKAN IKUTI RUTE HIJAU MENUJU {targetSlot}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-1.5 rounded-lg border border-slate-700/80">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                <span>Waktu berjalan: <strong className="text-amber-300 font-mono text-sm">{formatTime(elapsedSeconds)}</strong></span>
+              </div>
+            </div>
+
+            {/* Webhook Instruction Box */}
+            <div className="bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2 flex items-center justify-between gap-4 text-xs backdrop-blur-md">
+              <div className="flex items-center gap-2 overflow-hidden text-slate-300">
+                <span className="material-symbols-outlined text-sky-400 text-sm">terminal</span>
+                <span className="text-slate-400 font-['Space_Grotesk'] font-semibold shrink-0">cURL Webhook:</span>
+                <code className="text-sky-300 font-mono truncate bg-black/40 px-2 py-0.5 rounded border border-slate-800">
+                  {curlCommand}
+                </code>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={copyCurl}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1 rounded-lg border border-slate-600 transition-colors flex items-center gap-1 cursor-pointer font-['Space_Grotesk']"
+                  title="Salin Perintah cURL"
+                >
+                  <span className="material-symbols-outlined text-xs">{copied ? "done" : "content_copy"}</span>
+                  <span>{copied ? "Tersalin!" : "Salin"}</span>
+                </button>
+                <button
+                  onClick={triggerWebhookDirectly}
+                  className="bg-sky-600 hover:bg-sky-500 text-white px-3 py-1 rounded-lg transition-colors flex items-center gap-1 cursor-pointer font-['Space_Grotesk'] font-semibold shadow-sm"
+                  title="Klik untuk simulasi tiba tanpa buka terminal"
+                >
+                  <span className="material-symbols-outlined text-xs">sensors</span>
+                  <span>Simulasi Tiba (Sensor)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </footer>
     </div>
   );
