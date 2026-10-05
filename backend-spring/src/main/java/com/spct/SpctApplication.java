@@ -12,6 +12,14 @@ import com.spct.model.StatusSlot;
 import com.spct.repository.SlotParkirRepository;
 import com.spct.model.User;
 import com.spct.repository.UserRepository;
+import com.spct.model.DataKendaraan;
+import com.spct.model.JenisKendaraan;
+import com.spct.repository.DataKendaraanRepository;
+import com.spct.model.TransaksiParkir;
+import com.spct.model.StatusPembayaran;
+import com.spct.repository.TransaksiParkirRepository;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @SpringBootApplication
 public class SpctApplication 
@@ -26,7 +34,7 @@ public class SpctApplication
 
     // Seeder Otomatis: Membuat 15 Slot Parkir dan Akun Manajer jika database masih kosong
     @Bean
-    public CommandLineRunner seederData(SlotParkirRepository slotRepo, UserRepository userRepo) {
+    public CommandLineRunner seederData(SlotParkirRepository slotRepo, UserRepository userRepo, DataKendaraanRepository kendaraanRepo, TransaksiParkirRepository transaksiRepo) {
         return args -> {
             System.out.println("SINKRONISASI AKUN DEFAULT...");
             if (userRepo.findByUsername("manajer").isEmpty()) {
@@ -65,6 +73,32 @@ public class SpctApplication
                 }
             }
             System.out.println("15 SLOT PARKIR (GRID) BERHASIL DISINKRONISASI!");
+
+            System.out.println("SINKRONISASI DATA TRANSAKSI DUMMY UNTUK DASHBOARD MANAJER...");
+            if (kendaraanRepo.count() == 0) {
+                // Buat 5 Kendaraan Dummy
+                for (int i = 1; i <= 5; i++) {
+                    DataKendaraan k = new DataKendaraan("AB" + i + "000CD", (i % 2 == 0) ? JenisKendaraan.MOBIL : JenisKendaraan.MOTOR);
+                    kendaraanRepo.save(k);
+                    
+                    // Transaksi kemarin (LUNAS)
+                    TransaksiParkir tk = new TransaksiParkir(k, slotRepo.findById("B1-0" + i).orElse(null));
+                    tk.setWaktuMasuk(LocalDateTime.now().minusDays(1).minusHours(2));
+                    tk.setWaktuKeluar(LocalDateTime.now().minusDays(1));
+                    tk.setStatusPembayaran(StatusPembayaran.LUNAS);
+                    tk.setNominalTagihan(BigDecimal.valueOf(15000));
+                    transaksiRepo.save(tk);
+
+                    // Transaksi hari ini (LUNAS)
+                    TransaksiParkir th = new TransaksiParkir(k, slotRepo.findById("B1-1" + i).orElse(null));
+                    th.setWaktuMasuk(LocalDateTime.now().minusHours(3));
+                    th.setWaktuKeluar(LocalDateTime.now().minusHours(1));
+                    th.setStatusPembayaran(StatusPembayaran.LUNAS);
+                    th.setNominalTagihan(BigDecimal.valueOf(20000));
+                    transaksiRepo.save(th);
+                }
+                System.out.println("DATA TRANSAKSI DUMMY BERHASIL DITAMBAHKAN!");
+            }
         };
     }
 }
