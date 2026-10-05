@@ -3,11 +3,14 @@ package com.spct.service;
 import com.spct.model.*;
 import com.spct.repository.LogOperasionalIoTRepository;
 import com.spct.repository.SlotParkirRepository;
+import com.spct.repository.TransaksiParkirRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;  // Mengimpor HashMap untuk menyusun payload notifikasi WebSocket
 import java.util.Map;      // Mengimpor Map untuk tipe data payload notifikasi WebSocket
 
@@ -25,6 +28,9 @@ public class MonitoringFisikService // Kelas service yang mengorkestrasi semua l
 
     @Autowired
     private LogOperasionalIoTRepository logOperasionalIoTRepository; // Repository untuk menyimpan setiap kejadian ke tabel log
+
+    @Autowired
+    private TransaksiParkirRepository transaksiParkirRepository; // Repository untuk menemukan transaksi aktif saat sensor mendeteksi kendaraan tiba
 
     // SimpMessagingTemplate: komponen Spring untuk mengirim pesan ke klien WebSocket yang sudah subscribe
     // Setara dengan memanggil sebuah method yang langsung "muncul" di layar Dashboard Admin tanpa refresh
@@ -94,6 +100,37 @@ public class MonitoringFisikService // Kelas service yang mengorkestrasi semua l
     // Handler Kondisi 1: kendaraan yang benar sudah tiba di slot yang dialokasikan
     private void prosesKondisiNormalParkir(SlotParkir slot)
     {
+        LocalDateTime waktuTibaSekarang = LocalDateTime.now(); // Catat timestamp tepat saat sensor mendeteksi kendaraan tiba
+
+        // =====================================================================
+        // Kalkulasi Eco-Metrics CO2 Real-Time:
+        // Cari transaksi aktif milik kendaraan di slot ini, lalu hitung berapa menit dari
+        // waktu masuk gerbang (waktuMasuk) hingga tiba di slot (sekarang)
+        // Waktu tempuh inilah yang RIIL dihemat kendaraan berkat navigasi A*
+        // =====================================================================
+        DataKendaraan kendaraanAktif = slot.getKendaraanAktif();
+        if (kendaraanAktif != null) // Pastikan slot punya kendaraan yang terasosiasi
+        {
+            transaksiParkirRepository
+                .findFirstByKendaraan_PlatNomorAndStatusPembayaranOrderByWaktuMasukDesc(
+                    kendaraanAktif.getPlatNomor(), StatusPembayaran.BELUM_LUNAS
+                )
+                .ifPresent(transaksiAktif ->
+                {
+                    // Rekam timestamp fisik kendaraan tiba di slot
+                    transaksiAktif.setWaktuTibaSlot(waktuTibaSekarang);
+
+                    // Hitung menit dihemat: selisih dari gerbang masuk ke slot (dalam menit desimal)
+                    // Contoh: masuk 10:00:00, tiba slot 10:00:30 → menitDihemat = 0.5
+                    long detikTempuh = ChronoUnit.SECONDS.between(transaksiAktif.getWaktuMasuk(), waktuTibaSekarang);
+                    double menitDihemat = detikTempuh / 60.0; // Konversi detik ke menit (presisi desimal)
+                    transaksiAktif.setMenitDihemat(menitDihemat);
+
+                    transaksiParkirRepository.save(transaksiAktif); // Simpan kedua atribut baru ke database
+                    System.out.println("[CO2] Slot " + slot.getIdSlot() + ": menitDihemat=" + String.format("%.2f", menitDihemat) + " menit (" + detikTempuh + " detik)");
+                });
+        }
+
         // UPDATE: Ubah status slot di database menjadi TERISI (konfirmasi fisik dari sensor)
         slot.setStatusSlot(StatusSlot.TERISI); // Mengubah status slot menjadi TERISI
         slotParkirRepository.save(slot);        // Simpan perubahan ke database

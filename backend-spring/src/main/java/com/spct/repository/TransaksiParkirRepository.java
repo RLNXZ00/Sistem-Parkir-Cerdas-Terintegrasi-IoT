@@ -44,4 +44,10 @@ public interface TransaksiParkirRepository extends JpaRepository<TransaksiParkir
     // Menghitung jumlah kendaraan yang masuk dalam rentang waktu tertentu (untuk statistik harian)
     // Setara: SELECT COUNT(*) FROM transaksi_parkir WHERE waktu_masuk BETWEEN ? AND ?
     Long countByWaktuMasukBetween(LocalDateTime awal, LocalDateTime akhir);
+
+    // Menjumlahkan total menit yang RIIL dihemat oleh semua kendaraan berdasarkan data sensor IoT
+    // Hanya menghitung transaksi yang sudah punya waktuTibaSlot (artinya sensor pernah mendeteksi kendaraan tiba)
+    // Setara: SELECT SUM(menit_dihemat) FROM transaksi_parkir WHERE waktu_tiba_slot IS NOT NULL
+    @Query("SELECT SUM(t.menitDihemat) FROM TransaksiParkir t WHERE t.waktuTibaSlot IS NOT NULL")
+    Double hitungTotalMenitDihematDariSensor();
 }

@@ -29,6 +29,12 @@ public class TransaksiParkir
     @Column(name = "waktu_keluar")
     private LocalDateTime waktuKeluar; // Timestamp saat kendaraan melewati gerbang keluar (NULL jika masih di dalam)
 
+    @Column(name = "waktu_tiba_slot")
+    private LocalDateTime waktuTibaSlot; // Timestamp saat sensor konfirmasi kendaraan tiba di slot (dikirim via webhook IoT)
+
+    @Column(name = "menit_dihemat")
+    private Double menitDihemat; // Waktu tempuh nyata dari gerbang ke slot (menit) = basis kalkulasi CO2 real-time
+
     @Column(name = "durasi_total_menit")
     private Integer durasiTotalMenit; // Selisih waktu masuk dan keluar dalam satuan menit (dihitung saat keluar)
 
@@ -104,6 +110,26 @@ public class TransaksiParkir
     public LocalDateTime getWaktuKeluar() // Deklarasi method getter untuk waktuKeluar
     {
         return waktuKeluar; // Mengembalikan nilai atribut waktuKeluar
+    }
+
+    public void setWaktuTibaSlot(LocalDateTime waktuTibaSlot) // Deklarasi method setter untuk waktuTibaSlot
+    {
+        this.waktuTibaSlot = waktuTibaSlot; // Mencatat kapan kendaraan fisik tiba di slot (konfirmasi sensor)
+    }
+
+    public LocalDateTime getWaktuTibaSlot() // Deklarasi method getter untuk waktuTibaSlot
+    {
+        return waktuTibaSlot; // Mengembalikan timestamp kedatangan fisik di slot
+    }
+
+    public void setMenitDihemat(Double menitDihemat) // Deklarasi method setter untuk menitDihemat
+    {
+        this.menitDihemat = menitDihemat; // Menyimpan hasil kalkulasi penghematan waktu navigasi
+    }
+
+    public Double getMenitDihemat() // Deklarasi method getter untuk menitDihemat
+    {
+        return menitDihemat; // Mengembalikan durasi penghematan dalam menit untuk kalkulasi CO2
     }
 
     public void setDurasiTotalMenit(Integer durasiTotalMenit) // Deklarasi method setter untuk durasiTotalMenit

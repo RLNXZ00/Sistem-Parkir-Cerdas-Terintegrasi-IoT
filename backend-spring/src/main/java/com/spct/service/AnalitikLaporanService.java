@@ -31,7 +31,9 @@ public class AnalitikLaporanService // Kelas service yang mengumpulkan dan mengo
     // =====================================================================
 
     private static final double EMISI_CO2_GRAM_PER_MENIT = 175.0; // Konstanta emisi idle kendaraan (gram CO2/menit)
-    private static final double WAKTU_HEMAT_RATA_RATA_MENIT = 5.0; // Estimasi rata-rata menit yang dihemat per kendaraan
+    // Catatan: WAKTU_HEMAT_RATA_RATA_MENIT sudah TIDAK DIGUNAKAN.
+    // Sejak pembaruan ini, waktu hemat diambil dari data RIIL sensor IoT (kolom menit_dihemat di tabel transaksi_parkir)
+    // Setiap tembakan curl webhook sensor = data empiris yang sesungguhnya, bukan estimasi.
 
 
     // =====================================================================
@@ -100,11 +102,17 @@ public class AnalitikLaporanService // Kelas service yang mengumpulkan dan mengo
         Long slotTerisi = (long) slotParkirRepository.findByStatusSlot(StatusSlot.TERISI).size();
 
 
-        // --- Langkah 5: Kalkulasi Eco-Metrics CO2 (Fitur Green-IoT Khas SPCT) ---
-        // Rumus: Waktu Hemat (menit) * Emisi Idle (gram/menit) * Volume Kendaraan → konversi gram ke kg
-        double totalReduksiCo2Kg = hitungReduksiCo2(totalKendaraan);
+        // --- Langkah 5: Kalkulasi Eco-Metrics CO2 Real-Time (dari data sensor IoT yang sesungguhnya) ---
+        // Tidak lagi menggunakan estimasi konstan (5 menit per kendaraan).
+        // Sistem sekarang menjumlahkan kolom menit_dihemat dari SELURUH transaksi yang sudah dikonfirmasi
+        // sensor (waktu_tiba_slot IS NOT NULL). Setiap tembakan webhook = data empiris CO2 yang nyata.
+        Double totalMenitDihemat = transaksiParkirRepository.hitungTotalMenitDihematDariSensor();
+        if (totalMenitDihemat == null) { totalMenitDihemat = 0.0; } // Fallback jika belum ada data sensor sama sekali
+
+        // Konversi: (Total Menit Riil × 175 gram/menit) ÷ 1000 = Total Kilogram CO2 yang dicegah
+        double totalReduksiCo2Kg = Math.round((totalMenitDihemat * EMISI_CO2_GRAM_PER_MENIT / 1000.0) * 100.0) / 100.0;
         
-        // Persentase reduksi terhadap angka benchmark pencemaran CO2 terburuk (misal: 2000kg)
+        // Persentase reduksi terhadap angka benchmark pencemaran CO2 terburuk (2000kg)
         double persentaseCo2 = Math.min((totalReduksiCo2Kg / 2000.0) * 100.0, 100.0);
 
 
@@ -125,21 +133,6 @@ public class AnalitikLaporanService // Kelas service yang mengumpulkan dan mengo
             Math.round(persentaseCo2 * 10.0) / 10.0, // Persentase goal tercapai (1 desimal)
             grafikOkupansi      // Data series grafik per jam untuk Chart.js
         );
-    }
-
-
-    // =====================================================================
-    // Method Pendukung: Kalkulasi Eco-Metrics Reduksi Emisi CO2
-    // =====================================================================
-
-    // Menghitung estimasi total emisi CO2 yang berhasil dicegah berkat sistem navigasi A*
-    // Logika: tanpa sistem navigasi, pengemudi menghabiskan waktu berkeliling mencari slot
-    // Dengan A*, waktu pencarian berkurang → emisi idle berkurang → CO2 turun
-    private double hitungReduksiCo2(Long jumlahKendaraan)
-    {
-        // Rumus: (WaktuHemat × EmisiIdle × JumlahKendaraan) / 1000 (konversi gram → kilogram)
-        double totalGramCo2 = WAKTU_HEMAT_RATA_RATA_MENIT * EMISI_CO2_GRAM_PER_MENIT * jumlahKendaraan;
-        return Math.round(totalGramCo2 / 1000 * 100.0) / 100.0; // Pembulatan 2 desimal (dalam kilogram)
     }
 
 
