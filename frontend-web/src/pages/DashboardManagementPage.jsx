@@ -2,13 +2,28 @@ import { useState, useEffect, useRef } from 'react';
 import AppLayout from '../components/AppLayout';
 import Chart from 'chart.js/auto';
 
+// Daftar 15 Slot Standar Lantai 1
+const DEFAULT_SLOTS = [
+  'B1-01', 'B1-02', 'B1-03', 'B1-04', 'B1-05', 'B1-06', 'B1-07', 'B1-08',
+  'B1-09', 'B1-10', 'B1-11', 'B1-12', 'B1-13', 'B1-14', 'B1-15'
+];
+
 export default function DashboardManagementPage() {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [networkPing, setNetworkPing] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Modal 1: 10 Log Anomali (Tabel Kronologis)
+  const [isListModalOpen, setIsListModalOpen] = useState(false);
   const [anomaliList, setAnomaliList] = useState([]);
   const [isLoadingAnomali, setIsLoadingAnomali] = useState(false);
+
+  // Modal 2: Visual Node Map (Denah Spasial Lantai 1)
+  const [isNodeMapModalOpen, setIsNodeMapModalOpen] = useState(false);
+  const [slotsList, setSlotsList] = useState([]);
+  const [nodeAnomaliMap, setNodeAnomaliMap] = useState({});
+  const [selectedSlotNode, setSelectedSlotNode] = useState(null);
+  const [isLoadingNodeMap, setIsLoadingNodeMap] = useState(false);
 
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
@@ -39,14 +54,23 @@ export default function DashboardManagementPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Ambil 10 data anomali terakhir untuk Modal Popup
-  const openAnomaliModal = () => {
-    setIsModalOpen(true);
+  // Helper untuk mengekstrak ID slot dari objek log
+  const extractSlotId = (log) => {
+    if (log.slotTerkait && log.slotTerkait.idSlot) return log.slotTerkait.idSlot;
+    if (log.catatanDetail) {
+      const match = log.catatanDetail.match(/Slot\s+(B1-\d{2})/i);
+      if (match) return match[1].toUpperCase();
+    }
+    return null;
+  };
+
+  // Buka Modal 1: Daftar 10 Anomali Terbaru (Klik banner bawah)
+  const openAnomaliListModal = () => {
+    setIsListModalOpen(true);
     setIsLoadingAnomali(true);
     fetch('http://localhost:8081/api/monitoring/log-iot')
       .then(res => res.json())
       .then(logs => {
-        // Ambil 10 log terakhir
         setAnomaliList(logs.slice(0, 10));
         setIsLoadingAnomali(false);
       })
@@ -54,6 +78,54 @@ export default function DashboardManagementPage() {
         console.error("Gagal mengambil log anomali:", err);
         setIsLoadingAnomali(false);
       });
+  };
+
+  // Buka Modal 2: Visual Node Logs Denah Lantai 1 (Klik "View Node Logs")
+  const openNodeMapModal = async () => {
+    setIsNodeMapModalOpen(true);
+    setIsLoadingNodeMap(true);
+    setSelectedSlotNode(null);
+
+    try {
+      const [slotsRes, logsRes] = await Promise.all([
+        fetch('http://localhost:8081/api/monitoring/slots'),
+        fetch('http://localhost:8081/api/monitoring/log-iot')
+      ]);
+
+      const slots = slotsRes.ok ? await slotsRes.json() : [];
+      const logs = logsRes.ok ? await logsRes.json() : [];
+
+      setSlotsList(slots.length > 0 ? slots : DEFAULT_SLOTS.map(id => ({ idSlot: id })));
+
+      // Ambil 10 log terakhir dan kelompokkan insiden anomali berdasarkan ID slot
+      const latest10 = logs.slice(0, 10);
+      const anomaliGroup = {};
+      let firstErrorSlot = null;
+
+      latest10.forEach(log => {
+        const slotId = extractSlotId(log);
+        const isAnomaly = log.tingkatKeparahan === 'CRITICAL' || log.jenisKejadian?.includes('ANOMALI');
+
+        if (slotId && isAnomaly) {
+          if (!anomaliGroup[slotId]) {
+            anomaliGroup[slotId] = [];
+            if (!firstErrorSlot) firstErrorSlot = slotId;
+          }
+          anomaliGroup[slotId].push(log);
+        }
+      });
+
+      setNodeAnomaliMap(anomaliGroup);
+      if (firstErrorSlot) {
+        setSelectedSlotNode(firstErrorSlot);
+      } else {
+        setSelectedSlotNode('B1-01');
+      }
+    } catch (e) {
+      console.error("Gagal memuat denah node log:", e);
+    } finally {
+      setIsLoadingNodeMap(false);
+    }
   };
 
   // Render Grafik Chart.js Pendapatan Harian (Tgl 1 s.d. Hari Ini)
@@ -235,8 +307,21 @@ export default function DashboardManagementPage() {
   const totalSensor = safeData.totalSensor ?? 15;
   const sensorPct = totalSensor > 0 ? Math.round((sensorAktif / totalSensor) * 100) : 100;
 
+  // Render Baris Slot Lantai 1
+  const row1Slots = DEFAULT_SLOTS.slice(0, 8); // B1-01 s.d. B1-08 (8 Slot)
+  const row2Slots = DEFAULT_SLOTS.slice(8, 15); // B1-09 s.d. B1-15 (7 Slot)
+
   return (
     <AppLayout breadcrumb="Management Oversight" status="System Optimal">
+      <style>{`
+        .pulse-anomaly { animation: pulse-red 2s infinite; }
+        @keyframes pulse-red {
+          0%   { box-shadow: 0 0 0 0 rgba(255,69,0,0.7); border-color: #FF4500; }
+          70%  { box-shadow: 0 0 0 10px rgba(255,69,0,0); border-color: transparent; }
+          100% { box-shadow: 0 0 0 0 rgba(255,69,0,0); border-color: #FF4500; }
+        }
+      `}</style>
+
       <div className="p-6 bg-background min-h-full flex flex-col gap-6">
 
         {/* Page Header */}
@@ -356,11 +441,15 @@ export default function DashboardManagementPage() {
                 <span className="material-symbols-outlined text-system-info">memory</span>
                 <h2 className="text-xl font-semibold text-on-surface">System Health</h2>
               </div>
+              
+              {/* TOMBOL VIEW NODE LOGS: MEMBUKA MODAL DENAH SPASIAL LANTAI 1 */}
               <button 
-                onClick={openAnomaliModal}
-                className="text-primary font-mono text-sm hover:underline cursor-pointer"
+                onClick={openNodeMapModal}
+                className="text-primary font-mono text-sm hover:underline cursor-pointer flex items-center gap-1 bg-primary/10 hover:bg-primary/20 px-3 py-1 rounded-lg border border-primary/30 transition-colors"
+                title="Buka Denah Spasial Node Sensor & Indikasi Kesalahan Parkir"
               >
-                View Node Logs
+                <span className="material-symbols-outlined text-sm">grid_view</span>
+                <span>View Node Logs</span>
               </button>
             </div>
             <div className="grid grid-cols-2 gap-4 flex-1">
@@ -402,9 +491,9 @@ export default function DashboardManagementPage() {
                 </div>
               </div>
 
-              {/* Anomaly Notification Bar (Clickable to open 10 Anomaly Logs modal) */}
+              {/* Anomaly Notification Bar (Klik ikon > untuk melihat modal daftar 10 riwayat teks) */}
               <div 
-                onClick={openAnomaliModal}
+                onClick={openAnomaliListModal}
                 className="col-span-2 bg-error-container/10 p-4 rounded-lg border border-alert-anomaly/30 flex items-center justify-between group cursor-pointer hover:bg-error-container/20 transition-all shadow-sm"
               >
                 <div className="flex items-center gap-3">
@@ -421,7 +510,7 @@ export default function DashboardManagementPage() {
                         : "Sistem Normal — Tidak Ada Anomali Aktif"}
                     </h3>
                     <p className="text-xs text-on-surface-variant">
-                      Klik untuk melihat daftar 10 riwayat anomali & operasional sensor terbaru dari database.
+                      Klik untuk melihat daftar 10 riwayat kronologis anomali & operasional sensor terbaru dari database.
                     </p>
                   </div>
                 </div>
@@ -461,8 +550,10 @@ export default function DashboardManagementPage() {
           </div>
         </div>
 
-        {/* MODAL POPUP: 10 ANOMALI TERAKHIR DARI DATABASE */}
-        {isModalOpen && (
+        {/* ========================================================================= */}
+        {/* MODAL 1: DAFTAR 10 LOG ANOMALI TERAKHIR (TABEL KRONOLOGIS) */}
+        {/* ========================================================================= */}
+        {isListModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
             <div className="bg-[#0B1526] border border-slate-700/80 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
               
@@ -472,11 +563,11 @@ export default function DashboardManagementPage() {
                   <span className="material-symbols-outlined text-alert-anomaly text-2xl">warning</span>
                   <div>
                     <h2 className="text-xl font-bold text-white font-['Space_Grotesk']">10 Log Anomali & Operasional IoT Terakhir</h2>
-                    <p className="text-xs text-slate-400">Data waktu riil langsung dari tabel <code className="text-sky-300">log_operasional_iot</code> database.</p>
+                    <p className="text-xs text-slate-400">Data riil kronologis langsung dari tabel <code className="text-sky-300">log_operasional_iot</code> database.</p>
                   </div>
                 </div>
                 <button 
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => setIsListModalOpen(false)}
                   className="text-slate-400 hover:text-white p-2 rounded-lg bg-slate-800/60 hover:bg-slate-700 transition-colors cursor-pointer"
                 >
                   <span className="material-symbols-outlined">close</span>
@@ -502,6 +593,7 @@ export default function DashboardManagementPage() {
                         day: '2-digit', month: 'short', year: 'numeric',
                         hour: '2-digit', minute: '2-digit', second: '2-digit'
                       }) : '-';
+                      const slotId = extractSlotId(log);
 
                       return (
                         <div 
@@ -519,7 +611,7 @@ export default function DashboardManagementPage() {
                             <div>
                               <div className="flex items-center gap-2">
                                 <span className="font-mono font-bold text-white text-sm">
-                                  {log.slotTerkait?.idSlot ? `Slot ${log.slotTerkait.idSlot}` : 'Hardware Node'}
+                                  {slotId ? `Slot ${slotId}` : 'Hardware Node'}
                                 </span>
                                 <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
                                   isCritical ? 'bg-red-900/40 text-red-300 border border-red-700/40' : 'bg-slate-800 text-slate-300'
@@ -555,7 +647,208 @@ export default function DashboardManagementPage() {
               {/* Modal Footer */}
               <div className="p-4 border-t border-slate-700/60 bg-[#08101E] flex justify-end">
                 <button
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => setIsListModalOpen(false)}
+                  className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold transition-colors cursor-pointer"
+                >
+                  Tutup
+                </button>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* MODAL 2: DENAH SPASIAL NODE LOGS LANTAI 1 (PERSIS SEPERTI GAMBAR 2) */}
+        {/* ========================================================================= */}
+        {isNodeMapModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in">
+            <div className="bg-[#0B1526] border border-slate-700/80 rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+              
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b border-slate-700/60 bg-[#08101E]">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-sky-950/80 border border-sky-500/40 text-sky-400 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-2xl">grid_view</span>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white font-['Space_Grotesk'] flex items-center gap-2">
+                      Peta Denah Spasial Node Sensor & Kesalahan Parkir
+                    </h2>
+                    <p className="text-xs text-slate-400">
+                      Visualisasi indikasi slot yang teridentifikasi mengalami anomali atau salah parkir dari 10 log IoT terbaru.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  {/* Legend Mini */}
+                  <div className="hidden md:flex items-center gap-3 text-xs font-mono">
+                    <div className="flex items-center gap-1.5 text-red-400">
+                      <div className="w-3 h-3 bg-red-600/30 border border-red-500 rounded-sm animate-pulse"></div>
+                      <span>Anomali Terindikasi</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-slate-400">
+                      <div className="w-3 h-3 border border-dashed border-slate-600 rounded-sm"></div>
+                      <span>Node Normal</span>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={() => setIsNodeMapModalOpen(false)}
+                    className="text-slate-400 hover:text-white p-2 rounded-lg bg-slate-800/60 hover:bg-slate-700 transition-colors cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body: Denah Lantai 1 */}
+              <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-6">
+                
+                {isLoadingNodeMap ? (
+                  <div className="flex items-center justify-center py-20 text-slate-400 font-mono animate-pulse">
+                    Memuat pemetaan denah node sensor...
+                  </div>
+                ) : (
+                  <>
+                    {/* DENAH GRID SESUAI GAMBAR 2 (LANTAI 1) */}
+                    <div className="bg-[#050B14] rounded-xl border border-slate-800 p-6 relative overflow-hidden shadow-inner">
+                      
+                      {/* Grid background styling */}
+                      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-40"></div>
+
+                      {/* Header Lantai 1 */}
+                      <div className="text-xs font-mono text-slate-400 text-center border-y border-slate-800 py-1.5 mb-6 uppercase tracking-widest relative z-10 font-semibold">
+                        LANTAI 1
+                      </div>
+
+                      {/* Baris 1: 8 Slot (B1-01 s.d. B1-08) */}
+                      <div className="grid grid-cols-4 sm:grid-cols-8 gap-3 relative z-10 mb-3">
+                        {row1Slots.map(slotId => {
+                          const hasAnomaly = !!nodeAnomaliMap[slotId];
+                          const isSelected = selectedSlotNode === slotId;
+                          const anomalyCount = hasAnomaly ? nodeAnomaliMap[slotId].length : 0;
+
+                          return (
+                            <div
+                              key={slotId}
+                              onClick={() => setSelectedSlotNode(slotId)}
+                              className={`h-14 rounded-lg flex flex-col items-center justify-center font-mono text-xs cursor-pointer transition-all relative ${
+                                hasAnomaly
+                                  ? 'bg-alert-anomaly/20 border-2 border-alert-anomaly text-alert-anomaly pulse-anomaly hover:bg-alert-anomaly/30 shadow-[0_0_15px_rgba(255,69,0,0.4)]'
+                                  : 'border border-slate-700/80 border-dashed text-slate-400 hover:border-sky-400 hover:text-slate-200 bg-[#08101E]/40'
+                              } ${isSelected ? 'ring-2 ring-sky-400 scale-105 z-20' : ''}`}
+                            >
+                              <span className="font-bold tracking-wider">{slotId}</span>
+                              {hasAnomaly && (
+                                <span className="text-[10px] bg-red-600 text-white font-bold px-1.5 py-0.2 rounded-full absolute -top-2 -right-2 shadow-md">
+                                  {anomalyCount}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Baris 2: 7 Slot (B1-09 s.d. B1-15) */}
+                      <div className="grid grid-cols-4 sm:grid-cols-8 gap-3 relative z-10">
+                        {row2Slots.map(slotId => {
+                          const hasAnomaly = !!nodeAnomaliMap[slotId];
+                          const isSelected = selectedSlotNode === slotId;
+                          const anomalyCount = hasAnomaly ? nodeAnomaliMap[slotId].length : 0;
+
+                          return (
+                            <div
+                              key={slotId}
+                              onClick={() => setSelectedSlotNode(slotId)}
+                              className={`h-14 rounded-lg flex flex-col items-center justify-center font-mono text-xs cursor-pointer transition-all relative ${
+                                hasAnomaly
+                                  ? 'bg-alert-anomaly/20 border-2 border-alert-anomaly text-alert-anomaly pulse-anomaly hover:bg-alert-anomaly/30 shadow-[0_0_15px_rgba(255,69,0,0.4)]'
+                                  : 'border border-slate-700/80 border-dashed text-slate-400 hover:border-sky-400 hover:text-slate-200 bg-[#08101E]/40'
+                              } ${isSelected ? 'ring-2 ring-sky-400 scale-105 z-20' : ''}`}
+                            >
+                              <span className="font-bold tracking-wider">{slotId}</span>
+                              {hasAnomaly && (
+                                <span className="text-[10px] bg-red-600 text-white font-bold px-1.5 py-0.2 rounded-full absolute -top-2 -right-2 shadow-md">
+                                  {anomalyCount}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                        {/* Slot ke-8 baris kedua kosong / lorong akses */}
+                        <div className="h-14 rounded-lg border border-slate-900 border-dashed text-slate-700 flex items-center justify-center font-mono text-[10px] opacity-40">
+                          EXIT / RAM
+                        </div>
+                      </div>
+
+                    </div>
+
+                    {/* DETAIL PANEL UNTUK SLOT YANG DIPILIH */}
+                    <div className="bg-[#08101E] border border-slate-800 rounded-xl p-5">
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-sky-400">info</span>
+                          <h3 className="font-mono text-base text-white font-bold">
+                            Detail Insiden Node: <span className="text-sky-300">{selectedSlotNode || 'Pilih Slot'}</span>
+                          </h3>
+                        </div>
+                        {selectedSlotNode && (
+                          <span className={`text-xs font-mono font-bold px-3 py-1 rounded-full ${
+                            nodeAnomaliMap[selectedSlotNode]
+                              ? 'bg-red-950/50 text-red-300 border border-red-700/50'
+                              : 'bg-emerald-950/50 text-emerald-300 border border-emerald-700/50'
+                          }`}>
+                            {nodeAnomaliMap[selectedSlotNode] 
+                              ? `${nodeAnomaliMap[selectedSlotNode].length} Insiden Anomali Terdeteksi` 
+                              : 'Status Normal'}
+                          </span>
+                        )}
+                      </div>
+
+                      {selectedSlotNode && nodeAnomaliMap[selectedSlotNode] ? (
+                        <div className="flex flex-col gap-3">
+                          {nodeAnomaliMap[selectedSlotNode].map((item, idx) => (
+                            <div key={idx} className="bg-red-950/20 border border-red-800/40 rounded-lg p-3.5 flex flex-col gap-1">
+                              <div className="flex items-center justify-between text-xs font-mono">
+                                <span className="text-red-400 font-bold">{item.jenisKejadian}</span>
+                                <span className="text-slate-400">
+                                  {item.waktuKejadian ? new Date(item.waktuKejadian).toLocaleString('id-ID') : '-'}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                                {item.catatanDetail}
+                              </p>
+                              <div className="mt-2 flex items-center gap-2 text-[11px] font-mono text-slate-400">
+                                <span>Resolusi: <strong className="text-amber-300">{item.statusResolusi || 'BELUM_DITANGANI'}</strong></span>
+                                <span>•</span>
+                                <span>Keparahan: <strong className="text-red-400">{item.tingkatKeparahan}</strong></span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-slate-400 text-xs py-4 text-center font-mono flex items-center justify-center gap-2">
+                          <span className="material-symbols-outlined text-emerald-400 text-lg">verified</span>
+                          <span>Slot {selectedSlotNode} tidak memiliki catatan kesalahan atau anomali pada 10 log IoT terbaru.</span>
+                        </div>
+                      )}
+                    </div>
+
+                  </>
+                )}
+
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-slate-700/60 bg-[#08101E] flex justify-between items-center">
+                <span className="text-xs text-slate-500 font-mono">
+                  *Klik pada kotak slot mana saja di peta untuk melihat riwayat insiden node terkait.
+                </span>
+                <button
+                  onClick={() => setIsNodeMapModalOpen(false)}
                   className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold transition-colors cursor-pointer"
                 >
                   Tutup

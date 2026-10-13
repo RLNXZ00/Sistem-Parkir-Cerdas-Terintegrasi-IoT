@@ -144,15 +144,15 @@ public class TransaksiPembayaranService
             return new BigDecimal("10000");
         }
 
-        // Aturan 3: dibawah 5 jam pertama 5000, diatas 3 jam pertama 2000 per jam.
-        // Asumsi interpretasi: 3 jam pertama flat Rp 5.000, jam berikutnya Rp 2.000 per jam.
-        if (durasiJam <= 3)
+        // Aturan 3: dibawah 8 jam pertama 5000, diatas 8 jam pertama 2000 per jam.
+        // Asumsi interpretasi: 8 jam pertama flat Rp 5.000, jam berikutnya Rp 2.000 per jam.
+        if (durasiJam <= 8)
         {
             return new BigDecimal("5000");
         }
         else
         {
-            int sisaJam = durasiJam - 3;
+            int sisaJam = durasiJam - 8;
             int totalTarif = 5000 + (sisaJam * 2000);
             return new BigDecimal(String.valueOf(totalTarif));
         }
