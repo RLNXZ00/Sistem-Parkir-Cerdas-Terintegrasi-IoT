@@ -36,7 +36,7 @@ public interface TransaksiParkirRepository extends JpaRepository<TransaksiParkir
     // @Query memungkinkan penulisan JPQL (Java Query Language) kustom yang lebih kompleks
     // Setara: SELECT SUM(nominal_tagihan) FROM transaksi_parkir WHERE waktu_masuk BETWEEN ? AND ? AND status = 'LUNAS'
     @Query("SELECT SUM(t.nominalTagihan) FROM TransaksiParkir t " +
-           "WHERE t.waktuMasuk BETWEEN :awal AND :akhir AND t.statusPembayaran = 'LUNAS'")
+           "WHERE COALESCE(t.waktuKeluar, t.waktuMasuk) BETWEEN :awal AND :akhir AND t.statusPembayaran = 'LUNAS'")
     BigDecimal hitungTotalPendapatanDalamRentangWaktu(
         @Param("awal") LocalDateTime awal,
         @Param("akhir") LocalDateTime akhir);

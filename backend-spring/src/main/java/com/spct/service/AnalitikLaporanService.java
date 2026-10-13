@@ -52,6 +52,9 @@ public class AnalitikLaporanService // Kelas service yang mengumpulkan dan mengo
     @Autowired
     private DataKendaraanRepository dataKendaraanRepository; // Akses ke tabel kendaraan (volume total)
 
+    @Autowired
+    private com.spct.repository.SensorIoTRepository sensorIoTRepository; // Akses ke tabel sensor_iot (status & jumlah hardware)
+
 
     // =====================================================================
     // Method Utama: Mengumpulkan semua data metrik untuk Dashboard Manajemen
@@ -61,77 +64,80 @@ public class AnalitikLaporanService // Kelas service yang mengumpulkan dan mengo
     // Parameter: tanggalAwal dan tanggalAkhir menentukan rentang laporan (default = hari ini)
     public DataDashboardDto ambilDataDashboard(LocalDate tanggalAwal, LocalDate tanggalAkhir)
     {
-        // Konversi tanggal ke LocalDateTime dengan jam awal dan akhir hari
-        LocalDateTime awalPeriode = tanggalAwal.atStartOfDay();                     // Misal: 2026-10-01 00:00:00
-        LocalDateTime akhirPeriode = tanggalAkhir.atTime(LocalTime.MAX);            // Misal: 2026-10-01 23:59:59
+        LocalDate hariIni = (tanggalAkhir != null) ? tanggalAkhir : LocalDate.now();
 
-        // --- Langkah 1: Agregasi Total Pendapatan ---
-        // Memanggil kueri SUM dari TransaksiParkirRepository
-        BigDecimal pendapatanTotal = transaksiParkirRepository
-            .hitungTotalPendapatanDalamRentangWaktu(awalPeriode, akhirPeriode);
-        if (pendapatanTotal == null) { pendapatanTotal = BigDecimal.ZERO; }
+        // 1. Pendapatan Hari Ini (00:00:00 - 23:59:59)
+        LocalDateTime awalHariIni = hariIni.atStartOfDay();
+        LocalDateTime akhirHariIni = hariIni.atTime(LocalTime.MAX);
+        BigDecimal pendapatanHariIni = transaksiParkirRepository
+            .hitungTotalPendapatanDalamRentangWaktu(awalHariIni, akhirHariIni);
+        if (pendapatanHariIni == null) { pendapatanHariIni = BigDecimal.ZERO; }
 
-        // Hitung pendapatan kemarin untuk persentase (Bulan ini vs Bulan lalu / Kemarin vs Hari ini)
-        LocalDateTime awalKemarin = awalPeriode.minusDays(1);
-        LocalDateTime akhirKemarin = akhirPeriode.minusDays(1);
+        // 2. Pendapatan Kemarin (untuk perbandingan persentase)
+        LocalDateTime awalKemarin = awalHariIni.minusDays(1);
+        LocalDateTime akhirKemarin = akhirHariIni.minusDays(1);
         BigDecimal pendapatanKemarin = transaksiParkirRepository
             .hitungTotalPendapatanDalamRentangWaktu(awalKemarin, akhirKemarin);
         if (pendapatanKemarin == null) { pendapatanKemarin = BigDecimal.ZERO; }
-        
+
         Double persentasePendapatan = 0.0;
         if (pendapatanKemarin.compareTo(BigDecimal.ZERO) > 0) {
-            persentasePendapatan = (pendapatanTotal.doubleValue() - pendapatanKemarin.doubleValue()) / pendapatanKemarin.doubleValue() * 100.0;
-        } else if (pendapatanTotal.compareTo(BigDecimal.ZERO) > 0) {
+            persentasePendapatan = (pendapatanHariIni.doubleValue() - pendapatanKemarin.doubleValue()) / pendapatanKemarin.doubleValue() * 100.0;
+        } else if (pendapatanHariIni.compareTo(BigDecimal.ZERO) > 0) {
             persentasePendapatan = 100.0;
         }
 
+        // 3. Pendapatan Bulanan (Tanggal 1 s.d. tanggal hari ini di bulan berjalan)
+        LocalDate awalBulanDate = LocalDate.of(hariIni.getYear(), hariIni.getMonth(), 1);
+        LocalDateTime awalBulan = awalBulanDate.atStartOfDay();
+        LocalDateTime akhirBulan = akhirHariIni; // Sampai jam akhir hari ini
+        BigDecimal pendapatanBulanan = transaksiParkirRepository
+            .hitungTotalPendapatanDalamRentangWaktu(awalBulan, akhirBulan);
+        if (pendapatanBulanan == null) { pendapatanBulanan = BigDecimal.ZERO; }
+
         // --- Langkah 2: Agregasi Volume Kendaraan Keseluruhan (History) ---
-        // Memanggil kueri COUNT dari DataKendaraanRepository (bukan hanya hari ini)
         Long totalKendaraan = dataKendaraanRepository.count();
 
-
         // --- Langkah 3: Agregasi Jumlah Anomali ---
-        // Memanggil kueri COUNT anomali BELUM_DITANGANI dari LogOperasionalIoTRepository
         Long totalAnomali = logOperasionalIoTRepository
             .countByStatusResolusi(StatusResolusi.BELUM_DITANGANI);
 
-
         // --- Langkah 4: Status Kapasitas Slot Real-Time ---
-        // Menghitung slot kosong dan terisi saat ini dari tabel slot_parkir
         Long slotKosong = (long) slotParkirRepository.findByStatusSlot(StatusSlot.KOSONG).size();
         Long slotTerisi = (long) slotParkirRepository.findByStatusSlot(StatusSlot.TERISI).size();
 
+        // --- Langkah 5: Status Hardware Sensor IoT Riil ---
+        Long totalSensor = sensorIoTRepository.count();
+        Long totalSensorAktif = (long) sensorIoTRepository.findByStatusSensor("ON").size();
 
-        // --- Langkah 5: Kalkulasi Eco-Metrics CO2 Real-Time (dari data sensor IoT yang sesungguhnya) ---
-        // Tidak lagi menggunakan estimasi konstan (5 menit per kendaraan).
-        // Sistem sekarang menjumlahkan kolom menit_dihemat dari SELURUH transaksi yang sudah dikonfirmasi
-        // sensor (waktu_tiba_slot IS NOT NULL). Setiap tembakan webhook = data empiris CO2 yang nyata.
+        // --- Langkah 6: Kalkulasi Eco-Metrics CO2 Real-Time ---
         Double totalMenitDihemat = transaksiParkirRepository.hitungTotalMenitDihematDariSensor();
-        if (totalMenitDihemat == null) { totalMenitDihemat = 0.0; } // Fallback jika belum ada data sensor sama sekali
+        if (totalMenitDihemat == null) { totalMenitDihemat = 0.0; }
 
-        // Konversi: (Total Menit Riil × 175 gram/menit) ÷ 1000 = Total Kilogram CO2 yang dicegah
         double totalReduksiCo2Kg = Math.round((totalMenitDihemat * EMISI_CO2_GRAM_PER_MENIT / 1000.0) * 100.0) / 100.0;
-        
-        // Persentase reduksi terhadap angka benchmark pencemaran CO2 terburuk (2000kg)
         double persentaseCo2 = Math.min((totalReduksiCo2Kg / 2000.0) * 100.0, 100.0);
 
+        // --- Langkah 7: Menyusun Data Grafik Okupansi Per Jam Hari Ini ---
+        List<DataOkupansiJamDto> grafikOkupansi = susunGrafikOkupansiPerJam(awalHariIni, akhirHariIni);
 
-        // --- Langkah 6: Menyusun Data Grafik Okupansi Per Jam ---
-        // Menghitung berapa kendaraan yang masuk pada setiap jam dalam rentang waktu laporan
-        List<DataOkupansiJamDto> grafikOkupansi = susunGrafikOkupansiPerJam(awalPeriode, akhirPeriode);
+        // --- Langkah 8: Menyusun Data Grafik Pertumbuhan Pendapatan Harian (Tgl 1 s.d. Hari Ini) ---
+        List<DataDashboardDto.DataPendapatanHarianDto> grafikPendapatanHarian = susunGrafikPendapatanHarian(awalBulanDate, hariIni);
 
-
-        // --- Langkah 7: Susun dan kembalikan DTO lengkap ke Controller ---
+        // --- Langkah 9: Susun dan kembalikan DTO lengkap ke Controller ---
         return new DataDashboardDto(
-            pendapatanTotal,    // Total pendapatan di periode ini
-            Math.round(persentasePendapatan * 10.0) / 10.0, // Persentase kenaikan/penurunan (1 desimal)
-            totalKendaraan,     // Total kendaraan seluruh history
-            totalAnomali,       // Jumlah anomali aktif
-            slotKosong,         // Slot kosong saat ini (real-time)
-            slotTerisi,         // Slot terisi saat ini (real-time)
-            totalReduksiCo2Kg,  // Reduksi emisi CO2 yang berhasil dicegah
-            Math.round(persentaseCo2 * 10.0) / 10.0, // Persentase goal tercapai (1 desimal)
-            grafikOkupansi      // Data series grafik per jam untuk Chart.js
+            pendapatanHariIni,
+            pendapatanBulanan,
+            Math.round(persentasePendapatan * 10.0) / 10.0,
+            totalKendaraan,
+            totalAnomali,
+            slotKosong,
+            slotTerisi,
+            totalSensor,
+            totalSensorAktif,
+            totalReduksiCo2Kg,
+            Math.round(persentaseCo2 * 10.0) / 10.0,
+            grafikOkupansi,
+            grafikPendapatanHarian
         );
     }
 
@@ -171,5 +177,35 @@ public class AnalitikLaporanService // Kelas service yang mengumpulkan dan mengo
         }
 
         return hasilGrafik; // Mengembalikan daftar lengkap titik data grafik
+    }
+
+    // =====================================================================
+    // Method Pendukung: Menyusun Data Pertumbuhan Pendapatan Harian (Tgl 1 s.d. Hari Ini)
+    // =====================================================================
+    private List<DataDashboardDto.DataPendapatanHarianDto> susunGrafikPendapatanHarian(LocalDate awalBulan, LocalDate hariIni)
+    {
+        List<DataDashboardDto.DataPendapatanHarianDto> hasil = new ArrayList<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM");
+
+        LocalDate tgl = awalBulan;
+        while (!tgl.isAfter(hariIni))
+        {
+            LocalDateTime awalHari = tgl.atStartOfDay();
+            LocalDateTime akhirHari = tgl.atTime(LocalTime.MAX);
+
+            BigDecimal pendapatanHari = transaksiParkirRepository
+                .hitungTotalPendapatanDalamRentangWaktu(awalHari, akhirHari);
+            if (pendapatanHari == null) { pendapatanHari = BigDecimal.ZERO; }
+
+            hasil.add(new DataDashboardDto.DataPendapatanHarianDto(
+                tgl.getDayOfMonth(),
+                tgl.format(formatter),
+                pendapatanHari
+            ));
+
+            tgl = tgl.plusDays(1);
+        }
+
+        return hasil;
     }
 }

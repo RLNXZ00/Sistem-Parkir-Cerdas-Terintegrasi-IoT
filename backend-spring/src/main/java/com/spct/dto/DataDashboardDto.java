@@ -12,15 +12,48 @@ public class DataDashboardDto // Kelas DTO untuk membungkus semua data analitik 
     // Deklarasi Atribut: Semua metrik yang ditampilkan di Dashboard
     // =====================================================================
 
-    private BigDecimal pendapatanTotal;      // Total pendapatan kotor dari transaksi LUNAS di periode ini
+    private BigDecimal pendapatanTotal;      // Total pendapatan kotor dari transaksi LUNAS di periode ini (backward-compatible)
+    private BigDecimal pendapatanHariIni;    // Total pendapatan hari ini (00:00 - 23:59)
+    private BigDecimal pendapatanBulanan;    // Total pendapatan bulan berjalan (tanggal 1 s.d. hari ini)
     private Double persentasePendapatan;     // Persentase perbandingan pendapatan hari ini dengan kemarin
     private Long totalKendaraan;             // Jumlah total kendaraan yang masuk (volume lalu lintas) dari seluruh history
     private Long totalAnomali;               // Jumlah kejadian anomali IoT yang terjadi di periode ini
     private Long slotKosongSaatIni;          // Jumlah slot parkir yang sedang kosong (real-time)
     private Long slotTerisiSaatIni;          // Jumlah slot parkir yang sedang terisi (real-time)
+    private Long totalSensor;                // Total unit sensor IoT yang terpasang di database
+    private Long totalSensorAktif;           // Total unit sensor IoT berstatus ON
     private Double reduksiCo2Kg;             // Estimasi reduksi emisi CO2 berkat sistem navigasi (Eco-Metrics)
     private Double persentaseCo2;            // Persentase reduksi CO2 berbanding angka terburuk (misal 2000kg)
     private List<DataOkupansiJamDto> grafikOkupansiPerJam; // Array data untuk grafik Chart.js per jam
+    private List<DataPendapatanHarianDto> grafikPendapatanHarian; // Array data pertumbuhan pendapatan harian (tgl 1 s.d. hari ini)
+
+    // =====================================================================
+    // Inner Class: DataPendapatanHarianDto (Data titik harian dari tgl 1 s.d. hari ini)
+    // =====================================================================
+    public static class DataPendapatanHarianDto
+    {
+        private Integer hari;          // Angka tanggal (1, 2, 3, ..., 13)
+        private String labelTanggal;  // Label tanggal ("01 Okt", "02 Okt", ...)
+        private BigDecimal nominal;    // Nominal pendapatan pada hari tersebut
+
+        public DataPendapatanHarianDto(Integer hari, String labelTanggal, BigDecimal nominal)
+        {
+            this.hari = hari;
+            this.labelTanggal = labelTanggal;
+            this.nominal = (nominal != null) ? nominal : BigDecimal.ZERO;
+        }
+
+        public DataPendapatanHarianDto() {}
+
+        public Integer getHari() { return hari; }
+        public void setHari(Integer hari) { this.hari = hari; }
+
+        public String getLabelTanggal() { return labelTanggal; }
+        public void setLabelTanggal(String labelTanggal) { this.labelTanggal = labelTanggal; }
+
+        public BigDecimal getNominal() { return nominal; }
+        public void setNominal(BigDecimal nominal) { this.nominal = nominal; }
+    }
 
     // =====================================================================
     // Inner Class: DataOkupansiJamDto (Menyimpan data satu titik dalam grafik garis okupansi)
@@ -61,21 +94,47 @@ public class DataDashboardDto // Kelas DTO untuk membungkus semua data analitik 
 
 
     // =====================================================================
-    // Konstruktor LENGKAP (gaya penulisan Anda)
+    // Konstruktor LENGKAP
     // =====================================================================
+    public DataDashboardDto(BigDecimal pendapatanHariIni, BigDecimal pendapatanBulanan, Double persentasePendapatan,
+                            Long totalKendaraan, Long totalAnomali,
+                            Long slotKosongSaatIni, Long slotTerisiSaatIni,
+                            Long totalSensor, Long totalSensorAktif,
+                            Double reduksiCo2Kg, Double persentaseCo2,
+                            List<DataOkupansiJamDto> grafikOkupansiPerJam,
+                            List<DataPendapatanHarianDto> grafikPendapatanHarian)
+    {
+        this.pendapatanTotal = pendapatanHariIni;
+        this.pendapatanHariIni = pendapatanHariIni;
+        this.pendapatanBulanan = pendapatanBulanan;
+        this.persentasePendapatan = persentasePendapatan;
+        this.totalKendaraan = totalKendaraan;
+        this.totalAnomali = totalAnomali;
+        this.slotKosongSaatIni = slotKosongSaatIni;
+        this.slotTerisiSaatIni = slotTerisiSaatIni;
+        this.totalSensor = totalSensor;
+        this.totalSensorAktif = totalSensorAktif;
+        this.reduksiCo2Kg = reduksiCo2Kg;
+        this.persentaseCo2 = persentaseCo2;
+        this.grafikOkupansiPerJam = grafikOkupansiPerJam;
+        this.grafikPendapatanHarian = grafikPendapatanHarian;
+    }
+
     public DataDashboardDto(BigDecimal pendapatanTotal, Double persentasePendapatan, Long totalKendaraan, Long totalAnomali,
                              Long slotKosongSaatIni, Long slotTerisiSaatIni,
                              Double reduksiCo2Kg, Double persentaseCo2, List<DataOkupansiJamDto> grafikOkupansiPerJam)
     {
-        this.pendapatanTotal = pendapatanTotal;         // Menginisialisasi atribut pendapatanTotal
+        this.pendapatanTotal = pendapatanTotal;
+        this.pendapatanHariIni = pendapatanTotal;
+        this.pendapatanBulanan = pendapatanTotal;
         this.persentasePendapatan = persentasePendapatan;
-        this.totalKendaraan = totalKendaraan;           // Menginisialisasi atribut totalKendaraan
-        this.totalAnomali = totalAnomali;               // Menginisialisasi atribut totalAnomali
-        this.slotKosongSaatIni = slotKosongSaatIni;   // Menginisialisasi atribut slotKosongSaatIni
-        this.slotTerisiSaatIni = slotTerisiSaatIni;   // Menginisialisasi atribut slotTerisiSaatIni
-        this.reduksiCo2Kg = reduksiCo2Kg;             // Menginisialisasi atribut reduksiCo2Kg
-        this.persentaseCo2 = persentaseCo2;           // Menginisialisasi atribut persentaseCo2
-        this.grafikOkupansiPerJam = grafikOkupansiPerJam; // Menginisialisasi atribut grafikOkupansiPerJam
+        this.totalKendaraan = totalKendaraan;
+        this.totalAnomali = totalAnomali;
+        this.slotKosongSaatIni = slotKosongSaatIni;
+        this.slotTerisiSaatIni = slotTerisiSaatIni;
+        this.reduksiCo2Kg = reduksiCo2Kg;
+        this.persentaseCo2 = persentaseCo2;
+        this.grafikOkupansiPerJam = grafikOkupansiPerJam;
     }
 
     public DataDashboardDto() {} // Konstruktor kosong untuk Jackson
@@ -169,5 +228,45 @@ public class DataDashboardDto // Kelas DTO untuk membungkus semua data analitik 
 
     public Double getPersentaseCo2() {
         return persentaseCo2;
+    }
+
+    public BigDecimal getPendapatanHariIni() {
+        return pendapatanHariIni;
+    }
+
+    public void setPendapatanHariIni(BigDecimal pendapatanHariIni) {
+        this.pendapatanHariIni = pendapatanHariIni;
+    }
+
+    public BigDecimal getPendapatanBulanan() {
+        return pendapatanBulanan;
+    }
+
+    public void setPendapatanBulanan(BigDecimal pendapatanBulanan) {
+        this.pendapatanBulanan = pendapatanBulanan;
+    }
+
+    public Long getTotalSensor() {
+        return totalSensor;
+    }
+
+    public void setTotalSensor(Long totalSensor) {
+        this.totalSensor = totalSensor;
+    }
+
+    public Long getTotalSensorAktif() {
+        return totalSensorAktif;
+    }
+
+    public void setTotalSensorAktif(Long totalSensorAktif) {
+        this.totalSensorAktif = totalSensorAktif;
+    }
+
+    public List<DataPendapatanHarianDto> getGrafikPendapatanHarian() {
+        return grafikPendapatanHarian;
+    }
+
+    public void setGrafikPendapatanHarian(List<DataPendapatanHarianDto> grafikPendapatanHarian) {
+        this.grafikPendapatanHarian = grafikPendapatanHarian;
     }
 }
