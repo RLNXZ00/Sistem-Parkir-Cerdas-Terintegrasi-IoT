@@ -20,8 +20,10 @@ import com.spct.model.StatusPembayaran;
 import com.spct.repository.TransaksiParkirRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
+@EnableScheduling
 public class SpctApplication 
 {
     public static void main(String[] args) 

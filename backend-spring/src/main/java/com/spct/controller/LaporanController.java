@@ -34,6 +34,9 @@ public class LaporanController
     @Autowired
     private com.spct.repository.LogAuditLaporanRepository logAuditLaporanRepository;
 
+    @Autowired
+    private com.spct.service.DataRetentionService dataRetentionService;
+
     /**
      * Endpoint GET: Pratinjau Laporan (Preview)
      * Dipanggil oleh tombol "Generate Report" pada web Dashboard Manajemen.
@@ -162,5 +165,31 @@ public class LaporanController
     public ResponseEntity<List<com.spct.model.LogAuditLaporan>> getRiwayatAudit()
     {
         return ResponseEntity.ok(logAuditLaporanRepository.findTop15ByOrderByWaktuUnduhDesc());
+    }
+
+    /**
+     * Endpoint GET: Status Kebijakan Retensi Data (Fase 7)
+     * Mengembalikan informasi kuota retensi (90 hari untuk log IoT normal) dan jumlah baris data yang terlindungi.
+     *
+     * Contoh:
+     * GET /api/laporan/retensi/status
+     */
+    @GetMapping("/retensi/status")
+    public ResponseEntity<java.util.Map<String, Object>> getStatusRetensi()
+    {
+        return ResponseEntity.ok(dataRetentionService.getStatusKebijakanRetensi());
+    }
+
+    /**
+     * Endpoint POST: Eksekusi Pembersihan Data Manual (Fase 7)
+     * Memicu pembersihan log sensor normal yang melebihi batas retensi secara manual.
+     *
+     * Contoh:
+     * POST /api/laporan/retensi/purge
+     */
+    @PostMapping("/retensi/purge")
+    public ResponseEntity<java.util.Map<String, Object>> triggerPembersihanManual()
+    {
+        return ResponseEntity.ok(dataRetentionService.eksekusiPembersihanManual());
     }
 }

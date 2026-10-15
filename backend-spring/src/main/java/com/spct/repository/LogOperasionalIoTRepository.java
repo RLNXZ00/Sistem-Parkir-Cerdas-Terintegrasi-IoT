@@ -44,4 +44,17 @@ public interface LogOperasionalIoTRepository extends JpaRepository<LogOperasiona
 
     // Menghitung total log operasional dalam rentang waktu tertentu
     Long countByWaktuKejadianBetween(LocalDateTime awal, LocalDateTime akhir);
+
+    // =====================================================================
+    // Kueri Kebijakan Retensi Data (Fase 7)
+    // =====================================================================
+
+    // Menghitung jumlah log IoT rutin/normal (INFO) yang lebih tua dari waktu cutoff
+    Long countByWaktuKejadianBeforeAndTingkatKeparahan(LocalDateTime cutoff, TingkatKeparahan tingkatKeparahan);
+
+    // Menghapus log IoT rutin/normal (INFO) yang lebih tua dari batas retensi (misal 90 hari)
+    // Transaksi finansial dan log anomali penting tidak akan terpengaruh oleh kueri ini
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    long deleteByWaktuKejadianBeforeAndTingkatKeparahan(LocalDateTime cutoff, TingkatKeparahan tingkatKeparahan);
 }
