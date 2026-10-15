@@ -41,4 +41,7 @@ public interface LogOperasionalIoTRepository extends JpaRepository<LogOperasiona
     // Menghitung jumlah anomali yang belum ditangani (untuk badge notifikasi di header Dashboard)
     // Setara: SELECT COUNT(*) FROM log_operasional_iot WHERE status_resolusi = 'BELUM_DITANGANI'
     Long countByStatusResolusi(StatusResolusi statusResolusi);
+
+    // Menghitung total log operasional dalam rentang waktu tertentu
+    Long countByWaktuKejadianBetween(LocalDateTime awal, LocalDateTime akhir);
 }

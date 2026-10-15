@@ -50,4 +50,42 @@ public interface TransaksiParkirRepository extends JpaRepository<TransaksiParkir
     // Setara: SELECT SUM(menit_dihemat) FROM transaksi_parkir WHERE waktu_tiba_slot IS NOT NULL
     @Query("SELECT SUM(t.menitDihemat) FROM TransaksiParkir t WHERE t.waktuTibaSlot IS NOT NULL")
     Double hitungTotalMenitDihematDariSensor();
+
+    // =====================================================================
+    // Kueri Pendukung Modul Laporan (PK-UC010)
+    // =====================================================================
+
+    // Mengambil transaksi lunas untuk Laporan Finansial
+    @Query("SELECT t FROM TransaksiParkir t " +
+           "WHERE COALESCE(t.waktuKeluar, t.waktuMasuk) BETWEEN :awal AND :akhir " +
+           "AND t.statusPembayaran = 'LUNAS' " +
+           "ORDER BY COALESCE(t.waktuKeluar, t.waktuMasuk) DESC")
+    List<TransaksiParkir> findTransaksiLunasDalamRentangWaktu(
+        @Param("awal") LocalDateTime awal,
+        @Param("akhir") LocalDateTime akhir);
+
+    // Mengambil transaksi dengan data navigasi sensor untuk Laporan Lingkungan
+    @Query("SELECT t FROM TransaksiParkir t " +
+           "WHERE t.waktuMasuk BETWEEN :awal AND :akhir " +
+           "AND t.waktuTibaSlot IS NOT NULL " +
+           "ORDER BY t.waktuMasuk DESC")
+    List<TransaksiParkir> findTransaksiLingkunganDalamRentangWaktu(
+        @Param("awal") LocalDateTime awal,
+        @Param("akhir") LocalDateTime akhir);
+
+    // Menghitung rata-rata durasi parkir (menit) dalam rentang waktu
+    @Query("SELECT AVG(t.durasiTotalMenit) FROM TransaksiParkir t " +
+           "WHERE COALESCE(t.waktuKeluar, t.waktuMasuk) BETWEEN :awal AND :akhir " +
+           "AND t.durasiTotalMenit IS NOT NULL")
+    Double hitungRataRataDurasiMenit(
+        @Param("awal") LocalDateTime awal,
+        @Param("akhir") LocalDateTime akhir);
+
+    // Menghitung total menit dihemat khusus dalam rentang waktu tertentu
+    @Query("SELECT SUM(t.menitDihemat) FROM TransaksiParkir t " +
+           "WHERE t.waktuMasuk BETWEEN :awal AND :akhir AND t.waktuTibaSlot IS NOT NULL")
+    Double hitungTotalMenitDihematDalamRentangWaktu(
+        @Param("awal") LocalDateTime awal,
+        @Param("akhir") LocalDateTime akhir);
 }
+
