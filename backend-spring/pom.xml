@@ -48,6 +48,13 @@
 			<artifactId>openpdf</artifactId>
 			<version>1.3.39</version>
 		</dependency>
+
+		<!-- Apache POI untuk Dokumen Spreadsheet Resmi Excel XLSX (PK-UC010) -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>5.2.5</version>
+		</dependency>
 	</dependencies>
 
 	<build>

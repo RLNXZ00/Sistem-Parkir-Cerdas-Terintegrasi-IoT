@@ -27,6 +27,9 @@ public class LaporanController
     @Autowired
     private com.spct.service.LaporanPdfService laporanPdfService;
 
+    @Autowired
+    private com.spct.service.LaporanExcelService laporanExcelService;
+
     /**
      * Endpoint GET: Pratinjau Laporan (Preview)
      * Dipanggil oleh tombol "Generate Report" pada web Dashboard Manajemen.
@@ -51,6 +54,7 @@ public class LaporanController
      *
      * Contoh:
      * GET /api/laporan/unduh?format=pdf&jenis=finansial&dari=2026-10-01&sampai=2026-10-15
+     * GET /api/laporan/unduh?format=xlsx&jenis=finansial&dari=2026-10-01&sampai=2026-10-15
      */
     @GetMapping("/unduh")
     public ResponseEntity<byte[]> unduhDokumenLaporan(
@@ -81,8 +85,28 @@ public class LaporanController
                 .contentLength(pdfBytes.length)
                 .body(pdfBytes);
         }
+        else if ("xlsx".equalsIgnoreCase(format))
+        {
+            byte[] xlsxBytes = laporanExcelService.generateExcel(dto);
+            String namaFile = String.format("Laporan_%s_%s_sd_%s.xlsx",
+                jenis.substring(0, 1).toUpperCase() + jenis.substring(1), dari, sampai);
 
-        // Format selain PDF (misal XLSX di Fase 4)
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.setContentType(org.springframework.http.MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+            headers.setContentDisposition(org.springframework.http.ContentDisposition.attachment()
+                .filename(namaFile).build());
+
+            // Catat log aktivitas unduhan (Audit Trail sesuai sequence diagram langkah 19-20)
+            System.out.println(String.format("[AUDIT LOG] Pengguna Manajemen RS mengunduh '%s' (Format: XLSX, Ukuran: %d bytes)",
+                namaFile, xlsxBytes.length));
+
+            return ResponseEntity.ok()
+                .headers(headers)
+                .contentLength(xlsxBytes.length)
+                .body(xlsxBytes);
+        }
+
+        // Format selain PDF atau XLSX
         return ResponseEntity.badRequest().body(null);
     }
 }
