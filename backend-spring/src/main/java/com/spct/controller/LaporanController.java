@@ -24,6 +24,9 @@ public class LaporanController
     @Autowired
     private LaporanService laporanService;
 
+    @Autowired
+    private com.spct.service.LaporanPdfService laporanPdfService;
+
     /**
      * Endpoint GET: Pratinjau Laporan (Preview)
      * Dipanggil oleh tombol "Generate Report" pada web Dashboard Manajemen.
@@ -39,5 +42,47 @@ public class LaporanController
     {
         LaporanResponseDto hasil = laporanService.ambilPratinjauLaporan(jenis, dari, sampai);
         return ResponseEntity.ok(hasil);
+    }
+
+    /**
+     * Endpoint GET: Unduh Dokumen Resmi PDF/XLSX
+     * Sesuai alur PK-UC010 (Step 9-10 & Sequence Diagram langkah 15-18).
+     * Mengirimkan file dokumen resmi langsung ke peramban (browser) untuk disimpan ke perangkat lokal.
+     *
+     * Contoh:
+     * GET /api/laporan/unduh?format=pdf&jenis=finansial&dari=2026-10-01&sampai=2026-10-15
+     */
+    @GetMapping("/unduh")
+    public ResponseEntity<byte[]> unduhDokumenLaporan(
+        @RequestParam(defaultValue = "pdf") String format,
+        @RequestParam(defaultValue = "finansial") String jenis,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dari,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sampai)
+    {
+        LaporanResponseDto dto = laporanService.ambilPratinjauLaporan(jenis, dari, sampai);
+
+        if ("pdf".equalsIgnoreCase(format))
+        {
+            byte[] pdfBytes = laporanPdfService.generatePdf(dto);
+            String namaFile = String.format("Laporan_%s_%s_sd_%s.pdf",
+                jenis.substring(0, 1).toUpperCase() + jenis.substring(1), dari, sampai);
+
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.setContentType(org.springframework.http.MediaType.APPLICATION_PDF);
+            headers.setContentDisposition(org.springframework.http.ContentDisposition.attachment()
+                .filename(namaFile).build());
+
+            // Catat log aktivitas unduhan (Audit Trail sesuai sequence diagram langkah 19-20)
+            System.out.println(String.format("[AUDIT LOG] Pengguna Manajemen RS mengunduh '%s' (Format: PDF, Ukuran: %d bytes)",
+                namaFile, pdfBytes.length));
+
+            return ResponseEntity.ok()
+                .headers(headers)
+                .contentLength(pdfBytes.length)
+                .body(pdfBytes);
+        }
+
+        // Format selain PDF (misal XLSX di Fase 4)
+        return ResponseEntity.badRequest().body(null);
     }
 }
