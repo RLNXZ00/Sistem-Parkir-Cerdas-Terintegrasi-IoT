@@ -18,6 +18,37 @@ export default function ReportsPage() {
   const [errorMsg, setErrorMsg] = useState(null);
   const [reportData, setReportData] = useState(null);
   const [komprehensifTab, setKomprehensifTab] = useState('finansial');
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  // Mengunduh Dokumen Resmi PDF ber-kop surat dan tanda tangan (Fase 3 - PK-UC010)
+  const handleExportPdf = async () => {
+    if (!reportData) return;
+    try {
+      setDownloadingPdf(true);
+      const url = `${API_BASE}/api/laporan/unduh?format=pdf&jenis=${encodeURIComponent(reportType)}&dari=${encodeURIComponent(startDate)}&sampai=${encodeURIComponent(endDate)}`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Gagal mengunduh dokumen PDF (HTTP ${response.status})`);
+      }
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      const namaFile = `Laporan_${reportType.charAt(0).toUpperCase() + reportType.slice(1)}_${startDate}_sd_${endDate}.pdf`;
+      link.setAttribute('download', namaFile);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error('Error downloading PDF:', err);
+      setErrorMsg('Gagal mengunduh dokumen PDF: ' + err.message);
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
 
   // Mengambil laporan dari backend
   const fetchReport = async (jenis, dari, sampai) => {
@@ -226,12 +257,22 @@ export default function ReportsPage() {
                 {/* Tombol Ekspor Dokumen Resmi (PDF & Excel) */}
                 <div className="flex items-center gap-3">
                   <button
-                    disabled
-                    title="Fitur Unduh PDF resmi ber-kop surat sedang disiapkan di Fase 3"
-                    className="flex items-center gap-2 px-3.5 py-2 rounded-lg border border-outline-variant/60 text-on-surface-variant bg-surface-container/50 opacity-70 text-xs font-mono transition-colors cursor-not-allowed"
+                    onClick={handleExportPdf}
+                    disabled={downloadingPdf}
+                    title="Unduh Dokumen PDF Resmi ber-kop surat, ringkasan KPI, dan lembar pengesahan (PK-UC010)"
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-lg border border-red-500/40 text-red-400 bg-red-500/10 hover:bg-red-500/20 active:scale-95 text-xs font-mono font-medium transition-all cursor-pointer shadow-sm disabled:opacity-50"
                   >
-                    <span className="material-symbols-outlined text-[16px] text-alert-anomaly">picture_as_pdf</span>
-                    Export PDF (Fase 3)
+                    {downloadingPdf ? (
+                      <>
+                        <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
+                        Generating PDF...
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-[16px] text-alert-anomaly">picture_as_pdf</span>
+                        Export PDF
+                      </>
+                    )}
                   </button>
 
                   <button
