@@ -4,12 +4,23 @@ import com.lowagie.text.*;
 import com.lowagie.text.pdf.*;
 import com.spct.dto.LaporanResponseDto;
 import com.spct.dto.LaporanResponseDto.*;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.plot.CategoryPlot;
+import org.jfree.chart.renderer.category.BarRenderer;
+import org.jfree.data.category.DefaultCategoryDataset;
 import org.springframework.stereotype.Service;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Service: LaporanPdfService
@@ -86,7 +97,10 @@ public class LaporanPdfService
             // 3. Tambahkan Kotak KPI Ringkasan
             tambahkanKartuRingkasan(document, dto.getRingkasan());
 
-            // 4. Tambahkan Tabel Data Historis Sesuai Jenis Laporan
+            // 4. Tambahkan Visualisasi Grafik Resmi (JFreeChart - PK-UC010 Step 7)
+            tambahkanGrafikVisualisasi(document, dto);
+
+            // 5. Tambahkan Tabel Data Historis Sesuai Jenis Laporan
             String jenis = dto.getMetadata().getJenisLaporan();
             if ("finansial".equalsIgnoreCase(jenis))
             {
@@ -521,5 +535,295 @@ public class LaporanPdfService
     {
         if (val == null) return "0";
         return String.format(java.util.Locale.US, "%,d", val.longValue()).replace(",", ".");
+    }
+
+    // =====================================================================
+    // 6. Visualisasi Grafik Resmi JFreeChart (PK-UC010 Step 7)
+    // =====================================================================
+    private void tambahkanGrafikVisualisasi(Document document, LaporanResponseDto dto)
+    {
+        String jenis = dto.getMetadata().getJenisLaporan();
+        if ("finansial".equalsIgnoreCase(jenis))
+        {
+            tambahkanGrafikFinansial(document, dto.getTabelFinansial());
+        }
+        else if ("operasional".equalsIgnoreCase(jenis))
+        {
+            tambahkanGrafikOperasional(document, dto.getTabelOperasional());
+        }
+        else if ("lingkungan".equalsIgnoreCase(jenis))
+        {
+            tambahkanGrafikLingkungan(document, dto.getTabelLingkungan());
+        }
+        else if ("komprehensif".equalsIgnoreCase(jenis))
+        {
+            tambahkanGrafikKomprehensif(document, dto);
+        }
+    }
+
+    private void tambahkanGrafikFinansial(Document document, List<BarisFinansialDto> rows)
+    {
+        if (rows == null || rows.isEmpty()) return;
+
+        try
+        {
+            DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+            Map<String, BigDecimal> harian = new TreeMap<>();
+            for (BarisFinansialDto r : rows)
+            {
+                String tgl = (r.getWaktuMasuk() != null && r.getWaktuMasuk().length() >= 10)
+                    ? r.getWaktuMasuk().substring(0, 10) : "Lainnya";
+                BigDecimal tarif = r.getTotalTarif() != null ? r.getTotalTarif() : BigDecimal.ZERO;
+                harian.put(tgl, harian.getOrDefault(tgl, BigDecimal.ZERO).add(tarif));
+            }
+
+            for (Map.Entry<String, BigDecimal> entry : harian.entrySet())
+            {
+                dataset.addValue(entry.getValue().doubleValue(), "Pendapatan (Rp)", entry.getKey());
+            }
+
+            JFreeChart chart = ChartFactory.createBarChart(
+                "TREN PENDAPATAN HARIAN TRANSAKSI PARKIR (RP)",
+                "Tanggal Transaksi",
+                "Total Pendapatan (Rp)",
+                dataset,
+                PlotOrientation.VERTICAL,
+                false, true, false
+            );
+
+            formatChart(chart, new java.awt.Color(22, 163, 74));
+            sematkanChartKeDokumen(document, chart, 720, 155);
+        }
+        catch (Exception e)
+        {
+            System.err.println("[CHART WARNING] Gagal merender grafik finansial: " + e.getMessage());
+        }
+    }
+
+    private void tambahkanGrafikOperasional(Document document, List<BarisOperasionalDto> rows)
+    {
+        if (rows == null || rows.isEmpty()) return;
+
+        try
+        {
+            DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+            Map<String, Integer> counts = new HashMap<>();
+            counts.put("INFO", 0);
+            counts.put("WARNING", 0);
+            counts.put("CRITICAL", 0);
+
+            for (BarisOperasionalDto r : rows)
+            {
+                String sev = r.getTingkatKeparahan() != null ? r.getTingkatKeparahan().toUpperCase() : "INFO";
+                counts.put(sev, counts.getOrDefault(sev, 0) + 1);
+            }
+
+            dataset.addValue(counts.get("INFO"), "Jumlah", "INFO (Normal)");
+            dataset.addValue(counts.get("WARNING"), "Jumlah", "WARNING (Waspada)");
+            dataset.addValue(counts.get("CRITICAL"), "Jumlah", "CRITICAL (Anomali)");
+
+            JFreeChart chart = ChartFactory.createBarChart(
+                "DISTRIBUSI TINGKAT KEPARAHAN LOG & ANOMALI SENSOR IoT",
+                "Tingkat Keparahan",
+                "Jumlah Kejadian",
+                dataset,
+                PlotOrientation.VERTICAL,
+                false, true, false
+            );
+
+            formatChart(chart, new java.awt.Color(30, 41, 59));
+            sematkanChartKeDokumen(document, chart, 720, 150);
+        }
+        catch (Exception e)
+        {
+            System.err.println("[CHART WARNING] Gagal merender grafik operasional: " + e.getMessage());
+        }
+    }
+
+    private void tambahkanGrafikLingkungan(Document document, List<BarisLingkunganDto> rows)
+    {
+        if (rows == null || rows.isEmpty()) return;
+
+        try
+        {
+            DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+            int limit = Math.min(rows.size(), 8);
+            for (int i = 0; i < limit; i++)
+            {
+                BarisLingkunganDto r = rows.get(i);
+                String label = r.getPlatNomor() != null ? r.getPlatNomor() : ("Slot " + r.getIdSlot());
+                dataset.addValue(r.getDurasiTempuhDetik(), "Durasi Nyata (SPCT IoT)", label);
+                dataset.addValue(r.getWaktuNormalDetik(), "Standar Normal (Tanpa Navigasi)", label);
+            }
+
+            JFreeChart chart = ChartFactory.createBarChart(
+                "KOMPARASI DURASI TEMPUH KENDARAAN MENUJU SLOT (DETIK)",
+                "Kendaraan / Slot",
+                "Detik",
+                dataset,
+                PlotOrientation.VERTICAL,
+                true, true, false
+            );
+
+            formatChart(chart, new java.awt.Color(16, 185, 129));
+            sematkanChartKeDokumen(document, chart, 720, 155);
+        }
+        catch (Exception e)
+        {
+            System.err.println("[CHART WARNING] Gagal merender grafik lingkungan: " + e.getMessage());
+        }
+    }
+
+    private void tambahkanGrafikKomprehensif(Document document, LaporanResponseDto dto)
+    {
+        try
+        {
+            JFreeChart chart1 = buatGrafikFinansialMini(dto.getTabelFinansial());
+            JFreeChart chart2 = buatGrafikOperasionalMini(dto.getTabelOperasional());
+
+            if (chart1 == null && chart2 == null) return;
+
+            PdfPTable grid = new PdfPTable(2);
+            grid.setWidthPercentage(100);
+            grid.setSpacingBefore(6);
+            grid.setSpacingAfter(8);
+
+            if (chart1 != null)
+            {
+                com.lowagie.text.Image img1 = konversiChartKeImage(chart1, 360, 140);
+                PdfPCell c1 = new PdfPCell(img1, true);
+                c1.setBorder(Rectangle.NO_BORDER);
+                c1.setPadding(3);
+                grid.addCell(c1);
+            }
+            else
+            {
+                PdfPCell c1 = new PdfPCell();
+                c1.setBorder(Rectangle.NO_BORDER);
+                grid.addCell(c1);
+            }
+
+            if (chart2 != null)
+            {
+                com.lowagie.text.Image img2 = konversiChartKeImage(chart2, 360, 140);
+                PdfPCell c2 = new PdfPCell(img2, true);
+                c2.setBorder(Rectangle.NO_BORDER);
+                c2.setPadding(3);
+                grid.addCell(c2);
+            }
+            else
+            {
+                PdfPCell c2 = new PdfPCell();
+                c2.setBorder(Rectangle.NO_BORDER);
+                grid.addCell(c2);
+            }
+
+            document.add(grid);
+        }
+        catch (Exception e)
+        {
+            System.err.println("[CHART WARNING] Gagal merender grafik komprehensif: " + e.getMessage());
+        }
+    }
+
+    private JFreeChart buatGrafikFinansialMini(List<BarisFinansialDto> rows)
+    {
+        if (rows == null || rows.isEmpty()) return null;
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+        Map<String, BigDecimal> harian = new TreeMap<>();
+        for (BarisFinansialDto r : rows)
+        {
+            String tgl = (r.getWaktuMasuk() != null && r.getWaktuMasuk().length() >= 10)
+                ? r.getWaktuMasuk().substring(5, 10) : "Lain";
+            BigDecimal tarif = r.getTotalTarif() != null ? r.getTotalTarif() : BigDecimal.ZERO;
+            harian.put(tgl, harian.getOrDefault(tgl, BigDecimal.ZERO).add(tarif));
+        }
+        for (Map.Entry<String, BigDecimal> entry : harian.entrySet())
+        {
+            dataset.addValue(entry.getValue().doubleValue(), "Rp", entry.getKey());
+        }
+        JFreeChart chart = ChartFactory.createBarChart(
+            "TREN PENDAPATAN PARKIR", "Tanggal", "Rupiah", dataset, PlotOrientation.VERTICAL, false, true, false);
+        formatChart(chart, new java.awt.Color(22, 163, 74));
+        return chart;
+    }
+
+    private JFreeChart buatGrafikOperasionalMini(List<BarisOperasionalDto> rows)
+    {
+        if (rows == null || rows.isEmpty()) return null;
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+        Map<String, Integer> counts = new HashMap<>();
+        counts.put("INFO", 0);
+        counts.put("WARNING", 0);
+        counts.put("CRITICAL", 0);
+        for (BarisOperasionalDto r : rows)
+        {
+            String sev = r.getTingkatKeparahan() != null ? r.getTingkatKeparahan().toUpperCase() : "INFO";
+            counts.put(sev, counts.getOrDefault(sev, 0) + 1);
+        }
+        dataset.addValue(counts.get("INFO"), "Jumlah", "INFO");
+        dataset.addValue(counts.get("WARNING"), "Jumlah", "WARN");
+        dataset.addValue(counts.get("CRITICAL"), "Jumlah", "CRIT");
+        JFreeChart chart = ChartFactory.createBarChart(
+            "SEVERITY LOG ANOMALI IoT", "Severity", "Total", dataset, PlotOrientation.VERTICAL, false, true, false);
+        formatChart(chart, new java.awt.Color(30, 41, 59));
+        return chart;
+    }
+
+    private void formatChart(JFreeChart chart, java.awt.Color barColor)
+    {
+        chart.setBackgroundPaint(java.awt.Color.WHITE);
+        if (chart.getTitle() != null)
+        {
+            chart.getTitle().setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 9));
+            chart.getTitle().setPaint(COLOR_PRIMARY);
+        }
+
+        if (chart.getPlot() instanceof CategoryPlot)
+        {
+            CategoryPlot plot = chart.getCategoryPlot();
+            plot.setBackgroundPaint(COLOR_ZEBRA_BG);
+            plot.setDomainGridlinePaint(COLOR_BORDER);
+            plot.setRangeGridlinePaint(COLOR_BORDER);
+            plot.setOutlineVisible(false);
+
+            if (plot.getRenderer() instanceof BarRenderer)
+            {
+                BarRenderer renderer = (BarRenderer) plot.getRenderer();
+                renderer.setSeriesPaint(0, barColor);
+                renderer.setShadowVisible(false);
+                renderer.setDrawBarOutline(false);
+            }
+
+            if (plot.getDomainAxis() != null)
+            {
+                plot.getDomainAxis().setTickLabelFont(new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 7));
+                plot.getDomainAxis().setLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 7));
+            }
+            if (plot.getRangeAxis() != null)
+            {
+                plot.getRangeAxis().setTickLabelFont(new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 7));
+                plot.getRangeAxis().setLabelFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 7));
+            }
+        }
+    }
+
+    private void sematkanChartKeDokumen(Document document, JFreeChart chart, int width, int height) throws Exception
+    {
+        com.lowagie.text.Image img = konversiChartKeImage(chart, width, height);
+        img.setAlignment(Element.ALIGN_CENTER);
+        img.setSpacingBefore(6);
+        img.setSpacingAfter(8);
+        document.add(img);
+    }
+
+    private com.lowagie.text.Image konversiChartKeImage(JFreeChart chart, int width, int height) throws Exception
+    {
+        BufferedImage bi = chart.createBufferedImage(width, height);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(bi, "png", baos);
+        com.lowagie.text.Image img = com.lowagie.text.Image.getInstance(baos.toByteArray());
+        img.scaleToFit(width * 0.75f, height * 0.75f);
+        return img;
     }
 }
