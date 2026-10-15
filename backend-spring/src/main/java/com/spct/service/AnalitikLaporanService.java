@@ -123,8 +123,38 @@ public class AnalitikLaporanService // Kelas service yang mengumpulkan dan mengo
         // --- Langkah 8: Menyusun Data Grafik Pertumbuhan Pendapatan Harian (Tgl 1 s.d. Hari Ini) ---
         List<DataDashboardDto.DataPendapatanHarianDto> grafikPendapatanHarian = susunGrafikPendapatanHarian(awalBulanDate, hariIni);
 
-        // --- Langkah 9: Susun dan kembalikan DTO lengkap ke Controller ---
-        return new DataDashboardDto(
+        // --- Langkah 9: Perhitungan Metrik Realistis Finansial & Okupansi (Dashboard Manajer) ---
+        Long totalTransaksiLunasBulanIni = transaksiParkirRepository.countTransaksiLunasDalamRentangWaktu(awalBulan, akhirBulan);
+        if (totalTransaksiLunasBulanIni == null) { totalTransaksiLunasBulanIni = 0L; }
+
+        BigDecimal rataRataTarifTransaksi = BigDecimal.ZERO;
+        if (totalTransaksiLunasBulanIni > 0 && pendapatanBulanan.compareTo(BigDecimal.ZERO) > 0)
+        {
+            rataRataTarifTransaksi = pendapatanBulanan.divide(
+                BigDecimal.valueOf(totalTransaksiLunasBulanIni), 0, java.math.RoundingMode.HALF_UP);
+        }
+
+        Long totalKapasitasSlot = slotKosong + slotTerisi;
+        if (totalKapasitasSlot == null || totalKapasitasSlot == 0) { totalKapasitasSlot = 15L; }
+
+        BigDecimal revenuePerSlot = BigDecimal.ZERO;
+        if (totalKapasitasSlot > 0 && pendapatanBulanan.compareTo(BigDecimal.ZERO) > 0)
+        {
+            revenuePerSlot = pendapatanBulanan.divide(
+                BigDecimal.valueOf(totalKapasitasSlot), 0, java.math.RoundingMode.HALF_UP);
+        }
+
+        Double occupancyRateSaatIni = 0.0;
+        if (totalKapasitasSlot > 0)
+        {
+            occupancyRateSaatIni = Math.round(((double) slotTerisi / totalKapasitasSlot * 100.0) * 10.0) / 10.0;
+        }
+
+        Long totalKendaraanHariIni = transaksiParkirRepository.countByWaktuMasukBetween(awalHariIni, akhirHariIni);
+        if (totalKendaraanHariIni == null) { totalKendaraanHariIni = 0L; }
+
+        // --- Langkah 10: Susun dan kembalikan DTO lengkap ke Controller ---
+        DataDashboardDto dto = new DataDashboardDto(
             pendapatanHariIni,
             pendapatanBulanan,
             Math.round(persentasePendapatan * 10.0) / 10.0,
@@ -139,6 +169,13 @@ public class AnalitikLaporanService // Kelas service yang mengumpulkan dan mengo
             grafikOkupansi,
             grafikPendapatanHarian
         );
+        dto.setTotalTransaksiLunas(totalTransaksiLunasBulanIni);
+        dto.setRataRataTarifTransaksi(rataRataTarifTransaksi);
+        dto.setRevenuePerSlot(revenuePerSlot);
+        dto.setOccupancyRateSaatIni(occupancyRateSaatIni);
+        dto.setTotalKendaraanHariIni(totalKendaraanHariIni);
+
+        return dto;
     }
 
 

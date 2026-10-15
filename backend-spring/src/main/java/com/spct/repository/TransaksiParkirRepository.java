@@ -41,6 +41,14 @@ public interface TransaksiParkirRepository extends JpaRepository<TransaksiParkir
         @Param("awal") LocalDateTime awal,
         @Param("akhir") LocalDateTime akhir);
 
+    // Menghitung jumlah transaksi yang berstatus LUNAS dalam rentang waktu tertentu
+    // Digunakan untuk menghitung rata-rata tarif per transaksi lunas (Avg Fee per Vehicle/Transaction)
+    @Query("SELECT COUNT(t) FROM TransaksiParkir t " +
+           "WHERE COALESCE(t.waktuKeluar, t.waktuMasuk) BETWEEN :awal AND :akhir AND t.statusPembayaran = 'LUNAS'")
+    Long countTransaksiLunasDalamRentangWaktu(
+        @Param("awal") LocalDateTime awal,
+        @Param("akhir") LocalDateTime akhir);
+
     // Menghitung jumlah kendaraan yang masuk dalam rentang waktu tertentu (untuk statistik harian)
     // Setara: SELECT COUNT(*) FROM transaksi_parkir WHERE waktu_masuk BETWEEN ? AND ?
     Long countByWaktuMasukBetween(LocalDateTime awal, LocalDateTime akhir);

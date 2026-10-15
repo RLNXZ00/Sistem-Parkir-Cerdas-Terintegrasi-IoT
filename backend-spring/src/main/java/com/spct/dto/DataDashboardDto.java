@@ -26,6 +26,11 @@ public class DataDashboardDto // Kelas DTO untuk membungkus semua data analitik 
     private Double persentaseCo2;            // Persentase reduksi CO2 berbanding angka terburuk (misal 2000kg)
     private List<DataOkupansiJamDto> grafikOkupansiPerJam; // Array data untuk grafik Chart.js per jam
     private List<DataPendapatanHarianDto> grafikPendapatanHarian; // Array data pertumbuhan pendapatan harian (tgl 1 s.d. hari ini)
+    private Long totalTransaksiLunas;        // Jumlah transaksi lunas bulan berjalan
+    private BigDecimal rataRataTarifTransaksi; // Rata-rata nominal per transaksi lunas (Avg Fee per Vehicle)
+    private BigDecimal revenuePerSlot;       // Pendapatan rata-rata per slot kapasitas (RevPAS)
+    private Double occupancyRateSaatIni;     // Persentase keterisian slot saat ini (0.0 - 100.0)
+    private Long totalKendaraanHariIni;      // Jumlah kendaraan masuk hari ini
 
     // =====================================================================
     // Inner Class: DataPendapatanHarianDto (Data titik harian dari tgl 1 s.d. hari ini)
@@ -268,5 +273,45 @@ public class DataDashboardDto // Kelas DTO untuk membungkus semua data analitik 
 
     public void setGrafikPendapatanHarian(List<DataPendapatanHarianDto> grafikPendapatanHarian) {
         this.grafikPendapatanHarian = grafikPendapatanHarian;
+    }
+
+    public Long getTotalTransaksiLunas() {
+        return totalTransaksiLunas;
+    }
+
+    public void setTotalTransaksiLunas(Long totalTransaksiLunas) {
+        this.totalTransaksiLunas = totalTransaksiLunas;
+    }
+
+    public BigDecimal getRataRataTarifTransaksi() {
+        return rataRataTarifTransaksi;
+    }
+
+    public void setRataRataTarifTransaksi(BigDecimal rataRataTarifTransaksi) {
+        this.rataRataTarifTransaksi = rataRataTarifTransaksi;
+    }
+
+    public BigDecimal getRevenuePerSlot() {
+        return revenuePerSlot;
+    }
+
+    public void setRevenuePerSlot(BigDecimal revenuePerSlot) {
+        this.revenuePerSlot = revenuePerSlot;
+    }
+
+    public Double getOccupancyRateSaatIni() {
+        return occupancyRateSaatIni;
+    }
+
+    public void setOccupancyRateSaatIni(Double occupancyRateSaatIni) {
+        this.occupancyRateSaatIni = occupancyRateSaatIni;
+    }
+
+    public Long getTotalKendaraanHariIni() {
+        return totalKendaraanHariIni;
+    }
+
+    public void setTotalKendaraanHariIni(Long totalKendaraanHariIni) {
+        this.totalKendaraanHariIni = totalKendaraanHariIni;
     }
 }
