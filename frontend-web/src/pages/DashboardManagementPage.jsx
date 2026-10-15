@@ -234,6 +234,11 @@ export default function DashboardManagementPage() {
     slotTerisiSaatIni: 0,
     totalSensor: 15,
     totalSensorAktif: 15,
+    totalTransaksiLunas: 0,
+    rataRataTarifTransaksi: 0,
+    revenuePerSlot: 0,
+    occupancyRateSaatIni: 0,
+    totalKendaraanHariIni: 0,
     grafikOkupansiPerJam: [],
     grafikPendapatanHarian: []
   };
@@ -248,6 +253,11 @@ export default function DashboardManagementPage() {
   const colorMobil = pctMobil > 80 ? 'text-alert-anomaly' : (pctMobil >= 50 ? 'text-warning-reserved' : 'text-eco-success');
   const borderColorMobil = pctMobil > 80 ? 'border-alert-anomaly' : (pctMobil >= 50 ? 'border-warning-reserved' : 'border-eco-success');
   const barBgMobil = pctMobil > 80 ? 'bg-alert-anomaly' : (pctMobil >= 50 ? 'bg-warning-reserved' : 'bg-eco-success');
+
+  // Metrik Finansial & Okupansi Riil
+  const totalTransaksiLunasVal = safeData.totalTransaksiLunas ?? 0;
+  const avgFeeVal = safeData.rataRataTarifTransaksi ?? (totalTransaksiLunasVal > 0 ? Math.round(pendapatanBulananVal / totalTransaksiLunasVal) : 0);
+  const revenuePerSlotVal = safeData.revenuePerSlot ?? (totalSlotMobil > 0 ? Math.round(pendapatanBulananVal / totalSlotMobil) : 0);
 
   const ZONES = [
     { 
@@ -281,7 +291,7 @@ export default function DashboardManagementPage() {
     { 
       label: 'Total Kendaraan', 
       value: safeData.totalKendaraan.toLocaleString('id-ID'), 
-      sub: 'History', 
+      sub: `${safeData.totalKendaraanHariIni || 0} Masuk Hari Ini`, 
       icon: 'directions_car', 
       color: 'text-primary' 
     },
@@ -294,10 +304,8 @@ export default function DashboardManagementPage() {
     },
     { 
       label: 'Avg Fee / Kendaraan', 
-      value: safeData.totalKendaraan > 0 
-        ? `Rp ${(pendapatanBulananVal / safeData.totalKendaraan).toLocaleString('id-ID', {maximumFractionDigits: 0})}` 
-        : 'Rp 0', 
-      sub: 'Per Kendaraan', 
+      value: `Rp ${Number(avgFeeVal).toLocaleString('id-ID')}`, 
+      sub: `${totalTransaksiLunasVal} Transaksi Lunas Bulan Ini`, 
       icon: 'receipt_long', 
       color: 'text-tertiary' 
     },
@@ -387,22 +395,33 @@ export default function DashboardManagementPage() {
               <span className="font-mono text-sm text-on-surface-variant block mb-1">Avg Fee per Vehicle</span>
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl text-primary font-bold">
-                  Rp {safeData.totalKendaraan > 0 ? (pendapatanBulananVal / safeData.totalKendaraan).toLocaleString('id-ID', {maximumFractionDigits: 0}) : 0}
+                  Rp {Number(avgFeeVal).toLocaleString('id-ID')}
                 </span>
-                <span className="text-eco-success font-mono text-sm flex items-center">
-                  <span className="material-symbols-outlined text-[16px]">info</span>Avg
+                <span className="text-eco-success font-mono text-xs flex items-center gap-1" title="Rata-rata pembayaran per transaksi lunas di bulan berjalan">
+                  <span className="material-symbols-outlined text-[16px]">info</span>{totalTransaksiLunasVal} Transaksi Lunas
                 </span>
               </div>
             </div>
             <div className="bg-surface-container p-4 rounded-lg border border-outline-variant/20">
-              <span className="font-mono text-sm text-on-surface-variant block mb-2">Occupancy to Revenue Ratio</span>
-              <div className="text-3xl text-tertiary-container font-bold mb-2">
-                {safeData.totalKendaraan > 0 && pendapatanBulananVal > 0 
-                  ? ((pendapatanBulananVal / (safeData.totalKendaraan * 1000)).toFixed(1)) 
-                  : '8.4'}
+              <div className="flex justify-between items-center mb-1">
+                <span className="font-mono text-sm text-on-surface-variant">Occupancy & Revenue Yield</span>
+                <span className="text-xs font-mono text-tertiary-container font-semibold" title="RevPAS: Pendapatan rata-rata per kapasitas slot">
+                  Rp {Number(revenuePerSlotVal).toLocaleString('id-ID')}/slot
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="text-3xl text-tertiary-container font-bold">
+                  {pctMobil}%
+                </span>
+                <span className="text-text-muted font-mono text-xs">
+                  Okupansi Fisik Saat Ini ({safeData.slotTerisiSaatIni}/{totalSlotMobil} Slot)
+                </span>
               </div>
               <div className="w-full bg-surface-container-highest rounded-full h-2 overflow-hidden">
-                <div className="bg-tertiary-container h-full rounded-full" style={{ width: '75%' }}></div>
+                <div 
+                  className={`h-full rounded-full transition-all duration-500 ${barBgMobil}`} 
+                  style={{ width: `${Math.max(pctMobil, 4)}%` }}
+                ></div>
               </div>
             </div>
           </div>
