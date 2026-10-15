@@ -19,6 +19,7 @@ export default function ReportsPage() {
   const [reportData, setReportData] = useState(null);
   const [komprehensifTab, setKomprehensifTab] = useState('finansial');
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [downloadingXlsx, setDownloadingXlsx] = useState(false);
 
   // Mengunduh Dokumen Resmi PDF ber-kop surat dan tanda tangan (Fase 3 - PK-UC010)
   const handleExportPdf = async () => {
@@ -47,6 +48,36 @@ export default function ReportsPage() {
       setErrorMsg('Gagal mengunduh dokumen PDF: ' + err.message);
     } finally {
       setDownloadingPdf(false);
+    }
+  };
+
+  // Mengunduh Dokumen Resmi Spreadsheet Excel XLSX (Fase 4 - PK-UC010)
+  const handleExportXlsx = async () => {
+    if (!reportData) return;
+    try {
+      setDownloadingXlsx(true);
+      const url = `${API_BASE}/api/laporan/unduh?format=xlsx&jenis=${encodeURIComponent(reportType)}&dari=${encodeURIComponent(startDate)}&sampai=${encodeURIComponent(endDate)}`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Gagal mengunduh dokumen Excel (HTTP ${response.status})`);
+      }
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      const namaFile = `Laporan_${reportType.charAt(0).toUpperCase() + reportType.slice(1)}_${startDate}_sd_${endDate}.xlsx`;
+      link.setAttribute('download', namaFile);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error('Error downloading Excel:', err);
+      setErrorMsg('Gagal mengunduh dokumen Excel: ' + err.message);
+    } finally {
+      setDownloadingXlsx(false);
     }
   };
 
@@ -276,12 +307,22 @@ export default function ReportsPage() {
                   </button>
 
                   <button
-                    disabled
-                    title="Fitur Ekspor spreadsheet XLSX sedang disiapkan di Fase 4"
-                    className="flex items-center gap-2 px-3.5 py-2 rounded-lg border border-outline-variant/60 text-on-surface-variant bg-surface-container/50 opacity-70 text-xs font-mono transition-colors cursor-not-allowed"
+                    onClick={handleExportXlsx}
+                    disabled={downloadingXlsx}
+                    title="Unduh Dokumen Spreadsheet Resmi Excel XLSX (PK-UC010)"
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-lg border border-emerald-500/40 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-95 text-xs font-mono font-medium transition-all cursor-pointer shadow-sm disabled:opacity-50"
                   >
-                    <span className="material-symbols-outlined text-[16px] text-eco-success">table_view</span>
-                    Export XLSX (Fase 4)
+                    {downloadingXlsx ? (
+                      <>
+                        <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
+                        Generating XLSX...
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-[16px] text-eco-success">table_view</span>
+                        Export XLSX
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
