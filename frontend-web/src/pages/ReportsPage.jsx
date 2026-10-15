@@ -365,6 +365,33 @@ export default function ReportsPage() {
                   </div>
                 ))}
               </div>
+
+              {/* Highlight Khusus Laporan Komprehensif (Master Executive Suite) */}
+              {reportData.metadata.jenisLaporan === 'komprehensif' && (
+                <div className="mt-4 pt-4 border-t border-surface-variant/40 grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="bg-surface-container/60 rounded-lg p-3 border border-outline-variant/20 flex items-center gap-3">
+                    <span className="material-symbols-outlined text-primary text-[24px]">payments</span>
+                    <div>
+                      <p className="text-[11px] font-mono text-on-surface-variant uppercase">Pilar 1: Finansial</p>
+                      <p className="text-xs font-semibold text-on-surface">Rekap Transaksi & Omset Parkir</p>
+                    </div>
+                  </div>
+                  <div className="bg-surface-container/60 rounded-lg p-3 border border-warning-reserved/30 flex items-center gap-3">
+                    <span className="material-symbols-outlined text-warning-reserved text-[24px]">sensors</span>
+                    <div>
+                      <p className="text-[11px] font-mono text-on-surface-variant uppercase">Pilar 2: IoT & Okupansi</p>
+                      <p className="text-xs font-semibold text-on-surface">Log Node & Resolusi Anomali</p>
+                    </div>
+                  </div>
+                  <div className="bg-surface-container/60 rounded-lg p-3 border border-eco-success/30 flex items-center gap-3">
+                    <span className="material-symbols-outlined text-eco-success text-[24px]">eco</span>
+                    <div>
+                      <p className="text-[11px] font-mono text-on-surface-variant uppercase">Pilar 3: Eco-Metric</p>
+                      <p className="text-xs font-semibold text-on-surface">Reduksi Karbon & Waktu Efisien</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Kondisi Alternate Course: Data Kosong */}
