@@ -20,6 +20,24 @@ export default function ReportsPage() {
   const [komprehensifTab, setKomprehensifTab] = useState('finansial');
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [downloadingXlsx, setDownloadingXlsx] = useState(false);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [loadingAudit, setLoadingAudit] = useState(false);
+
+  // Mengambil Riwayat Audit Unduhan dari Backend (PK-UC010 Langkah 19-20)
+  const fetchAuditLogs = async () => {
+    try {
+      setLoadingAudit(true);
+      const res = await fetch(`${API_BASE}/api/laporan/audit`);
+      if (res.ok) {
+        const data = await res.json();
+        setAuditLogs(data);
+      }
+    } catch (err) {
+      console.error('Error fetching audit logs:', err);
+    } finally {
+      setLoadingAudit(false);
+    }
+  };
 
   // Mengunduh Dokumen Resmi PDF ber-kop surat dan tanda tangan (Fase 3 - PK-UC010)
   const handleExportPdf = async () => {
@@ -43,6 +61,9 @@ export default function ReportsPage() {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(blobUrl);
+
+      // Perbarui daftar audit trail setelah unduhan sukses
+      fetchAuditLogs();
     } catch (err) {
       console.error('Error downloading PDF:', err);
       setErrorMsg('Gagal mengunduh dokumen PDF: ' + err.message);
@@ -73,6 +94,9 @@ export default function ReportsPage() {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(blobUrl);
+
+      // Perbarui daftar audit trail setelah unduhan sukses
+      fetchAuditLogs();
     } catch (err) {
       console.error('Error downloading Excel:', err);
       setErrorMsg('Gagal mengunduh dokumen Excel: ' + err.message);
@@ -129,6 +153,7 @@ export default function ReportsPage() {
   // Muat data awal saat halaman pertama kali dibuka
   useEffect(() => {
     fetchReport(reportType, startDate, endDate);
+    fetchAuditLogs();
   }, []);
 
   const handleGenerate = (e) => {
@@ -542,6 +567,98 @@ export default function ReportsPage() {
             )}
           </div>
         )}
+
+        {/* Section Riwayat Unduhan Dokumen (Audit Trail PK-UC010) */}
+        <div className="bg-bg-surface rounded-xl p-5 border border-outline-variant/30 shadow-lg flex flex-col gap-4 animate-fadeIn">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-surface-variant/40 pb-4">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-primary text-[24px]">verified_user</span>
+              <div>
+                <h3 className="text-lg font-bold text-on-surface">Riwayat Unduhan Dokumen (Audit Trail)</h3>
+                <p className="text-xs font-mono text-text-muted mt-0.5">
+                  LOG KEAMANAN // REKAM JEJAK PENARIKAN DOKUMEN RESMI (PK-UC010 LANGKAH 19–20)
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={fetchAuditLogs}
+              disabled={loadingAudit}
+              title="Perbarui daftar riwayat audit"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-outline-variant/60 text-on-surface-variant hover:text-white bg-surface-container hover:bg-surface-container-high text-xs font-mono transition-colors cursor-pointer"
+            >
+              <span className={`material-symbols-outlined text-[16px] ${loadingAudit ? 'animate-spin' : ''}`}>
+                refresh
+              </span>
+              Refresh Audit
+            </button>
+          </div>
+
+          {loadingAudit && auditLogs.length === 0 ? (
+            <div className="py-8 text-center text-text-muted font-mono text-xs flex items-center justify-center gap-2">
+              <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+              Memuat log audit unduhan...
+            </div>
+          ) : auditLogs.length === 0 ? (
+            <div className="py-8 text-center text-text-muted font-mono text-xs">
+              Belum ada riwayat dokumen yang diunduh pada sistem ini.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-surface-variant text-on-surface-variant font-mono text-xs uppercase tracking-wider">
+                    <th className="text-left pb-3 pr-3">ID</th>
+                    <th className="text-left pb-3 pr-4">Waktu Unduh</th>
+                    <th className="text-left pb-3 pr-4">Pengguna</th>
+                    <th className="text-left pb-3 pr-4">Jenis Laporan</th>
+                    <th className="text-center pb-3 pr-4">Format</th>
+                    <th className="text-left pb-3 pr-4">Nama Berkas</th>
+                    <th className="text-right pb-3 pr-4">Ukuran</th>
+                    <th className="text-center pb-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditLogs.map((log) => (
+                    <tr key={log.idAudit} className="border-b border-surface-container hover:bg-surface-container-high transition-colors">
+                      <td className="py-3 pr-3 font-mono text-on-surface-variant text-xs">#{log.idAudit}</td>
+                      <td className="py-3 pr-4 font-mono text-on-surface-variant text-xs">
+                        {log.waktuUnduh ? log.waktuUnduh.replace('T', ' ').substring(0, 19) : '-'} WIB
+                      </td>
+                      <td className="py-3 pr-4 font-mono text-on-surface text-xs font-semibold">{log.pengguna}</td>
+                      <td className="py-3 pr-4 font-mono text-xs">
+                        <span className="px-2 py-0.5 rounded bg-surface-container-highest border border-outline-variant/30 text-[11px] text-on-surface">
+                          {log.jenisLaporan}
+                        </span>
+                      </td>
+                      <td className="py-3 pr-4 text-center">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                            log.formatBerkas === 'PDF'
+                              ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                              : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          }`}
+                        >
+                          {log.formatBerkas}
+                        </span>
+                      </td>
+                      <td className="py-3 pr-4 font-mono text-primary text-xs max-w-xs truncate" title={log.namaBerkas}>
+                        {log.namaBerkas}
+                      </td>
+                      <td className="py-3 pr-4 font-mono text-on-surface-variant text-xs text-right">
+                        {(log.ukuranByte / 1024).toFixed(1)} KB
+                      </td>
+                      <td className="py-3 text-center">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-eco-success/20 text-eco-success border border-eco-success/30">
+                          {log.statusKeberhasilan}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
 
       </div>
     </AppLayout>
