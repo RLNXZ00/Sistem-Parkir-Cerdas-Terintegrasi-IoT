@@ -46,6 +46,9 @@ public class DeteksiPlatService // Kelas service yang mengelola alur lengkap saa
     @Autowired
     private com.spct.repository.PembayaranRepository pembayaranRepository;
 
+    @Autowired
+    private TransaksiPembayaranService transaksiPembayaranService; // Sumber TUNGGAL rumus tarif & pembebasan slot (dipakai ulang secara OOP)
+
 
     // =====================================================================
     // Method Utama: Mengorkestrasi seluruh alur pemrosesan kendaraan masuk
@@ -149,17 +152,33 @@ public class DeteksiPlatService // Kelas service yang mengelola alur lengkap saa
         LocalDateTime waktuMasuk = transaksi.getWaktuMasuk();
         LocalDateTime waktuKeluar = LocalDateTime.now();
         
-        // 2. Hitung durasi (minimal 1 jam)
+        // 2. Hitung durasi parkir dalam menit, dan jam (pembulatan ke atas, minimal 1 jam) untuk tampilan kiosk
         java.time.Duration duration = java.time.Duration.between(waktuMasuk, waktuKeluar);
         long minutes = duration.toMinutes();
         long hours = (long) Math.ceil(minutes / 60.0);
         if (hours < 1) hours = 1; 
         
-        // 3. Hitung biaya (Rp 5.000 / jam)
-        BigDecimal tarifPerJam = new BigDecimal("5000.00");
-        BigDecimal totalBiaya = tarifPerJam.multiply(new BigDecimal(hours));
+        // 3. Hitung biaya memakai rumus RESMI dari TransaksiPembayaranService
+        //    (Grace period <= 10 menit = Rp 0, flat Rp 5.000 s.d. 8 jam, +Rp 2.000/jam berikutnya, > 12 jam flat Rp 10.000)
+        //    Rumus tidak lagi ditulis ulang di sini agar tidak ada dua versi tarif yang berbeda.
+        BigDecimal totalBiaya = transaksiPembayaranService.hitungTarif((int) minutes);
+
+        // 3a. Grace Period: parkir <= 10 menit dibebaskan dari tagihan (tidak memotong saldo, tidak membuat record pembayaran)
+        if (totalBiaya.compareTo(BigDecimal.ZERO) == 0)
+        {
+            transaksi.setWaktuKeluar(waktuKeluar);                            // Catat waktu keluar
+            transaksi.setDurasiTotalMenit((int) minutes);                     // Catat durasi riil
+            transaksi.setNominalTagihan(BigDecimal.ZERO);                     // Tagihan Rp 0
+            transaksi.setStatusPembayaran(StatusPembayaran.GRACE_PERIOD_FREE); // Tandai bebas biaya (tidak dihitung sebagai pendapatan)
+            transaksiPembayaranService.bebaskanSlotParkir(transaksi);         // Kosongkan slot secara lengkap
+            transaksiParkirRepository.save(transaksi);                        // Simpan perubahan transaksi
+
+            return new HasilDeteksiKeluarDto("SUKSES", platNomor, waktuMasuk, waktuKeluar, hours, BigDecimal.ZERO, "Gratis (Grace Period ≤ 10 menit). Silakan keluar.");
+        }
 
         // 4. Proses Simulasi Pembayaran
+        // CATATAN: Belum terhubung Payment Gateway. Saldo berasal dari simulasi kiosk dan metode dicatat
+        // sebagai ETOLL_MANDIRI dengan referensi_gateway kosong (NULL) -> penanda transaksi SIMULASI di laporan.
         if (saldoEwallet.compareTo(totalBiaya) >= 0) {
             // Lunas
             transaksi.setWaktuKeluar(waktuKeluar);
@@ -168,12 +187,8 @@ public class DeteksiPlatService // Kelas service yang mengelola alur lengkap saa
             transaksi.setStatusPembayaran(StatusPembayaran.LUNAS);
             transaksi.setMetodePembayaran(MetodePembayaran.ETOLL_MANDIRI);
             
-            // Kosongkan Slot
-            SlotParkir slot = transaksi.getSlotDipilih();
-            if (slot != null) {
-                slot.setStatusSlot(StatusSlot.KOSONG);
-                slotParkirRepository.save(slot);
-            }
+            // Kosongkan Slot (logika lengkap milik TransaksiPembayaranService: status, kendaraan aktif, waktu dipesan)
+            transaksiPembayaranService.bebaskanSlotParkir(transaksi);
             
             transaksiParkirRepository.save(transaksi);
 

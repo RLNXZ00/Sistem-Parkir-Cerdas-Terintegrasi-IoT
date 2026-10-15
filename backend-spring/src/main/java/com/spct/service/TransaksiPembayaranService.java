@@ -127,7 +127,10 @@ public class TransaksiPembayaranService
     // Method Pendukung: Logika Kalkulasi Tarif Parkir
     // =====================================================================
 
-    private BigDecimal hitungTarif(int durasiMenit)
+    // Dibuat PUBLIC agar menjadi SATU-SATUNYA sumber rumus tarif di sistem.
+    // Dipanggil juga oleh DeteksiPlatService (alur kiosk gerbang keluar) supaya
+    // nominal yang tersimpan di database (dan masuk ke Laporan Finansial) selalu konsisten.
+    public BigDecimal hitungTarif(int durasiMenit)
     {
         // Aturan 1: Grace Period (<= 10 Menit) = Rp 0
         if (durasiMenit <= 10)
@@ -158,7 +161,9 @@ public class TransaksiPembayaranService
         }
     }
 
-    private void bebaskanSlotParkir(TransaksiParkir transaksi) 
+    // Dibuat PUBLIC agar alur kiosk keluar (DeteksiPlatService) juga membersihkan
+    // slot secara lengkap (status, kendaraan aktif, waktu dipesan) dengan logika yang sama.
+    public void bebaskanSlotParkir(TransaksiParkir transaksi) 
     {
         SlotParkir slotTerkait = transaksi.getSlotDipilih();
         if (slotTerkait != null) {
