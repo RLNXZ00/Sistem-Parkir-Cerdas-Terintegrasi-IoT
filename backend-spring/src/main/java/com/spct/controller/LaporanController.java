@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Controller: LaporanController
@@ -29,6 +30,9 @@ public class LaporanController
 
     @Autowired
     private com.spct.service.LaporanExcelService laporanExcelService;
+
+    @Autowired
+    private com.spct.repository.LogAuditLaporanRepository logAuditLaporanRepository;
 
     /**
      * Endpoint GET: Pratinjau Laporan (Preview)
@@ -61,7 +65,8 @@ public class LaporanController
         @RequestParam(defaultValue = "pdf") String format,
         @RequestParam(defaultValue = "finansial") String jenis,
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dari,
-        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sampai)
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sampai,
+        jakarta.servlet.http.HttpServletRequest request)
     {
         LaporanResponseDto dto = laporanService.ambilPratinjauLaporan(jenis, dari, sampai);
 
@@ -76,9 +81,27 @@ public class LaporanController
             headers.setContentDisposition(org.springframework.http.ContentDisposition.attachment()
                 .filename(namaFile).build());
 
-            // Catat log aktivitas unduhan (Audit Trail sesuai sequence diagram langkah 19-20)
-            System.out.println(String.format("[AUDIT LOG] Pengguna Manajemen RS mengunduh '%s' (Format: PDF, Ukuran: %d bytes)",
-                namaFile, pdfBytes.length));
+            // Catat log aktivitas unduhan ke database (Audit Trail sesuai sequence diagram langkah 19-20)
+            try
+            {
+                com.spct.model.LogAuditLaporan audit = new com.spct.model.LogAuditLaporan(
+                    "Manajemen RS (Admin)",
+                    jenis.toUpperCase(),
+                    "PDF",
+                    dari,
+                    sampai,
+                    namaFile,
+                    (long) pdfBytes.length,
+                    request != null ? request.getRemoteAddr() : "127.0.0.1"
+                );
+                logAuditLaporanRepository.save(audit);
+                System.out.println(String.format("[AUDIT LOG TERSIMPAN] Dokumen '%s' (Format: PDF, Ukuran: %d bytes)",
+                    namaFile, pdfBytes.length));
+            }
+            catch (Exception ex)
+            {
+                System.err.println("[AUDIT LOG ERROR] Gagal menyimpan log unduhan PDF: " + ex.getMessage());
+            }
 
             return ResponseEntity.ok()
                 .headers(headers)
@@ -96,9 +119,27 @@ public class LaporanController
             headers.setContentDisposition(org.springframework.http.ContentDisposition.attachment()
                 .filename(namaFile).build());
 
-            // Catat log aktivitas unduhan (Audit Trail sesuai sequence diagram langkah 19-20)
-            System.out.println(String.format("[AUDIT LOG] Pengguna Manajemen RS mengunduh '%s' (Format: XLSX, Ukuran: %d bytes)",
-                namaFile, xlsxBytes.length));
+            // Catat log aktivitas unduhan ke database (Audit Trail sesuai sequence diagram langkah 19-20)
+            try
+            {
+                com.spct.model.LogAuditLaporan audit = new com.spct.model.LogAuditLaporan(
+                    "Manajemen RS (Admin)",
+                    jenis.toUpperCase(),
+                    "XLSX",
+                    dari,
+                    sampai,
+                    namaFile,
+                    (long) xlsxBytes.length,
+                    request != null ? request.getRemoteAddr() : "127.0.0.1"
+                );
+                logAuditLaporanRepository.save(audit);
+                System.out.println(String.format("[AUDIT LOG TERSIMPAN] Dokumen '%s' (Format: XLSX, Ukuran: %d bytes)",
+                    namaFile, xlsxBytes.length));
+            }
+            catch (Exception ex)
+            {
+                System.err.println("[AUDIT LOG ERROR] Gagal menyimpan log unduhan XLSX: " + ex.getMessage());
+            }
 
             return ResponseEntity.ok()
                 .headers(headers)
@@ -108,5 +149,18 @@ public class LaporanController
 
         // Format selain PDF atau XLSX
         return ResponseEntity.badRequest().body(null);
+    }
+
+    /**
+     * Endpoint GET: Riwayat Audit Unduhan Dokumen
+     * Menampilkan 15 data riwayat pengunduhan laporan terakhir oleh pihak manajemen (PK-UC010).
+     *
+     * Contoh:
+     * GET /api/laporan/audit
+     */
+    @GetMapping("/audit")
+    public ResponseEntity<List<com.spct.model.LogAuditLaporan>> getRiwayatAudit()
+    {
+        return ResponseEntity.ok(logAuditLaporanRepository.findTop15ByOrderByWaktuUnduhDesc());
     }
 }
