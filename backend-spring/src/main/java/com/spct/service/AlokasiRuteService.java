@@ -56,8 +56,8 @@ public class AlokasiRuteService // Kelas service yang mengorkestrasi semua langk
             GRAPH_NODES.put("N-" + i, new GraphNodeData("N-" + i, 20.0 * i, 50, false));
         }
 
-        // 2. Inisialisasi Node Slot (Di Y = 30 untuk atas, Y = 70 untuk bawah)
-        for (int i = 1; i <= 15; i++) {
+        // 2. Inisialisasi Node Slot (Di Y = 30 untuk atas, Y = 70 untuk bawah: B1-01 s.d. B1-16)
+        for (int i = 1; i <= 16; i++) {
             int col = (i + 1) / 2; // Menentukan pasangan (1-2 di col 1, 3-4 di col 2, dst)
             double x = 20.0 * col;
             double y = (i % 2 != 0) ? 30.0 : 70.0;
