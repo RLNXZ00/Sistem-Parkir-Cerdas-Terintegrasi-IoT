@@ -61,6 +61,11 @@ export default function ExitSuccessPage() {
                 {data.platNomor || "AB 1234 CD"}
               </span>
             </div>
+            {data.totalBiaya !== undefined && (
+              <p className="text-emerald-400 font-mono text-sm mt-4 font-semibold">
+                {data.totalBiaya === 0 ? "Bebas Biaya (Grace Period ≤ 10 Menit)" : `Total Biaya: Rp ${Number(data.totalBiaya).toLocaleString('id-ID')} (LUNAS)`}
+              </p>
+            )}
           </div>
           
           <div className="bg-[#252b2f] border border-[#3d4850] rounded-xl p-8 flex justify-between items-center px-6">

@@ -6,8 +6,9 @@ export default function ExitScanPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   
-  // Untuk simulasi, kita bisa atur saldo e-wallet
+  // Untuk simulasi, kita bisa atur saldo e-wallet dan durasi parkir
   const [saldo, setSaldo] = useState(50000); 
+  const [durasiSimulasi, setDurasiSimulasi] = useState(60); // Default 60 menit (Tarif Flat Rp 5.000)
 
   const simulateExitArrival = async () => {
     if (isScanning) return;
@@ -19,13 +20,14 @@ export default function ExitScanPage() {
 
     try {
       // Panggil API Deteksi Plat Keluar 
-      // Kita kirim body JSON (dengan saldo untuk simulasi)
+      // Kita kirim body JSON (dengan saldo dan durasi menit untuk simulasi)
       const response = await fetch('/api/gate/keluar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
             platNomor: dummyPlate,
-            saldoEwallet: saldo // simulasi
+            saldoEwallet: Number(saldo),
+            durasiMenit: Number(durasiSimulasi)
         })
       });
       
@@ -80,10 +82,34 @@ export default function ExitScanPage() {
       {/* Main Content Canvas */}
       <main className="flex flex-col items-center justify-center w-full max-w-lg mx-auto px-container-margin z-10 relative">
         
-        {/* Simulasi Input Saldo */}
-        <div className="absolute top-0 right-0 -mt-20 p-4 border border-slate-700 bg-slate-900 rounded-xl">
-            <label className="text-xs text-slate-400 block mb-1">Simulasi Saldo E-Wallet (Rp)</label>
-            <input type="number" value={saldo} onChange={e => setSaldo(e.target.value)} className="bg-slate-800 text-white p-2 rounded border border-slate-600 w-full" />
+        {/* Simulasi Input Saldo & Durasi Parkir */}
+        <div className="absolute top-0 right-0 -mt-24 p-4 border border-slate-700 bg-slate-900/95 backdrop-blur-md rounded-xl shadow-xl w-72 z-20">
+            <div className="flex items-center gap-2 mb-2 pb-1 border-b border-slate-800">
+              <span className="material-symbols-outlined text-amber-400 text-sm">tune</span>
+              <span className="text-xs font-semibold text-slate-300 font-['Space_Grotesk'] tracking-wider">PANEL SIMULASI EXIT</span>
+            </div>
+            
+            <label className="text-[11px] text-slate-400 block mb-1">Simulasi Saldo E-Wallet (Rp)</label>
+            <input 
+              type="number" 
+              value={saldo} 
+              onChange={e => setSaldo(e.target.value)} 
+              className="bg-slate-800 text-white p-2 rounded border border-slate-600 w-full text-sm font-mono mb-3 focus:outline-none focus:border-red-400" 
+              placeholder="Contoh: 2000 atau 50000"
+            />
+
+            <label className="text-[11px] text-slate-400 block mb-1">Simulasi Durasi Parkir</label>
+            <select 
+              value={durasiSimulasi} 
+              onChange={e => setDurasiSimulasi(Number(e.target.value))}
+              className="bg-slate-800 text-white p-2 rounded border border-slate-600 w-full text-xs font-mono focus:outline-none focus:border-red-400"
+            >
+              <option value="60">1 Jam (Tarif Flat Rp 5.000)</option>
+              <option value="5">5 Menit (Grace Period / Gratis Rp 0)</option>
+              <option value="300">5 Jam (Tarif Flat Rp 5.000)</option>
+              <option value="600">10 Jam (Tarif Rp 9.000)</option>
+              <option value="800">14 Jam (Rawat Inap / Rp 10.000)</option>
+            </select>
         </div>
 
         {/* Static Scanner Reticle UI */}
