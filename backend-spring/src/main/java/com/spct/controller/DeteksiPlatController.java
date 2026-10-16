@@ -145,17 +145,31 @@ public class DeteksiPlatController // Kelas controller untuk mengelola seluruh a
     // =====================================================================
     @PostMapping("/keluar")
     public ResponseEntity<com.spct.dto.HasilDeteksiKeluarDto> prosesKendaraanKeluar(
-        @RequestBody(required = false) java.util.Map<String, String> body,
+        @RequestBody(required = false) java.util.Map<String, Object> body,
         @RequestParam(required = false) String platNomor,
-        @RequestParam(defaultValue = "50000.00") java.math.BigDecimal saldoEwallet) 
+        @RequestParam(required = false) java.math.BigDecimal saldoEwallet) 
     {
-        String platFinal = (body != null && body.containsKey("platNomor")) ? body.get("platNomor") : platNomor;
+        String platFinal = (body != null && body.containsKey("platNomor") && body.get("platNomor") != null) 
+            ? String.valueOf(body.get("platNomor")) 
+            : platNomor;
+        
+        java.math.BigDecimal saldoFinal = saldoEwallet;
+        if (body != null && body.containsKey("saldoEwallet") && body.get("saldoEwallet") != null) {
+            try {
+                saldoFinal = new java.math.BigDecimal(body.get("saldoEwallet").toString());
+            } catch (Exception ex) {
+                System.err.println("[GATE KELUAR] Format saldoEwallet di body tidak valid: " + ex.getMessage());
+            }
+        }
+        if (saldoFinal == null) {
+            saldoFinal = new java.math.BigDecimal("50000.00");
+        }
         
         if (platFinal == null || platFinal.isBlank()) {
             return ResponseEntity.badRequest().body(new com.spct.dto.HasilDeteksiKeluarDto("ERROR", null, null, null, 0, java.math.BigDecimal.ZERO, "Parameter platNomor wajib diisi."));
         }
 
-        com.spct.dto.HasilDeteksiKeluarDto hasil = deteksiPlatService.prosesKendaraanKeluar(platFinal, saldoEwallet);
+        com.spct.dto.HasilDeteksiKeluarDto hasil = deteksiPlatService.prosesKendaraanKeluar(platFinal, saldoFinal);
         
         if ("KENDARAAN_TIDAK_DITEMUKAN".equals(hasil.getStatus())) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(hasil);
