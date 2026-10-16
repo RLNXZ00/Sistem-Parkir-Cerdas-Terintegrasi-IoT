@@ -134,8 +134,8 @@ public class AnalitikLaporanService // Kelas service yang mengumpulkan dan mengo
                 BigDecimal.valueOf(totalTransaksiLunasBulanIni), 0, java.math.RoundingMode.HALF_UP);
         }
 
-        Long totalKapasitasSlot = slotKosong + slotTerisi;
-        if (totalKapasitasSlot == null || totalKapasitasSlot == 0) { totalKapasitasSlot = 15L; }
+        Long totalKapasitasSlot = slotParkirRepository.count();
+        if (totalKapasitasSlot == null || totalKapasitasSlot == 0) { totalKapasitasSlot = 16L; }
 
         BigDecimal revenuePerSlot = BigDecimal.ZERO;
         if (totalKapasitasSlot > 0 && pendapatanBulanan.compareTo(BigDecimal.ZERO) > 0)
