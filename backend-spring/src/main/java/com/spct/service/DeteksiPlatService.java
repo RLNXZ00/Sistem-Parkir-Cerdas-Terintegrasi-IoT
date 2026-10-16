@@ -6,6 +6,7 @@ import com.spct.dto.HasilDeteksiKeluarDto;
 import com.spct.model.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import com.spct.repository.DataKendaraanRepository;
 import com.spct.repository.SlotParkirRepository;
 import com.spct.repository.TransaksiParkirRepository;
