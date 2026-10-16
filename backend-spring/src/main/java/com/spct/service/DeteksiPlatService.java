@@ -147,13 +147,26 @@ public class DeteksiPlatService // Kelas service yang mengelola alur lengkap saa
     @Transactional
     public HasilDeteksiKeluarDto prosesKendaraanKeluar(String platNomor, BigDecimal saldoEwallet, Integer durasiMenitSimulasi)
     {
-        // 1. Cari transaksi yang belum lunas
-        TransaksiParkir transaksi = transaksiParkirRepository.findFirstByKendaraan_PlatNomorAndStatusPembayaranOrderByWaktuMasukDesc(
-                platNomor, StatusPembayaran.BELUM_LUNAS).orElse(null);
+        // 1. Cari transaksi yang belum lunas (utamakan plat spesifik jika valid)
+        TransaksiParkir transaksi = null;
+        if (platNomor != null && !platNomor.trim().isEmpty() && !"QUEUE".equalsIgnoreCase(platNomor.trim()) && !"AUTO".equalsIgnoreCase(platNomor.trim())) {
+            transaksi = transaksiParkirRepository.findFirstByKendaraan_PlatNomorAndStatusPembayaranOrderByWaktuMasukDesc(
+                    platNomor.trim(), StatusPembayaran.BELUM_LUNAS).orElse(null);
+        }
+
+        // Fallback FIFO: jika plat tidak diisi / bernilai "QUEUE" / atau plat dummy tidak ada di DB aktif,
+        // maka otomatis proses kendaraan antrean terdepan (First In First Out)
+        if (transaksi == null) {
+            transaksi = transaksiParkirRepository.findFirstByStatusPembayaranOrderByWaktuMasukAsc(
+                    StatusPembayaran.BELUM_LUNAS).orElse(null);
+        }
 
         if (transaksi == null) {
-            return new HasilDeteksiKeluarDto("KENDARAAN_TIDAK_DITEMUKAN", platNomor, null, null, 0, BigDecimal.ZERO, "Kendaraan tidak ditemukan atau sudah lunas.");
+            return new HasilDeteksiKeluarDto("KENDARAAN_TIDAK_DITEMUKAN", platNomor, null, null, 0, BigDecimal.ZERO, "Tidak ada kendaraan di dalam area parkir (semua sudah lunas / basement kosong).");
         }
+
+        // Perbarui platNomor dengan plat kendaraan aktual dari antrean
+        platNomor = transaksi.getKendaraan().getPlatNomor();
 
         LocalDateTime waktuMasuk = transaksi.getWaktuMasuk();
         LocalDateTime waktuKeluar = LocalDateTime.now();
@@ -214,5 +227,10 @@ public class DeteksiPlatService // Kelas service yang mengelola alur lengkap saa
             // Saldo Kurang - Transaksi tetap aktif
             return new HasilDeteksiKeluarDto("SALDO_KURANG", platNomor, waktuMasuk, waktuKeluar, hours, totalBiaya, "Saldo E-Wallet tidak mencukupi.");
         }
+    }
+
+    // Method untuk mengambil daftar kendaraan yang sedang parkir (antrean keluar FIFO)
+    public List<TransaksiParkir> ambilAntreanKendaraanKeluar() {
+        return transaksiParkirRepository.findByStatusPembayaranOrderByWaktuMasukAsc(StatusPembayaran.BELUM_LUNAS);
     }
 }

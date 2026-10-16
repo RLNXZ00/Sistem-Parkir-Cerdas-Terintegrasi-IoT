@@ -165,8 +165,9 @@ public class DeteksiPlatController // Kelas controller untuk mengelola seluruh a
             saldoFinal = new java.math.BigDecimal("50000.00");
         }
         
+        // Jika platFinal kosong atau tidak dikirim, otomatis diarahkan ke mode antrean "QUEUE" (FIFO)
         if (platFinal == null || platFinal.isBlank()) {
-            return ResponseEntity.badRequest().body(new com.spct.dto.HasilDeteksiKeluarDto("ERROR", null, null, null, 0, java.math.BigDecimal.ZERO, "Parameter platNomor wajib diisi."));
+            platFinal = "QUEUE";
         }
 
         Integer durasiMenitFinal = null;
@@ -190,5 +191,26 @@ public class DeteksiPlatController // Kelas controller untuk mengelola seluruh a
         }
 
         return ResponseEntity.ok(hasil);
+    }
+
+    // =====================================================================
+    // Endpoint GET: Mengambil antrean kendaraan yang sedang parkir (FIFO)
+    // URL: GET /api/gate/antrean-keluar
+    // =====================================================================
+    @GetMapping("/antrean-keluar")
+    public ResponseEntity<?> getAntreanKeluar()
+    {
+        return ResponseEntity.ok(
+            deteksiPlatService.ambilAntreanKendaraanKeluar()
+                .stream()
+                .map(t -> java.util.Map.of(
+                    "idTransaksi", t.getIdTransaksi(),
+                    "platNomor", t.getKendaraan().getPlatNomor(),
+                    "jenisKendaraan", t.getKendaraan().getJenisKendaraan().name(),
+                    "idSlot", t.getSlotDipilih() != null ? t.getSlotDipilih().getIdSlot() : "-",
+                    "waktuMasuk", t.getWaktuMasuk().toString()
+                ))
+                .collect(java.util.stream.Collectors.toList())
+        );
     }
 }

@@ -28,6 +28,14 @@ public interface TransaksiParkirRepository extends JpaRepository<TransaksiParkir
     Optional<TransaksiParkir> findFirstByKendaraan_PlatNomorAndStatusPembayaranOrderByWaktuMasukDesc(
         String platNomor, StatusPembayaran statusPembayaran);
 
+    // Mencari transaksi aktif paling awal untuk mekanisme antrean keluar FIFO (First In First Out)
+    Optional<TransaksiParkir> findFirstByStatusPembayaranOrderByWaktuMasukAsc(
+        StatusPembayaran statusPembayaran);
+
+    // Mengambil semua transaksi aktif yang belum lunas diurutkan dari yang paling lama masuk (FIFO Antrean)
+    List<TransaksiParkir> findByStatusPembayaranOrderByWaktuMasukAsc(
+        StatusPembayaran statusPembayaran);
+
     // Mengambil semua transaksi dalam rentang waktu tertentu (digunakan untuk laporan bulanan)
     // Setara: SELECT * FROM transaksi_parkir WHERE waktu_masuk BETWEEN ? AND ?
     List<TransaksiParkir> findByWaktuMasukBetween(LocalDateTime awal, LocalDateTime akhir);
