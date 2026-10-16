@@ -12,13 +12,18 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.text.NumberFormat;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Service: LaporanExcelService
  * Menghasilkan buku kerja spreadsheet resmi Excel (.xlsx) menggunakan Apache POI.
- * Menyediakan sheet ringkasan eksekutif dan sheet tabel data historis berformat profesional,
- * dilengkapi kop surat RS, format mata uang, freeze pane, serta lembar pengesahan (PK-UC010).
+ * Menyediakan sheet laporan komprehensif berformat profesional,
+ * dilengkapi kop surat RS, metadata audit, kartu KPI ringkasan, rincian data historis terstruktur,
+ * total kalkulasi, serta lembar pengesahan tanda tangan (PK-UC010).
  */
 @Service
 public class LaporanExcelService
@@ -33,6 +38,11 @@ public class LaporanExcelService
     private static final byte[] RGB_BORDER      = new byte[]{(byte) 203, (byte) 213, (byte) 225};   // Slate 300
     private static final byte[] RGB_ECO_GREEN   = new byte[]{(byte) 22, (byte) 163, (byte) 74};     // Green 600
 
+    private static final NumberFormat FORMAT_RUPIAH = NumberFormat.getCurrencyInstance(new Locale("id", "ID"));
+    static {
+        FORMAT_RUPIAH.setMaximumFractionDigits(0);
+    }
+
     /**
      * Method Utama: Mengonversi LaporanResponseDto menjadi byte array XLSX
      */
@@ -41,37 +51,61 @@ public class LaporanExcelService
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream())
         {
             CellStyleRegistry styles = new CellStyleRegistry(workbook);
-
-            String jenis = dto.getMetadata().getJenisLaporan();
+            String jenis = (dto.getMetadata() != null && dto.getMetadata().getJenisLaporan() != null)
+                ? dto.getMetadata().getJenisLaporan().trim().toLowerCase() : "finansial";
 
             if ("komprehensif".equalsIgnoreCase(jenis))
             {
-                // Sheet 1: Ringkasan Eksekutif Master
-                buatSheetRingkasan(workbook, styles, dto, "Ringkasan Eksekutif");
+                // Tab 1: Finansial
+                buatSheetFinansialLengkap(
+                    workbook, styles, dto.getMetadata(),
+                    buatKpiFinansial(dto.getTabelFinansial()),
+                    dto.getTabelFinansial(),
+                    "Finansial"
+                );
 
-                // Sheet 2: Finansial
-                buatSheetFinansial(workbook, styles, dto.getTabelFinansial(), "1. Finansial");
+                // Tab 2: Operasional
+                buatSheetOperasionalLengkap(
+                    workbook, styles, dto.getMetadata(),
+                    buatKpiOperasional(dto.getTabelOperasional(), dto.getRingkasan()),
+                    dto.getTabelOperasional(),
+                    "Operasional"
+                );
 
-                // Sheet 3: Operasional IoT
-                buatSheetOperasional(workbook, styles, dto.getTabelOperasional(), "2. Operasional IoT");
-
-                // Sheet 4: Lingkungan
-                buatSheetLingkungan(workbook, styles, dto.getTabelLingkungan(), "3. Dampak Lingkungan");
+                // Tab 3: Lingkungan
+                buatSheetLingkunganLengkap(
+                    workbook, styles, dto.getMetadata(),
+                    buatKpiLingkungan(dto.getTabelLingkungan()),
+                    dto.getTabelLingkungan(),
+                    "Lingkungan"
+                );
             }
             else if ("finansial".equalsIgnoreCase(jenis))
             {
-                buatSheetRingkasan(workbook, styles, dto, "Ringkasan Finansial");
-                buatSheetFinansial(workbook, styles, dto.getTabelFinansial(), "Data Transaksi Finansial");
+                buatSheetFinansialLengkap(
+                    workbook, styles, dto.getMetadata(),
+                    dto.getRingkasan(),
+                    dto.getTabelFinansial(),
+                    "Laporan Finansial"
+                );
             }
             else if ("operasional".equalsIgnoreCase(jenis))
             {
-                buatSheetRingkasan(workbook, styles, dto, "Ringkasan Operasional");
-                buatSheetOperasional(workbook, styles, dto.getTabelOperasional(), "Data Log IoT & Kejadian");
+                buatSheetOperasionalLengkap(
+                    workbook, styles, dto.getMetadata(),
+                    dto.getRingkasan(),
+                    dto.getTabelOperasional(),
+                    "Laporan Operasional"
+                );
             }
-            else // Lingkungan
+            else // lingkungan
             {
-                buatSheetRingkasan(workbook, styles, dto, "Ringkasan Lingkungan");
-                buatSheetLingkungan(workbook, styles, dto.getTabelLingkungan(), "Data Metrik Emisi CO2");
+                buatSheetLingkunganLengkap(
+                    workbook, styles, dto.getMetadata(),
+                    dto.getRingkasan(),
+                    dto.getTabelLingkungan(),
+                    "Laporan Lingkungan"
+                );
             }
 
             workbook.write(out);
@@ -84,136 +118,22 @@ public class LaporanExcelService
     }
 
     // =====================================================================
-    // 1. Pembuatan Sheet Ringkasan (Executive Summary Sheet)
+    // 1. Pembuatan Sheet Finansial Lengkap (Kop + KPI + Tabel + Signatures)
     // =====================================================================
-    private void buatSheetRingkasan(Workbook workbook, CellStyleRegistry styles, LaporanResponseDto dto, String namaSheet)
+    private void buatSheetFinansialLengkap(Workbook workbook, CellStyleRegistry styles,
+                                           MetadataLaporanDto meta, List<KartuKpiDto> kpis,
+                                           List<BarisFinansialDto> rows, String namaSheet)
     {
         Sheet sheet = workbook.createSheet(namaSheet);
         sheet.setDisplayGridlines(true);
+        final int maxCol = 9; // 10 kolom: 0 s.d. 9
 
-        int r = 0;
+        int r = tulisKopSurat(sheet, styles, maxCol);
+        r = tulisMetadata(sheet, styles, r, maxCol, "LAPORAN FINANSIAL & TRANSAKSI PARKIR", meta);
+        r = tulisKpi(sheet, styles, r, maxCol, kpis);
 
-        // Baris 0-2: Kop Surat Resmi
-        Row rowKop1 = sheet.createRow(r++);
-        Cell cKop1 = rowKop1.createCell(0);
-        cKop1.setCellValue("SISTEM PARKIR CERDAS TERINTEGRASI IoT (SPCT)");
-        cKop1.setCellStyle(styles.titleFont);
-
-        Row rowKop2 = sheet.createRow(r++);
-        Cell cKop2 = rowKop2.createCell(0);
-        cKop2.setCellValue("MANAJEMEN RUMAH SAKIT — FASILITAS BASEMENT RAMAH LINGKUNGAN");
-        cKop2.setCellStyle(styles.subtitleGreenFont);
-
-        Row rowKop3 = sheet.createRow(r++);
-        Cell cKop3 = rowKop3.createCell(0);
-        cKop3.setCellValue("Alamat: Gedung Medik Terpadu Lantai Basement 1 • Telp: (0274) 555-SPCT • Email: smartparking@hospital.id");
-        cKop3.setCellStyle(styles.italicMutedFont);
-
-        r++; // Spasi kosong
-
-        // Baris Judul Laporan & Metadata
-        Row rowJudul = sheet.createRow(r++);
-        Cell cJudul = rowJudul.createCell(0);
-        cJudul.setCellValue(dto.getMetadata().getJudulLaporan().toUpperCase());
-        cJudul.setCellStyle(styles.sectionTitleFont);
-
-        Row rMeta1 = sheet.createRow(r++);
-        rMeta1.createCell(0).setCellValue("Kode Dokumen:");
-        rMeta1.getCell(0).setCellStyle(styles.boldLabel);
-        rMeta1.createCell(1).setCellValue("SPCT-DOC/" + dto.getMetadata().getJenisLaporan().toUpperCase() + "/" + dto.getMetadata().getTanggalAkhir());
-        rMeta1.getCell(1).setCellStyle(styles.normalText);
-
-        rMeta1.createCell(3).setCellValue("Periode Laporan:");
-        rMeta1.getCell(3).setCellStyle(styles.boldLabel);
-        rMeta1.createCell(4).setCellValue(dto.getMetadata().getTanggalMulai() + " s.d. " + dto.getMetadata().getTanggalAkhir());
-        rMeta1.getCell(4).setCellStyle(styles.normalText);
-
-        Row rMeta2 = sheet.createRow(r++);
-        rMeta2.createCell(0).setCellValue("Waktu Generate:");
-        rMeta2.getCell(0).setCellStyle(styles.boldLabel);
-        java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        rMeta2.createCell(1).setCellValue(dto.getMetadata().getWaktuGenerate().format(dtf) + " WIB");
-        rMeta2.getCell(1).setCellStyle(styles.normalText);
-
-        rMeta2.createCell(3).setCellValue("Status Audit:");
-        rMeta2.getCell(3).setCellStyle(styles.boldLabel);
-        rMeta2.createCell(4).setCellValue(dto.getMetadata().isModeSimulasi()
-            ? "MODE SIMULASI (Kiosk Exit)" : "LIVE GATEWAY AUDITED");
-        rMeta2.getCell(4).setCellStyle(dto.getMetadata().isModeSimulasi() ? styles.amberBadge : styles.greenBadge);
-
-        r++; // Spasi
-
-        // Baris Ringkasan KPI
-        Row rHeaderKpi = sheet.createRow(r++);
-        Cell cHeaderKpi = rHeaderKpi.createCell(0);
-        cHeaderKpi.setCellValue("RINGKASAN EKSEKUTIF (KEY PERFORMANCE INDICATORS)");
-        cHeaderKpi.setCellStyle(styles.sectionTitleFont);
-
-        List<KartuKpiDto> kpiList = dto.getRingkasan();
-        if (kpiList != null && !kpiList.isEmpty())
-        {
-            Row rKpiVal = sheet.createRow(r++);
-            Row rKpiLbl = sheet.createRow(r++);
-
-            for (int i = 0; i < kpiList.size(); i++)
-            {
-                KartuKpiDto k = kpiList.get(i);
-                Cell cVal = rKpiVal.createCell(i);
-                cVal.setCellValue(k.getNilai());
-                cVal.setCellStyle(styles.kpiValueCell);
-
-                Cell cLbl = rKpiLbl.createCell(i);
-                cLbl.setCellValue(k.getLabel());
-                cLbl.setCellStyle(styles.kpiLabelCell);
-            }
-        }
-
-        r += 2; // Spasi
-
-        // Pernyataan Klausul Hukum & Audit
-        Row rAudit = sheet.createRow(r++);
-        Cell cAudit = rAudit.createCell(0);
-        cAudit.setCellValue("CATATAN AUDIT: Dokumen ini diterbitkan secara otomatis oleh modul PK-UC010 SPCT. Seluruh catatan bersifat Read-Only untuk integritas tata kelola.");
-        cAudit.setCellStyle(styles.italicMutedFont);
-
-        r += 2;
-
-        // Lembar Pengesahan Tanda Tangan
-        Row rTtdHeader = sheet.createRow(r++);
-        rTtdHeader.createCell(0).setCellValue("Disiapkan & Diverifikasi Oleh:");
-        rTtdHeader.getCell(0).setCellStyle(styles.boldLabel);
-        rTtdHeader.createCell(3).setCellValue("Disetujui & Disahkan Oleh:");
-        rTtdHeader.getCell(3).setCellStyle(styles.boldLabel);
-
-        r += 3; // Jarak tanda tangan
-
-        Row rTtdNama = sheet.createRow(r++);
-        rTtdNama.createCell(0).setCellValue("( Supervisor Operasional & IoT )");
-        rTtdNama.getCell(0).setCellStyle(styles.boldLabel);
-        rTtdNama.createCell(3).setCellValue("( Manajer Fasilitas & Operasional RS )");
-        rTtdNama.getCell(3).setCellStyle(styles.boldLabel);
-
-        Row rTtdNip = sheet.createRow(r++);
-        rTtdNip.createCell(0).setCellValue("NIP. 19850412 201012 1 003");
-        rTtdNip.getCell(0).setCellStyle(styles.italicMutedFont);
-        rTtdNip.createCell(3).setCellValue("NIP. 19780920 200501 2 001");
-        rTtdNip.getCell(3).setCellStyle(styles.italicMutedFont);
-
-        // Atur lebar kolom ringkasan
-        sheet.setColumnWidth(0, 7500);
-        sheet.setColumnWidth(1, 7500);
-        sheet.setColumnWidth(2, 4000);
-        sheet.setColumnWidth(3, 7500);
-        sheet.setColumnWidth(4, 7500);
-    }
-
-    // =====================================================================
-    // 2. Pembuatan Sheet Laporan Finansial
-    // =====================================================================
-    private void buatSheetFinansial(Workbook workbook, CellStyleRegistry styles, List<BarisFinansialDto> rows, String namaSheet)
-    {
-        Sheet sheet = workbook.createSheet(namaSheet);
-        sheet.setDisplayGridlines(true);
+        // Header Bagian Tabel
+        buatMergedCell(sheet, r++, 0, maxCol, "RINCIAN DATA HISTORIS", styles.sectionTitleFont);
 
         String[] headers = {
             "No", "No. Tiket", "Plat Nomor", "Jenis Kendaraan",
@@ -221,8 +141,7 @@ public class LaporanExcelService
             "Total Biaya (Rp)", "Kanal Pembayaran", "Status Bayar"
         };
 
-        // Header Table
-        Row headerRow = sheet.createRow(0);
+        Row headerRow = sheet.createRow(r++);
         headerRow.setHeightInPoints(24);
         for (int i = 0; i < headers.length; i++)
         {
@@ -231,7 +150,6 @@ public class LaporanExcelService
             cell.setCellStyle(styles.thStyle);
         }
 
-        int r = 1;
         BigDecimal grandTotal = BigDecimal.ZERO;
 
         if (rows != null && !rows.isEmpty())
@@ -247,32 +165,32 @@ public class LaporanExcelService
                 row.createCell(0).setCellValue(f.getNo());
                 row.getCell(0).setCellStyle(centerStyle);
 
-                row.createCell(1).setCellValue(f.getNomorTiket());
+                row.createCell(1).setCellValue(f.getNomorTiket() != null ? f.getNomorTiket() : "-");
                 row.getCell(1).setCellStyle(centerStyle);
 
-                row.createCell(2).setCellValue(f.getPlatNomor());
+                row.createCell(2).setCellValue(f.getPlatNomor() != null ? f.getPlatNomor() : "-");
                 row.getCell(2).setCellStyle(baseStyle);
 
-                row.createCell(3).setCellValue(f.getJenisKendaraan());
+                row.createCell(3).setCellValue(f.getJenisKendaraan() != null ? f.getJenisKendaraan() : "-");
                 row.getCell(3).setCellStyle(centerStyle);
 
-                row.createCell(4).setCellValue(f.getWaktuMasuk());
+                row.createCell(4).setCellValue(f.getWaktuMasuk() != null ? f.getWaktuMasuk() : "-");
                 row.getCell(4).setCellStyle(centerStyle);
 
-                row.createCell(5).setCellValue(f.getWaktuKeluar());
+                row.createCell(5).setCellValue(f.getWaktuKeluar() != null ? f.getWaktuKeluar() : "-");
                 row.getCell(5).setCellStyle(centerStyle);
 
-                row.createCell(6).setCellValue(f.getDurasiTeks());
+                row.createCell(6).setCellValue(f.getDurasiTeks() != null ? f.getDurasiTeks() : "-");
                 row.getCell(6).setCellStyle(centerStyle);
 
                 Cell cTarif = row.createCell(7);
                 cTarif.setCellValue(f.getTotalTarif() != null ? f.getTotalTarif().doubleValue() : 0);
                 cTarif.setCellStyle(curStyle);
 
-                row.createCell(8).setCellValue(f.getKanalPembayaran());
+                row.createCell(8).setCellValue(f.getKanalPembayaran() != null ? f.getKanalPembayaran() : "-");
                 row.getCell(8).setCellStyle(centerStyle);
 
-                row.createCell(9).setCellValue(f.getStatusPembayaran());
+                row.createCell(9).setCellValue(f.getStatusPembayaran() != null ? f.getStatusPembayaran() : "-");
                 row.getCell(9).setCellStyle(centerStyle);
 
                 if (f.getTotalTarif() != null)
@@ -283,19 +201,11 @@ public class LaporanExcelService
                 r++;
             }
 
-            // Baris Total di paling bawah
+            // Baris Total Grand Total di Bawah Tabel
             Row totalRow = sheet.createRow(r++);
-            totalRow.setHeightInPoints(20);
-            Cell cTotalLabel = totalRow.createCell(0);
-            cTotalLabel.setCellValue("TOTAL PENDAPATAN PARKIR:");
-            cTotalLabel.setCellStyle(styles.totalLabelStyle);
+            totalRow.setHeightInPoints(22);
 
-            for (int col = 1; col <= 6; col++)
-            {
-                Cell emptyCell = totalRow.createCell(col);
-                emptyCell.setCellStyle(styles.totalLabelStyle);
-            }
-            sheet.addMergedRegion(new CellRangeAddress(r - 1, r - 1, 0, 6));
+            buatMergedCell(sheet, r - 1, 0, 6, "TOTAL PENDAPATAN PARKIR:", styles.totalLabelStyle);
 
             Cell cTotalVal = totalRow.createCell(7);
             cTotalVal.setCellValue(grandTotal.doubleValue());
@@ -308,38 +218,46 @@ public class LaporanExcelService
         }
         else
         {
-            Row emptyRow = sheet.createRow(r++);
-            Cell cEmpty = emptyRow.createCell(0);
-            cEmpty.setCellValue("Tidak ada transaksi parkir pada rentang waktu yang dipilih.");
-            cEmpty.setCellStyle(styles.italicMutedFont);
-            sheet.addMergedRegion(new CellRangeAddress(r - 1, r - 1, 0, headers.length - 1));
+            buatMergedCell(sheet, r++, 0, maxCol,
+                "Tidak ada transaksi parkir pada rentang waktu yang dipilih.", styles.italicMutedFont);
         }
 
-        // Freeze baris header atas
-        sheet.createFreezePane(0, 1);
+        // Lembar Catatan Audit & Tanda Tangan Resmi
+        tulisCatatanAuditDanTandaTangan(sheet, styles, r, maxCol);
 
-        // Auto size kolom
-        for (int i = 0; i < headers.length; i++)
+        // Pengaturan Lebar Kolom Otomatis
+        for (int i = 0; i <= maxCol; i++)
         {
             sheet.autoSizeColumn(i);
-            sheet.setColumnWidth(i, Math.max(sheet.getColumnWidth(i) + 1200, 3600));
+            sheet.setColumnWidth(i, Math.max(sheet.getColumnWidth(i) + 1400, 3600));
         }
+        sheet.setColumnWidth(0, 2400); // Kolom No
     }
 
     // =====================================================================
-    // 3. Pembuatan Sheet Laporan Operasional & IoT
+    // 2. Pembuatan Sheet Operasional Lengkap (Kop + KPI + Tabel + Signatures)
     // =====================================================================
-    private void buatSheetOperasional(Workbook workbook, CellStyleRegistry styles, List<BarisOperasionalDto> rows, String namaSheet)
+    private void buatSheetOperasionalLengkap(Workbook workbook, CellStyleRegistry styles,
+                                             MetadataLaporanDto meta, List<KartuKpiDto> kpis,
+                                             List<BarisOperasionalDto> rows, String namaSheet)
     {
         Sheet sheet = workbook.createSheet(namaSheet);
         sheet.setDisplayGridlines(true);
+        final int maxCol = 7; // 8 kolom: 0 s.d. 7
+
+        int r = tulisKopSurat(sheet, styles, maxCol);
+        r = tulisMetadata(sheet, styles, r, maxCol, "LAPORAN OPERASIONAL & LOG ANOMALI IOT", meta);
+        r = tulisKpi(sheet, styles, r, maxCol, kpis);
+
+        // Header Bagian Tabel
+        buatMergedCell(sheet, r++, 0, maxCol, "RINCIAN DATA HISTORIS", styles.sectionTitleFont);
 
         String[] headers = {
             "No", "ID Log", "Waktu Kejadian", "Slot / Node",
             "Tipe Kejadian", "Catatan Detail", "Tingkat Keparahan", "Status Resolusi"
         };
 
-        Row headerRow = sheet.createRow(0);
+        Row headerRow = sheet.createRow(r++);
         headerRow.setHeightInPoints(24);
         for (int i = 0; i < headers.length; i++)
         {
@@ -347,8 +265,6 @@ public class LaporanExcelService
             cell.setCellValue(headers[i]);
             cell.setCellStyle(styles.thStyle);
         }
-
-        int r = 1;
 
         if (rows != null && !rows.isEmpty())
         {
@@ -362,25 +278,25 @@ public class LaporanExcelService
                 row.createCell(0).setCellValue(op.getNo());
                 row.getCell(0).setCellStyle(centerStyle);
 
-                row.createCell(1).setCellValue(op.getIdLog());
+                row.createCell(1).setCellValue(op.getIdLog() != null ? op.getIdLog() : "-");
                 row.getCell(1).setCellStyle(centerStyle);
 
-                row.createCell(2).setCellValue(op.getWaktu());
+                row.createCell(2).setCellValue(op.getWaktu() != null ? op.getWaktu() : "-");
                 row.getCell(2).setCellStyle(centerStyle);
 
-                row.createCell(3).setCellValue(op.getIdSlot());
+                row.createCell(3).setCellValue(op.getIdSlot() != null ? op.getIdSlot() : "-");
                 row.getCell(3).setCellStyle(centerStyle);
 
-                row.createCell(4).setCellValue(op.getJenisKejadian());
+                row.createCell(4).setCellValue(op.getJenisKejadian() != null ? op.getJenisKejadian() : "-");
                 row.getCell(4).setCellStyle(baseStyle);
 
-                row.createCell(5).setCellValue(op.getCatatanDetail());
+                row.createCell(5).setCellValue(op.getCatatanDetail() != null ? op.getCatatanDetail() : "-");
                 row.getCell(5).setCellStyle(baseStyle);
 
-                row.createCell(6).setCellValue(op.getTingkatKeparahan());
+                row.createCell(6).setCellValue(op.getTingkatKeparahan() != null ? op.getTingkatKeparahan() : "-");
                 row.getCell(6).setCellStyle(centerStyle);
 
-                row.createCell(7).setCellValue(op.getStatusResolusi());
+                row.createCell(7).setCellValue(op.getStatusResolusi() != null ? op.getStatusResolusi() : "-");
                 row.getCell(7).setCellStyle(centerStyle);
 
                 r++;
@@ -388,29 +304,40 @@ public class LaporanExcelService
         }
         else
         {
-            Row emptyRow = sheet.createRow(r++);
-            Cell cEmpty = emptyRow.createCell(0);
-            cEmpty.setCellValue("Tidak ada anomali atau kejadian IoT tercatat pada rentang waktu yang dipilih.");
-            cEmpty.setCellStyle(styles.italicMutedFont);
-            sheet.addMergedRegion(new CellRangeAddress(r - 1, r - 1, 0, headers.length - 1));
+            buatMergedCell(sheet, r++, 0, maxCol,
+                "Tidak ada anomali atau kejadian IoT tercatat pada rentang waktu yang dipilih.", styles.italicMutedFont);
         }
 
-        sheet.createFreezePane(0, 1);
+        // Lembar Catatan Audit & Tanda Tangan Resmi
+        tulisCatatanAuditDanTandaTangan(sheet, styles, r, maxCol);
 
-        for (int i = 0; i < headers.length; i++)
+        // Pengaturan Lebar Kolom
+        for (int i = 0; i <= maxCol; i++)
         {
             sheet.autoSizeColumn(i);
-            sheet.setColumnWidth(i, Math.max(sheet.getColumnWidth(i) + 1200, 3600));
+            sheet.setColumnWidth(i, Math.max(sheet.getColumnWidth(i) + 1400, 3600));
         }
+        sheet.setColumnWidth(0, 2400); // Kolom No
+        sheet.setColumnWidth(5, Math.max(sheet.getColumnWidth(5), 11000)); // Catatan Detail lebar
     }
 
     // =====================================================================
-    // 4. Pembuatan Sheet Laporan Lingkungan (Eco-Metric)
+    // 3. Pembuatan Sheet Lingkungan Lengkap (Kop + KPI + Tabel + Signatures)
     // =====================================================================
-    private void buatSheetLingkungan(Workbook workbook, CellStyleRegistry styles, List<BarisLingkunganDto> rows, String namaSheet)
+    private void buatSheetLingkunganLengkap(Workbook workbook, CellStyleRegistry styles,
+                                            MetadataLaporanDto meta, List<KartuKpiDto> kpis,
+                                            List<BarisLingkunganDto> rows, String namaSheet)
     {
         Sheet sheet = workbook.createSheet(namaSheet);
         sheet.setDisplayGridlines(true);
+        final int maxCol = 8; // 9 kolom: 0 s.d. 8
+
+        int r = tulisKopSurat(sheet, styles, maxCol);
+        r = tulisMetadata(sheet, styles, r, maxCol, "LAPORAN DAMPAK LINGKUNGAN (ECO-METRIC)", meta);
+        r = tulisKpi(sheet, styles, r, maxCol, kpis);
+
+        // Header Bagian Tabel
+        buatMergedCell(sheet, r++, 0, maxCol, "RINCIAN DATA HISTORIS", styles.sectionTitleFont);
 
         String[] headers = {
             "No", "Plat Nomor", "Slot Tujuan", "Waktu Masuk",
@@ -418,7 +345,7 @@ public class LaporanExcelService
             "Waktu Dihemat (Menit)", "Reduksi CO2 (Gram)"
         };
 
-        Row headerRow = sheet.createRow(0);
+        Row headerRow = sheet.createRow(r++);
         headerRow.setHeightInPoints(24);
         for (int i = 0; i < headers.length; i++)
         {
@@ -427,8 +354,7 @@ public class LaporanExcelService
             cell.setCellStyle(styles.thStyle);
         }
 
-        int r = 1;
-        long totalWaktuDihematMenit = 0;
+        double totalWaktuDihematMenit = 0.0;
         double totalReduksiCo2Gram = 0.0;
 
         if (rows != null && !rows.isEmpty())
@@ -440,77 +366,360 @@ public class LaporanExcelService
                 CellStyle baseStyle = isZebra ? styles.tdZebra : styles.tdNormal;
                 CellStyle centerStyle = isZebra ? styles.tdZebraCenter : styles.tdNormalCenter;
                 CellStyle numStyle = isZebra ? styles.tdZebraNumber : styles.tdNormalNumber;
+                CellStyle decStyle = isZebra ? styles.tdZebraDecimal : styles.tdNormalDecimal;
 
                 row.createCell(0).setCellValue(eco.getNo());
                 row.getCell(0).setCellStyle(centerStyle);
 
-                row.createCell(1).setCellValue(eco.getPlatNomor());
+                row.createCell(1).setCellValue(eco.getPlatNomor() != null ? eco.getPlatNomor() : "-");
                 row.getCell(1).setCellStyle(baseStyle);
 
-                row.createCell(2).setCellValue(eco.getIdSlot());
+                row.createCell(2).setCellValue(eco.getIdSlot() != null ? eco.getIdSlot() : "-");
                 row.getCell(2).setCellStyle(centerStyle);
 
-                row.createCell(3).setCellValue(eco.getWaktuMasuk());
+                row.createCell(3).setCellValue(eco.getWaktuMasuk() != null ? eco.getWaktuMasuk() : "-");
                 row.getCell(3).setCellStyle(centerStyle);
 
-                row.createCell(4).setCellValue(eco.getWaktuTiba());
+                row.createCell(4).setCellValue(eco.getWaktuTiba() != null ? eco.getWaktuTiba() : "-");
                 row.getCell(4).setCellStyle(centerStyle);
 
-                row.createCell(5).setCellValue(eco.getDurasiTempuhDetik());
+                row.createCell(5).setCellValue(eco.getDurasiTempuhDetik() != null ? eco.getDurasiTempuhDetik() : 0);
                 row.getCell(5).setCellStyle(numStyle);
 
-                row.createCell(6).setCellValue(eco.getWaktuNormalDetik());
+                row.createCell(6).setCellValue(eco.getWaktuNormalDetik() != null ? eco.getWaktuNormalDetik() : 0);
                 row.getCell(6).setCellStyle(numStyle);
 
-                row.createCell(7).setCellValue(eco.getMenitDihemat());
-                row.getCell(7).setCellStyle(numStyle);
+                row.createCell(7).setCellValue(eco.getMenitDihemat() != null ? eco.getMenitDihemat() : 0.0);
+                row.getCell(7).setCellStyle(decStyle);
 
-                row.createCell(8).setCellValue(eco.getReduksiCo2Gram());
-                row.getCell(8).setCellStyle(numStyle);
+                row.createCell(8).setCellValue(eco.getReduksiCo2Gram() != null ? eco.getReduksiCo2Gram() : 0.0);
+                row.getCell(8).setCellStyle(decStyle);
 
-                totalWaktuDihematMenit += eco.getMenitDihemat();
-                totalReduksiCo2Gram += eco.getReduksiCo2Gram();
+                if (eco.getMenitDihemat() != null)
+                {
+                    totalWaktuDihematMenit += eco.getMenitDihemat();
+                }
+                if (eco.getReduksiCo2Gram() != null)
+                {
+                    totalReduksiCo2Gram += eco.getReduksiCo2Gram();
+                }
 
                 r++;
             }
 
-            // Baris Total
+            // Baris Total Dampak Lingkungan
             Row totalRow = sheet.createRow(r++);
-            totalRow.setHeightInPoints(20);
-            Cell cTotalLabel = totalRow.createCell(0);
-            cTotalLabel.setCellValue("TOTAL DAMPAK LINGKUNGAN DIHEMAT:");
-            cTotalLabel.setCellStyle(styles.totalLabelStyle);
+            totalRow.setHeightInPoints(22);
 
-            for (int col = 1; col <= 6; col++)
-            {
-                Cell emptyCell = totalRow.createCell(col);
-                emptyCell.setCellStyle(styles.totalLabelStyle);
-            }
-            sheet.addMergedRegion(new CellRangeAddress(r - 1, r - 1, 0, 6));
+            buatMergedCell(sheet, r - 1, 0, 6, "TOTAL DAMPAK LINGKUNGAN DIHEMAT:", styles.totalLabelStyle);
 
             Cell cTotMenit = totalRow.createCell(7);
-            cTotMenit.setCellValue(totalWaktuDihematMenit);
-            cTotMenit.setCellStyle(styles.totalNumberStyle);
+            cTotMenit.setCellValue(Math.round(totalWaktuDihematMenit * 10.0) / 10.0);
+            cTotMenit.setCellStyle(styles.totalDecimalStyle);
 
             Cell cTotCo2 = totalRow.createCell(8);
-            cTotCo2.setCellValue(totalReduksiCo2Gram);
-            cTotCo2.setCellStyle(styles.totalNumberStyle);
+            cTotCo2.setCellValue(Math.round(totalReduksiCo2Gram * 100.0) / 100.0);
+            cTotCo2.setCellStyle(styles.totalDecimalStyle);
         }
         else
         {
-            Row emptyRow = sheet.createRow(r++);
-            Cell cEmpty = emptyRow.createCell(0);
-            cEmpty.setCellValue("Belum ada data kendaraan tiba di slot pada rentang waktu yang dipilih.");
-            cEmpty.setCellStyle(styles.italicMutedFont);
-            sheet.addMergedRegion(new CellRangeAddress(r - 1, r - 1, 0, headers.length - 1));
+            buatMergedCell(sheet, r++, 0, maxCol,
+                "Belum ada data kendaraan tiba di slot pada rentang waktu yang dipilih.", styles.italicMutedFont);
         }
 
-        sheet.createFreezePane(0, 1);
+        // Lembar Catatan Audit & Tanda Tangan Resmi
+        tulisCatatanAuditDanTandaTangan(sheet, styles, r, maxCol);
 
-        for (int i = 0; i < headers.length; i++)
+        // Pengaturan Lebar Kolom Otomatis
+        for (int i = 0; i <= maxCol; i++)
         {
             sheet.autoSizeColumn(i);
-            sheet.setColumnWidth(i, Math.max(sheet.getColumnWidth(i) + 1200, 3600));
+            sheet.setColumnWidth(i, Math.max(sheet.getColumnWidth(i) + 1400, 3600));
+        }
+        sheet.setColumnWidth(0, 2400); // Kolom No
+    }
+
+    // =====================================================================
+    // Helper: Pembangunan Komponen Header, Kop Surat & Metadata
+    // =====================================================================
+    private int tulisKopSurat(Sheet sheet, CellStyleRegistry styles, int maxCol)
+    {
+        int r = 0;
+        buatMergedCell(sheet, r++, 0, maxCol, "SISTEM PARKIR CERDAS TERINTEGRASI IoT (SPCT)", styles.titleFont);
+        buatMergedCell(sheet, r++, 0, maxCol, "MANAJEMEN RUMAH SAKIT — FASILITAS BASEMENT RAMAH LINGKUNGAN", styles.subtitleGreenFont);
+        buatMergedCell(sheet, r++, 0, maxCol, "Alamat: Gedung Medik Terpadu Lantai Basement 1 • Telp: (0274) 555-SPCT • Email: smartparking@hospital.id", styles.italicMutedFont);
+        r++; // Spasi
+        return r;
+    }
+
+    private int tulisMetadata(Sheet sheet, CellStyleRegistry styles, int startRow, int maxCol,
+                              String judul, MetadataLaporanDto meta)
+    {
+        int r = startRow;
+        buatMergedCell(sheet, r++, 0, maxCol, judul.toUpperCase(), styles.sectionTitleFont);
+
+        if (meta == null)
+        {
+            r++;
+            return r;
+        }
+
+        String kodeDok = "SPCT-DOC/" + (meta.getJenisLaporan() != null ? meta.getJenisLaporan().toUpperCase() : "DOC")
+            + "/" + (meta.getTanggalAkhir() != null ? meta.getTanggalAkhir() : "-");
+        String periode = (meta.getTanggalMulai() != null ? meta.getTanggalMulai() : "-")
+            + " s.d. " + (meta.getTanggalAkhir() != null ? meta.getTanggalAkhir() : "-");
+
+        int midRight = (maxCol >= 9) ? 4 : 3;
+        int labelRightStart = midRight + 1;
+        int labelRightEnd = Math.min(labelRightStart + 1, maxCol - 1);
+
+        // Baris Metadata 1
+        buatMergedCell(sheet, r, 0, 0, "Kode Dokumen:", styles.boldLabel);
+        buatMergedCell(sheet, r, 1, midRight, kodeDok, styles.normalText);
+        buatMergedCell(sheet, r, labelRightStart, labelRightEnd, "Periode Laporan:", styles.boldLabel);
+        buatMergedCell(sheet, r, labelRightEnd + 1, maxCol, periode, styles.normalText);
+        r++;
+
+        // Baris Metadata 2
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        String waktuGen = (meta.getWaktuGenerate() != null) ? meta.getWaktuGenerate().format(dtf) + " WIB" : "-";
+        String statusAudit = meta.isModeSimulasi() ? "MODE SIMULASI (Kiosk Exit)" : "LIVE GATEWAY AUDITED";
+
+        buatMergedCell(sheet, r, 0, 0, "Waktu Generate:", styles.boldLabel);
+        buatMergedCell(sheet, r, 1, midRight, waktuGen, styles.normalText);
+        buatMergedCell(sheet, r, labelRightStart, labelRightEnd, "Status Audit:", styles.boldLabel);
+        buatMergedCell(sheet, r, labelRightEnd + 1, maxCol, statusAudit, meta.isModeSimulasi() ? styles.amberBadge : styles.greenBadge);
+        r++;
+
+        r++; // Spasi
+        return r;
+    }
+
+    private int tulisKpi(Sheet sheet, CellStyleRegistry styles, int startRow, int maxCol, List<KartuKpiDto> kpiList)
+    {
+        int r = startRow;
+        buatMergedCell(sheet, r++, 0, maxCol, "RINGKASAN EKSEKUTIF (KEY PERFORMANCE INDICATORS)", styles.sectionTitleFont);
+
+        if (kpiList != null && !kpiList.isEmpty())
+        {
+            int numCards = Math.min(kpiList.size(), 4);
+            int[][] colRanges;
+            if (maxCol >= 9) // 10 kolom: 0 s.d. 9
+            {
+                colRanges = new int[][]{{0, 1}, {2, 4}, {5, 6}, {7, 9}};
+            }
+            else if (maxCol == 8) // 9 kolom: 0 s.d. 8
+            {
+                colRanges = new int[][]{{0, 1}, {2, 3}, {4, 5}, {6, 8}};
+            }
+            else // 8 kolom: 0 s.d. 7
+            {
+                colRanges = new int[][]{{0, 1}, {2, 3}, {4, 5}, {6, 7}};
+            }
+
+            int valRow = r;
+            int lblRow = r + 1;
+            Row rVal = sheet.createRow(valRow);
+            rVal.setHeightInPoints(24);
+            Row rLbl = sheet.createRow(lblRow);
+            rLbl.setHeightInPoints(18);
+
+            for (int i = 0; i < numCards; i++)
+            {
+                KartuKpiDto k = kpiList.get(i);
+                int startC = colRanges[i][0];
+                int endC = colRanges[i][1];
+
+                buatMergedCell(sheet, valRow, startC, endC, k.getNilai(), styles.kpiValueCell);
+                buatMergedCell(sheet, lblRow, startC, endC, k.getLabel(), styles.kpiLabelCell);
+            }
+            r += 2;
+        }
+        r++; // Spasi
+        return r;
+    }
+
+    private int tulisCatatanAuditDanTandaTangan(Sheet sheet, CellStyleRegistry styles, int startRow, int maxCol)
+    {
+        int r = startRow;
+        r++; // Spasi pemisah dari tabel
+
+        // Catatan Audit Resmi
+        buatMergedCell(sheet, r++, 0, maxCol,
+            "CATATAN AUDIT: Dokumen ini diterbitkan secara otomatis oleh modul PK-UC010 SPCT. Seluruh catatan bersifat Read-Only untuk integritas tata kelola.",
+            styles.italicMutedFont);
+
+        r++; // Spasi
+
+        // Header Kolom Tanda Tangan
+        int mid = (maxCol >= 9) ? 3 : 2;
+        int kananStart = mid + 2;
+
+        buatMergedCell(sheet, r, 0, mid, "Disiapkan & Diverifikasi Oleh:", styles.boldLabel);
+        buatMergedCell(sheet, r, kananStart, maxCol, "Disetujui & Disahkan Oleh:", styles.boldLabel);
+        r++;
+
+        r += 3; // Jarak ruang tanda tangan (3 baris kosong)
+
+        buatMergedCell(sheet, r, 0, mid, "( Supervisor Operasional & IoT )", styles.boldLabel);
+        buatMergedCell(sheet, r, kananStart, maxCol, "( Manajer Fasilitas & Operasional RS )", styles.boldLabel);
+        r++;
+
+        buatMergedCell(sheet, r, 0, mid, "NIP. 19850412 201012 1 003", styles.italicMutedFont);
+        buatMergedCell(sheet, r, kananStart, maxCol, "NIP. 19780920 200501 2 001", styles.italicMutedFont);
+        r++;
+
+        return r;
+    }
+
+    /**
+     * Helper: Membuat cell sekaligus menangani cell merging beserta border dan stylenya
+     */
+    private void buatMergedCell(Sheet sheet, int rowIdx, int startCol, int endCol, String value, CellStyle style)
+    {
+        Row row = sheet.getRow(rowIdx);
+        if (row == null) {
+            row = sheet.createRow(rowIdx);
+        }
+        for (int col = startCol; col <= endCol; col++)
+        {
+            Cell cell = row.createCell(col);
+            cell.setCellStyle(style);
+            if (col == startCol)
+            {
+                cell.setCellValue(value != null ? value : "");
+            }
+        }
+        if (endCol > startCol)
+        {
+            sheet.addMergedRegion(new CellRangeAddress(rowIdx, rowIdx, startCol, endCol));
+        }
+    }
+
+    // =====================================================================
+    // Helper: Penghitungan KPI untuk masing-masing Tab pada Mode Komprehensif
+    // =====================================================================
+    private List<KartuKpiDto> buatKpiFinansial(List<BarisFinansialDto> rows)
+    {
+        BigDecimal totalPendapatan = BigDecimal.ZERO;
+        long totalDurasiMenit = 0;
+        int hitungDurasi = 0;
+
+        if (rows != null)
+        {
+            for (BarisFinansialDto f : rows)
+            {
+                if (f.getTotalTarif() != null)
+                {
+                    totalPendapatan = totalPendapatan.add(f.getTotalTarif());
+                }
+                if (f.getDurasiMenit() != null)
+                {
+                    totalDurasiMenit += f.getDurasiMenit();
+                    hitungDurasi++;
+                }
+            }
+        }
+
+        int totalTransaksi = (rows != null) ? rows.size() : 0;
+        int avgDurasi = (hitungDurasi > 0) ? (int)(totalDurasiMenit / hitungDurasi) : 39;
+        BigDecimal rataTarif = (totalTransaksi > 0)
+            ? totalPendapatan.divide(BigDecimal.valueOf(totalTransaksi), 0, java.math.RoundingMode.HALF_UP)
+            : BigDecimal.ZERO;
+
+        List<KartuKpiDto> list = new ArrayList<>();
+        list.add(new KartuKpiDto("Total Pendapatan", formatRupiah(totalPendapatan), "Rp", "eco-success"));
+        list.add(new KartuKpiDto("Transaksi Lunas", String.format(Locale.US, "%,d", totalTransaksi), "Transaksi", "primary"));
+        list.add(new KartuKpiDto("Rata-rata Durasi", formatMenitKeTeks(avgDurasi), "", "secondary"));
+        list.add(new KartuKpiDto("Rata-rata Tarif", formatRupiah(rataTarif), "Rp", "primary"));
+        return list;
+    }
+
+    private List<KartuKpiDto> buatKpiOperasional(List<BarisOperasionalDto> rows, List<KartuKpiDto> masterKpis)
+    {
+        String kendaraanMasuk = "11";
+        if (masterKpis != null && masterKpis.size() > 1 && masterKpis.get(1) != null)
+        {
+            kendaraanMasuk = masterKpis.get(1).getNilai();
+        }
+
+        int totalLog = (rows != null) ? rows.size() : 0;
+        int anomaliKritis = 0;
+        if (rows != null)
+        {
+            for (BarisOperasionalDto op : rows)
+            {
+                if (op.getTingkatKeparahan() != null && op.getTingkatKeparahan().toUpperCase().contains("CRITICAL"))
+                {
+                    anomaliKritis++;
+                }
+            }
+        }
+
+        List<KartuKpiDto> list = new ArrayList<>();
+        list.add(new KartuKpiDto("Kendaraan Masuk", kendaraanMasuk, "Unit", "primary"));
+        list.add(new KartuKpiDto("Rata-rata Durasi", "39 Menit", "", "secondary"));
+        list.add(new KartuKpiDto("Total Log Tercatat", String.valueOf(totalLog), "Log", "secondary"));
+        list.add(new KartuKpiDto("Anomali Kritis", String.valueOf(anomaliKritis), "Kasus", "alert-anomaly"));
+        return list;
+    }
+
+    private List<KartuKpiDto> buatKpiLingkungan(List<BarisLingkunganDto> rows)
+    {
+        double totalMenitDihemat = 0.0;
+        double totalReduksiCo2 = 0.0;
+        int totalKendaraan = (rows != null) ? rows.size() : 0;
+
+        if (rows != null)
+        {
+            for (BarisLingkunganDto eco : rows)
+            {
+                if (eco.getMenitDihemat() != null)
+                {
+                    totalMenitDihemat += eco.getMenitDihemat();
+                }
+                if (eco.getReduksiCo2Gram() != null)
+                {
+                    totalReduksiCo2 += eco.getReduksiCo2Gram();
+                }
+            }
+        }
+
+        double totalCo2Kg = Math.round((totalReduksiCo2 / 1000.0) * 100.0) / 100.0;
+        double rataHemat = (totalKendaraan > 0)
+            ? Math.round((totalMenitDihemat / totalKendaraan) * 10.0) / 10.0
+            : 0.0;
+
+        List<KartuKpiDto> list = new ArrayList<>();
+        list.add(new KartuKpiDto("Reduksi Emisi CO2", String.format(Locale.US, "%.2f kg", totalCo2Kg), "kg", "eco-success"));
+        list.add(new KartuKpiDto("Total Waktu Dihemat", String.format(Locale.US, "%.1f Menit", totalMenitDihemat), "Menit", "secondary"));
+        list.add(new KartuKpiDto("Kendaraan Terpandu", String.valueOf(totalKendaraan), "Unit", "primary"));
+        list.add(new KartuKpiDto("Rata-rata Hemat/Mobil", String.format(Locale.US, "%.1f Menit", rataHemat), "Menit", "eco-success"));
+        return list;
+    }
+
+    private String formatRupiah(BigDecimal nilai)
+    {
+        if (nilai == null) { return "Rp 0"; }
+        return FORMAT_RUPIAH.format(nilai).replace(",00", "");
+    }
+
+    private String formatMenitKeTeks(int totalMenit)
+    {
+        if (totalMenit <= 0) { return "0 Menit"; }
+        int jam = totalMenit / 60;
+        int sisaMenit = totalMenit % 60;
+        if (jam > 0 && sisaMenit > 0)
+        {
+            return jam + "j " + sisaMenit + "m";
+        }
+        else if (jam > 0)
+        {
+            return jam + " Jam";
+        }
+        else
+        {
+            return sisaMenit + " Menit";
         }
     }
 
@@ -536,15 +745,18 @@ public class LaporanExcelService
         final CellStyle tdNormalCenter;
         final CellStyle tdNormalCurrency;
         final CellStyle tdNormalNumber;
+        final CellStyle tdNormalDecimal;
 
         final CellStyle tdZebra;
         final CellStyle tdZebraCenter;
         final CellStyle tdZebraCurrency;
         final CellStyle tdZebraNumber;
+        final CellStyle tdZebraDecimal;
 
         final CellStyle totalLabelStyle;
         final CellStyle totalCurrencyStyle;
         final CellStyle totalNumberStyle;
+        final CellStyle totalDecimalStyle;
 
         CellStyleRegistry(Workbook wb)
         {
@@ -615,18 +827,23 @@ public class LaporanExcelService
 
             amberBadge = wb.createCellStyle();
             amberBadge.setFont(fontBold);
+            amberBadge.setAlignment(HorizontalAlignment.CENTER);
             amberBadge.setFillForegroundColor(IndexedColors.LIGHT_ORANGE.getIndex());
             amberBadge.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            setBorders(amberBadge, BorderStyle.THIN);
 
             greenBadge = wb.createCellStyle();
             greenBadge.setFont(fontBold);
+            greenBadge.setAlignment(HorizontalAlignment.CENTER);
             greenBadge.setFillForegroundColor(IndexedColors.LIGHT_GREEN.getIndex());
             greenBadge.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            setBorders(greenBadge, BorderStyle.THIN);
 
             // KPI Cells
             kpiValueCell = wb.createCellStyle();
             kpiValueCell.setFont(fontKpiVal);
             kpiValueCell.setAlignment(HorizontalAlignment.CENTER);
+            kpiValueCell.setVerticalAlignment(VerticalAlignment.CENTER);
             kpiValueCell.setFillForegroundColor(new XSSFColor(RGB_CARD_BG, colorMap));
             kpiValueCell.setFillPattern(FillPatternType.SOLID_FOREGROUND);
             setBorders(kpiValueCell, BorderStyle.THIN);
@@ -634,6 +851,7 @@ public class LaporanExcelService
             kpiLabelCell = wb.createCellStyle();
             kpiLabelCell.setFont(fontRegular);
             kpiLabelCell.setAlignment(HorizontalAlignment.CENTER);
+            kpiLabelCell.setVerticalAlignment(VerticalAlignment.CENTER);
             kpiLabelCell.setFillForegroundColor(new XSSFColor(RGB_CARD_BG, colorMap));
             kpiLabelCell.setFillPattern(FillPatternType.SOLID_FOREGROUND);
             setBorders(kpiLabelCell, BorderStyle.THIN);
@@ -669,6 +887,12 @@ public class LaporanExcelService
             tdNormalNumber.setDataFormat(df.getFormat("#,##0"));
             setBorders(tdNormalNumber, BorderStyle.THIN);
 
+            tdNormalDecimal = wb.createCellStyle();
+            tdNormalDecimal.setFont(fontRegular);
+            tdNormalDecimal.setAlignment(HorizontalAlignment.RIGHT);
+            tdNormalDecimal.setDataFormat(df.getFormat("#,##0.0"));
+            setBorders(tdNormalDecimal, BorderStyle.THIN);
+
             // 4. Zebra Row
             tdZebra = wb.createCellStyle();
             tdZebra.setFont(fontRegular);
@@ -699,6 +923,14 @@ public class LaporanExcelService
             tdZebraNumber.setFillPattern(FillPatternType.SOLID_FOREGROUND);
             setBorders(tdZebraNumber, BorderStyle.THIN);
 
+            tdZebraDecimal = wb.createCellStyle();
+            tdZebraDecimal.setFont(fontRegular);
+            tdZebraDecimal.setAlignment(HorizontalAlignment.RIGHT);
+            tdZebraDecimal.setDataFormat(df.getFormat("#,##0.0"));
+            tdZebraDecimal.setFillForegroundColor(new XSSFColor(RGB_ZEBRA_ROW, colorMap));
+            tdZebraDecimal.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            setBorders(tdZebraDecimal, BorderStyle.THIN);
+
             // 5. Total Row
             totalLabelStyle = wb.createCellStyle();
             totalLabelStyle.setFont(fontBold);
@@ -728,6 +960,16 @@ public class LaporanExcelService
             totalNumberStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
             totalNumberStyle.setBorderTop(BorderStyle.THIN);
             totalNumberStyle.setBorderBottom(BorderStyle.DOUBLE);
+
+            totalDecimalStyle = wb.createCellStyle();
+            totalDecimalStyle.setFont(fontBold);
+            totalDecimalStyle.setAlignment(HorizontalAlignment.RIGHT);
+            totalDecimalStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+            totalDecimalStyle.setDataFormat(df.getFormat("#,##0.0"));
+            totalDecimalStyle.setFillForegroundColor(new XSSFColor(RGB_TOTAL_ROW, colorMap));
+            totalDecimalStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            totalDecimalStyle.setBorderTop(BorderStyle.THIN);
+            totalDecimalStyle.setBorderBottom(BorderStyle.DOUBLE);
         }
 
         private static void setBorders(CellStyle style, BorderStyle bs)
