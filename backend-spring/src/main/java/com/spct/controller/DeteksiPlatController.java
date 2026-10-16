@@ -169,7 +169,16 @@ public class DeteksiPlatController // Kelas controller untuk mengelola seluruh a
             return ResponseEntity.badRequest().body(new com.spct.dto.HasilDeteksiKeluarDto("ERROR", null, null, null, 0, java.math.BigDecimal.ZERO, "Parameter platNomor wajib diisi."));
         }
 
-        com.spct.dto.HasilDeteksiKeluarDto hasil = deteksiPlatService.prosesKendaraanKeluar(platFinal, saldoFinal);
+        Integer durasiMenitFinal = null;
+        if (body != null && body.containsKey("durasiMenit") && body.get("durasiMenit") != null) {
+            try {
+                durasiMenitFinal = Integer.valueOf(body.get("durasiMenit").toString());
+            } catch (Exception ex) {
+                System.err.println("[GATE KELUAR] Format durasiMenit di body tidak valid: " + ex.getMessage());
+            }
+        }
+
+        com.spct.dto.HasilDeteksiKeluarDto hasil = deteksiPlatService.prosesKendaraanKeluar(platFinal, saldoFinal, durasiMenitFinal);
         
         if ("KENDARAAN_TIDAK_DITEMUKAN".equals(hasil.getStatus())) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(hasil);

@@ -141,6 +141,12 @@ public class DeteksiPlatService // Kelas service yang mengelola alur lengkap saa
     @Transactional
     public HasilDeteksiKeluarDto prosesKendaraanKeluar(String platNomor, BigDecimal saldoEwallet)
     {
+        return prosesKendaraanKeluar(platNomor, saldoEwallet, null);
+    }
+
+    @Transactional
+    public HasilDeteksiKeluarDto prosesKendaraanKeluar(String platNomor, BigDecimal saldoEwallet, Integer durasiMenitSimulasi)
+    {
         // 1. Cari transaksi yang belum lunas
         TransaksiParkir transaksi = transaksiParkirRepository.findFirstByKendaraan_PlatNomorAndStatusPembayaranOrderByWaktuMasukDesc(
                 platNomor, StatusPembayaran.BELUM_LUNAS).orElse(null);
@@ -153,8 +159,14 @@ public class DeteksiPlatService // Kelas service yang mengelola alur lengkap saa
         LocalDateTime waktuKeluar = LocalDateTime.now();
         
         // 2. Hitung durasi parkir dalam menit, dan jam (pembulatan ke atas, minimal 1 jam) untuk tampilan kiosk
-        java.time.Duration duration = java.time.Duration.between(waktuMasuk, waktuKeluar);
-        long minutes = duration.toMinutes();
+        long minutes;
+        if (durasiMenitSimulasi != null && durasiMenitSimulasi > 0) {
+            minutes = durasiMenitSimulasi;
+            waktuKeluar = waktuMasuk.plusMinutes(minutes);
+        } else {
+            java.time.Duration duration = java.time.Duration.between(waktuMasuk, waktuKeluar);
+            minutes = duration.toMinutes();
+        }
         long hours = (long) Math.ceil(minutes / 60.0);
         if (hours < 1) hours = 1; 
         
