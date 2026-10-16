@@ -2,10 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import AppLayout from '../components/AppLayout';
 import Chart from 'chart.js/auto';
 
-// Daftar 15 Slot Standar Lantai 1
+// Daftar 16 Slot Standar Lantai 1
 const DEFAULT_SLOTS = [
   'B1-01', 'B1-02', 'B1-03', 'B1-04', 'B1-05', 'B1-06', 'B1-07', 'B1-08',
-  'B1-09', 'B1-10', 'B1-11', 'B1-12', 'B1-13', 'B1-14', 'B1-15'
+  'B1-09', 'B1-10', 'B1-11', 'B1-12', 'B1-13', 'B1-14', 'B1-15', 'B1-16'
 ];
 
 export default function DashboardManagementPage() {
@@ -232,8 +232,8 @@ export default function DashboardManagementPage() {
     persentaseCo2: 0,
     slotKosongSaatIni: 0,
     slotTerisiSaatIni: 0,
-    totalSensor: 15,
-    totalSensorAktif: 15,
+    totalSensor: 16,
+    totalSensorAktif: 16,
     totalTransaksiLunas: 0,
     rataRataTarifTransaksi: 0,
     revenuePerSlot: 0,
@@ -247,7 +247,7 @@ export default function DashboardManagementPage() {
   const pendapatanBulananVal = safeData.pendapatanBulanan ?? safeData.pendapatanTotal ?? 0;
 
   // Kalkulasi Dinamis Kepadatan Zona Mobil
-  const totalSlotMobil = (safeData.slotTerisiSaatIni + safeData.slotKosongSaatIni) || 15;
+  const totalSlotMobil = (safeData.slotTerisiSaatIni + safeData.slotKosongSaatIni) || 16;
   const pctMobil = Math.min(100, Math.round((safeData.slotTerisiSaatIni / totalSlotMobil) * 100));
   const statusMobil = pctMobil > 80 ? 'Padat' : (pctMobil >= 50 ? 'Sedang' : 'Normal');
   const colorMobil = pctMobil > 80 ? 'text-alert-anomaly' : (pctMobil >= 50 ? 'text-warning-reserved' : 'text-eco-success');
@@ -311,13 +311,13 @@ export default function DashboardManagementPage() {
     },
   ];
 
-  const sensorAktif = safeData.totalSensorAktif ?? 15;
-  const totalSensor = safeData.totalSensor ?? 15;
+  const sensorAktif = safeData.totalSensorAktif ?? 16;
+  const totalSensor = safeData.totalSensor ?? 16;
   const sensorPct = totalSensor > 0 ? Math.round((sensorAktif / totalSensor) * 100) : 100;
 
   // Render Baris Slot Lantai 1
   const row1Slots = DEFAULT_SLOTS.slice(0, 8); // B1-01 s.d. B1-08 (8 Slot)
-  const row2Slots = DEFAULT_SLOTS.slice(8, 15); // B1-09 s.d. B1-15 (7 Slot)
+  const row2Slots = DEFAULT_SLOTS.slice(8, 16); // B1-09 s.d. B1-16 (8 Slot)
 
   return (
     <AppLayout breadcrumb="Management Oversight" status="System Optimal">
@@ -770,7 +770,7 @@ export default function DashboardManagementPage() {
                         })}
                       </div>
 
-                      {/* Baris 2: 7 Slot (B1-09 s.d. B1-15) */}
+                      {/* Baris 2: 8 Slot (B1-09 s.d. B1-16) */}
                       <div className="grid grid-cols-4 sm:grid-cols-8 gap-3 relative z-10">
                         {row2Slots.map(slotId => {
                           const hasAnomaly = !!nodeAnomaliMap[slotId];
@@ -796,11 +796,6 @@ export default function DashboardManagementPage() {
                             </div>
                           );
                         })}
-
-                        {/* Slot ke-8 baris kedua kosong / lorong akses */}
-                        <div className="h-14 rounded-lg border border-slate-900 border-dashed text-slate-700 flex items-center justify-center font-mono text-[10px] opacity-40">
-                          EXIT / RAM
-                        </div>
                       </div>
 
                     </div>

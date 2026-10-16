@@ -73,8 +73,8 @@ export default function NavigationPage() {
     }
   };
 
-  // Generate 15 Slot Statis untuk digambar di Peta sebagai latar belakang
-  const allSlots = Array.from({length: 15}, (_, i) => {
+  // Generate 16 Slot Statis untuk digambar di Peta sebagai latar belakang (B1-01 s.d. B1-16)
+  const allSlots = Array.from({length: 16}, (_, i) => {
     const id = i + 1;
     const col = Math.floor((id + 1) / 2);
     const x = 20 * col;
