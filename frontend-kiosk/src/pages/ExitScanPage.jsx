@@ -1,22 +1,54 @@
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function ExitScanPage() {
   const navigate = useNavigate();
   const [isScanning, setIsScanning] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   
+  // Antrean kendaraan yang sedang aktif parkir di basement (FIFO)
+  const [antrean, setAntrean] = useState([]);
+  const [isLoadingAntrean, setIsLoadingAntrean] = useState(true);
+
   // Untuk simulasi, kita bisa atur saldo e-wallet dan durasi parkir
   const [saldo, setSaldo] = useState(50000); 
   const [durasiSimulasi, setDurasiSimulasi] = useState(60); // Default 60 menit (Tarif Flat Rp 5.000)
 
+  // Fetch antrean kendaraan secara periodik (setiap 2 detik)
+  useEffect(() => {
+    const fetchAntrean = async () => {
+      try {
+        const res = await fetch('/api/gate/antrean-keluar');
+        if (res.ok) {
+          const data = await res.json();
+          setAntrean(data);
+        }
+      } catch (err) {
+        console.error("Gagal memuat antrean kendaraan keluar:", err);
+      } finally {
+        setIsLoadingAntrean(false);
+      }
+    };
+
+    fetchAntrean();
+    const interval = setInterval(fetchAntrean, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const kendaraanTerdepan = antrean.length > 0 ? antrean[0] : null;
+
   const simulateExitArrival = async () => {
     if (isScanning) return;
+    if (!kendaraanTerdepan && antrean.length === 0) {
+      setErrorMsg("Tidak ada kendaraan yang sedang parkir di dalam area parkir.");
+      return;
+    }
+
     setIsScanning(true);
     setErrorMsg(null);
     
-    // Plat nomor dummy yang sama saat masuk ("D 1234 SPCT")
-    const dummyPlate = "D 1234 SPCT";
+    // Gunakan plat nomor antrean terdepan (FIFO)
+    const platKeluar = kendaraanTerdepan ? kendaraanTerdepan.platNomor : "QUEUE";
 
     try {
       // Panggil API Deteksi Plat Keluar 
@@ -25,7 +57,7 @@ export default function ExitScanPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-            platNomor: dummyPlate,
+            platNomor: platKeluar,
             saldoEwallet: Number(saldo),
             durasiMenit: Number(durasiSimulasi)
         })
@@ -104,6 +136,7 @@ export default function ExitScanPage() {
               onChange={e => setDurasiSimulasi(Number(e.target.value))}
               className="bg-slate-800 text-white p-2 rounded border border-slate-600 w-full text-xs font-mono focus:outline-none focus:border-red-400"
             >
+              <option value="0">Real-time (Waktu Sebenarnya)</option>
               <option value="60">1 Jam (Tarif Flat Rp 5.000)</option>
               <option value="5">5 Menit (Grace Period / Gratis Rp 0)</option>
               <option value="300">5 Jam (Tarif Flat Rp 5.000)</option>
@@ -112,7 +145,7 @@ export default function ExitScanPage() {
             </select>
         </div>
 
-        {/* Static Scanner Reticle UI */}
+        {/* Dynamic Scanner Reticle UI dengan Indikator Kendaraan Antrean Keluar */}
         <div className="relative w-full max-w-[320px] aspect-[16/9] border border-slate-700/50 rounded-xl bg-[#0B1526]/30 backdrop-blur-sm mb-12 flex items-center justify-center shadow-lg">
           <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-red-400 rounded-tl-xl opacity-80"></div>
           <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-red-400 rounded-tr-xl opacity-80"></div>
@@ -122,7 +155,29 @@ export default function ExitScanPage() {
           {isScanning && <div className="absolute top-1/3 left-0 w-full h-[2px] bg-red-400 shadow-[0_0_15px_rgba(248,113,113,0.9)] animate-[pulse_1s_ease-in-out_infinite]"></div>}
           <div className="absolute inset-0 bg-gradient-to-b from-red-500/5 via-transparent to-transparent rounded-xl"></div>
           
-          <span className="material-symbols-outlined text-[64px] text-red-500/30" style={{ fontVariationSettings: "'FILL' 1" }}>exit_to_app</span>
+          {/* Konten Reticle: Info Kendaraan Terdepan Antrean Keluar */}
+          {isLoadingAntrean ? (
+            <span className="text-xs font-mono text-slate-400 animate-pulse">Mendeteksi kendaraan...</span>
+          ) : kendaraanTerdepan ? (
+            <div className="flex flex-col items-center gap-1.5 z-10 px-4 text-center">
+              <span className="text-[10px] tracking-widest uppercase font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                Antrean 1 dari {antrean.length}
+              </span>
+              <span className="font-mono text-2xl font-bold tracking-widest text-slate-100 drop-shadow-[0_0_12px_rgba(255,255,255,0.4)]">
+                {kendaraanTerdepan.platNomor}
+              </span>
+              <span className="text-xs font-mono text-slate-400">
+                Posisi Slot: <strong className="text-emerald-400 font-bold">{kendaraanTerdepan.idSlot}</strong>
+              </span>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-1 z-10 text-center px-4">
+              <span className="material-symbols-outlined text-[42px] text-slate-600 mb-1">no_crash</span>
+              <span className="font-mono text-xs text-slate-400 tracking-wider">AREA PARKIR KOSONG</span>
+              <span className="text-[10px] text-slate-500">Semua kendaraan sudah keluar</span>
+            </div>
+          )}
         </div>
 
         {/* Typography Display */}
@@ -137,17 +192,26 @@ export default function ExitScanPage() {
             </p>
           )}
 
-          {/* SIMULATION BUTTON */}
+          {/* SIMULATION BUTTON - Terhubung ke antrean FIFO */}
           <button 
             onClick={simulateExitArrival}
-            disabled={isScanning}
-            className="bg-[#0f1b2e] hover:bg-[#1a2c47] border border-slate-700 text-red-400 px-8 py-4 rounded-xl mt-4 w-full max-w-sm mx-auto flex items-center justify-center gap-3 transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
+            disabled={isScanning || (!kendaraanTerdepan && antrean.length === 0)}
+            className={`px-8 py-4 rounded-xl mt-4 w-full max-w-sm mx-auto flex items-center justify-center gap-3 transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.5)] ${
+              !kendaraanTerdepan && antrean.length === 0
+                ? 'bg-slate-800/40 border border-slate-700/40 text-slate-500 cursor-not-allowed'
+                : 'bg-[#0f1b2e] hover:bg-[#1a2c47] border border-slate-700 text-red-400 cursor-pointer active:scale-95'
+            }`}
           >
             <span className="material-symbols-outlined font-light">
               {isScanning ? "sync" : "qr_code_scanner"}
             </span>
-            <span className="font-semibold tracking-wide">
-              {isScanning ? "Processing Payment..." : "Simulasi Keluar / Tap Kartu"}
+            <span className="font-semibold tracking-wide text-sm font-mono">
+              {isScanning 
+                ? "Memproses Pembayaran..." 
+                : kendaraanTerdepan 
+                  ? `Keluar: ${kendaraanTerdepan.platNomor} (${kendaraanTerdepan.idSlot})`
+                  : "Tidak Ada Kendaraan di Parkiran"
+              }
             </span>
           </button>
         </div>

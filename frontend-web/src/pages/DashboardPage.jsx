@@ -21,10 +21,10 @@ export default function DashboardPage() {
   const fetchAll = useCallback(async () => {
     try {
       const [slotsRes, kameraRes, sensorRes, logsRes] = await Promise.all([
-        fetch(`${API_BASE}/api/monitoring/slots`),
-        fetch(`${API_BASE}/api/hardware/kamera`),
-        fetch(`${API_BASE}/api/hardware/sensor`),
-        fetch(`${API_BASE}/api/monitoring/log-iot`),
+        fetch(`${API_BASE}/api/monitoring/slots`, { cache: 'no-store' }),
+        fetch(`${API_BASE}/api/hardware/kamera`, { cache: 'no-store' }),
+        fetch(`${API_BASE}/api/hardware/sensor`, { cache: 'no-store' }),
+        fetch(`${API_BASE}/api/monitoring/log-iot`, { cache: 'no-store' }),
       ]);
 
       if (slotsRes.ok)  setSlots(await slotsRes.json());
@@ -40,7 +40,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchAll();
-    const interval = setInterval(fetchAll, 10000); // Auto-refresh 10 detik
+    const interval = setInterval(fetchAll, 1500); // Auto-refresh real-time 1.5 detik
     return () => clearInterval(interval);
   }, [fetchAll]);
 
