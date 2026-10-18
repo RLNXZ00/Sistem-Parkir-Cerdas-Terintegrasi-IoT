@@ -331,37 +331,59 @@ public class LaporanPdfService
     // =====================================================================
     private void tambahkanTabelOperasional(Document document, List<BarisOperasionalDto> rows) throws DocumentException
     {
-        PdfPTable table = new PdfPTable(8);
+        // Inisialisasi tabel PDF dengan 9 kolom (menampung kolom tambahan Jenis Anomali)
+        PdfPTable table = new PdfPTable(9);
+        // Mengatur lebar tabel sebesar 100 persen dari lebar halaman PDF
         table.setWidthPercentage(100);
-        table.setWidths(new float[]{4, 10, 16, 10, 18, 26, 8, 8});
+        // Mengatur proporsi lebar relatif untuk kesembilan kolom
+        table.setWidths(new float[]{4, 10, 14, 9, 15, 12, 22, 7, 7});
 
-        String[] headers = {"No", "ID Log", "Waktu Kejadian", "Slot / Node", "Tipe Kejadian", "Catatan Detail", "Severity", "Status"};
+        // Array headers judul kolom untuk tabel laporan operasional dan anomali
+        String[] headers = {"No", "ID Log", "Waktu Kejadian", "Slot / Node", "Tipe Kejadian", "Jenis Anomali", "Catatan Detail", "Severity", "Status"};
+        // Looping untuk menambahkan setiap sel header ke dalam objek tabel
         for (String h : headers) { addHeaderCell(table, h); }
 
+        // Jika rows bernilai null atau kosong, maka:
         if (rows == null || rows.isEmpty())
         {
-            addEmptyRow(table, 8, "Tidak ada log kejadian atau anomali pada periode ini.");
+            // Menampilkan satu baris kosong dengan pesan pemberitahuan yang di-span 9 kolom
+            addEmptyRow(table, 9, "Tidak ada log kejadian atau anomali pada periode ini.");
         }
-        else
+        else // Jika terdapat rekaman data, maka:
         {
+            // Deklarasi atribut alternate bertipe boolean untuk pewarnaan baris selang-seling (zebra pattern)
             boolean alternate = false;
+            // Looping setiap objek BarisOperasionalDto dari list rows:
             for (BarisOperasionalDto r : rows)
             {
+                // Inisialisasi warna latar baris: abu-abu muda jika alternate true, putih jika false
                 java.awt.Color bg = alternate ? COLOR_ZEBRA_BG : java.awt.Color.WHITE;
+                // Membalikkan nilai boolean alternate untuk baris berikutnya
                 alternate = !alternate;
 
+                // Menambahkan sel kolom 0: Nomor urut baris (rata tengah)
                 addCell(table, String.valueOf(r.getNo()), Element.ALIGN_CENTER, bg, FONT_TD);
+                // Menambahkan sel kolom 1: ID Log (rata kiri, font tebal)
                 addCell(table, r.getIdLog(), Element.ALIGN_LEFT, bg, FONT_TD_BOLD);
+                // Menambahkan sel kolom 2: Waktu kejadian (rata tengah)
                 addCell(table, r.getWaktu(), Element.ALIGN_CENTER, bg, FONT_TD);
+                // Menambahkan sel kolom 3: Identitas slot parkir (rata tengah, font tebal)
                 addCell(table, r.getIdSlot(), Element.ALIGN_CENTER, bg, FONT_TD_BOLD);
+                // Menambahkan sel kolom 4: Tipe kejadian sistem (rata kiri)
                 addCell(table, r.getJenisKejadian(), Element.ALIGN_LEFT, bg, FONT_TD);
+                // Menambahkan sel kolom 5: Kategori jenis anomali dari penanganan petugas (rata tengah)
+                addCell(table, r.getJenisAnomali() != null ? r.getJenisAnomali() : "-", Element.ALIGN_CENTER, bg, FONT_TD);
+                // Menambahkan sel kolom 6: Catatan detail kejadian (rata kiri)
                 addCell(table, r.getCatatanDetail(), Element.ALIGN_LEFT, bg, FONT_TD);
+                // Menambahkan sel kolom 7: Tingkat keparahan severity (warna merah jika CRITICAL)
                 addCell(table, r.getTingkatKeparahan(), Element.ALIGN_CENTER, bg,
                     "CRITICAL".equals(r.getTingkatKeparahan()) ? FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.5f, java.awt.Color.RED) : FONT_TD);
+                // Menambahkan sel kolom 8: Status resolusi validasi petugas (rata tengah)
                 addCell(table, r.getStatusResolusi(), Element.ALIGN_CENTER, bg, FONT_TD);
             }
         }
 
+        // Menambahkan elemen tabel operasional ke dalam dokumen PDF
         document.add(table);
     }
 

@@ -37,6 +37,10 @@ public class LogOperasionalIoT
     @Column(name = "status_resolusi", nullable = false)
     private StatusResolusi statusResolusi; // Status penanganan: belum ditangani atau sudah divalidasi petugas
 
+    // Deklarasi atribut jenisAnomali bertipe String untuk menyimpan hasil klasifikasi anomali dari petugas (misal: Salah Parkir, Benda Asing, Keberadaan Manusia)
+    @Column(name = "jenis_anomali", length = 100)
+    private String jenisAnomali; // Kategori anomali spesifik yang dipilih saat penanganan di lapangan
+
     @Column(name = "catatan_detail", length = 500)
     private String catatanDetail; // Penjelasan detail kejadian (misal: "Slot B1-12: status DB=KOSONG, sensor=TERISI")
 
@@ -57,6 +61,7 @@ public class LogOperasionalIoT
         this.jenisKejadian = jenisKejadian;         // Menginisialisasi atribut jenisKejadian
         this.tingkatKeparahan = tingkatKeparahan;   // Menginisialisasi atribut tingkatKeparahan
         this.catatanDetail = catatanDetail;         // Menginisialisasi atribut catatanDetail
+        this.jenisAnomali = "-";                    // Menginisialisasi atribut jenisAnomali dengan nilai default tanda hubung strip
         this.waktuKejadian = LocalDateTime.now();   // Mencatat waktu kejadian otomatis saat log dibuat
         this.statusResolusi = StatusResolusi.BELUM_DITANGANI; // Default: semua log baru belum ditangani
     }
@@ -127,6 +132,20 @@ public class LogOperasionalIoT
     public String getCatatanDetail() // Deklarasi method getter untuk catatanDetail
     {
         return catatanDetail; // Mengembalikan nilai atribut catatanDetail
+    }
+
+    // Method setter setJenisAnomali(String) untuk mengisi atau memperbarui data jenis anomali
+    public void setJenisAnomali(String jenisAnomali)
+    {
+        // Mengubah nilai atribut jenisAnomali dengan parameter jenisAnomali yang diberikan
+        this.jenisAnomali = jenisAnomali;
+    }
+
+    // Method getter getJenisAnomali() untuk mengambil nilai jenis anomali
+    public String getJenisAnomali()
+    {
+        // Mengembalikan nilai string dari atribut jenisAnomali
+        return this.jenisAnomali;
     }
 
     public void setSlotTerkait(SlotParkir slotTerkait) // Deklarasi method setter untuk slotTerkait

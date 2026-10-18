@@ -197,28 +197,75 @@ public class LaporanResponseDto
     // =====================================================================
     public static class BarisOperasionalDto
     {
+        // Deklarasi atribut no bertipe int untuk nomor urut baris tabel
         private int no;
+        // Deklarasi atribut idLog bertipe String untuk menyimpan kode format log kejadian
         private String idLog;
+        // Deklarasi atribut waktu bertipe String untuk format waktu kejadian
         private String waktu;
+        // Deklarasi atribut idSlot bertipe String untuk identitas slot parkir terkait
         private String idSlot;
+        // Deklarasi atribut jenisKejadian bertipe String untuk jenis event sistem IoT
         private String jenisKejadian;
+        // Deklarasi atribut jenisAnomali bertipe String untuk menyimpan kategori anomali hasil input petugas
+        private String jenisAnomali;
+        // Deklarasi atribut catatanDetail bertipe String untuk deskripsi catatan log
         private String catatanDetail;
+        // Deklarasi atribut tingkatKeparahan bertipe String untuk level severity log
         private String tingkatKeparahan;
+        // Deklarasi atribut statusResolusi bertipe String untuk status validasi penanganan
         private String statusResolusi;
 
+        // Constructor default tanpa parameter
         public BarisOperasionalDto() {}
 
+        // Constructor dengan 8 parameter (kompatibilitas mundur)
         public BarisOperasionalDto(int no, String idLog, String waktu, String idSlot,
                                    String jenisKejadian, String catatanDetail,
                                    String tingkatKeparahan, String statusResolusi)
         {
+            // Inisialisasi atribut no dengan parameter no
             this.no = no;
+            // Inisialisasi atribut idLog dengan parameter idLog
             this.idLog = idLog;
+            // Inisialisasi atribut waktu dengan parameter waktu
             this.waktu = waktu;
+            // Inisialisasi atribut idSlot dengan parameter idSlot
             this.idSlot = idSlot;
+            // Inisialisasi atribut jenisKejadian dengan parameter jenisKejadian
             this.jenisKejadian = jenisKejadian;
+            // Inisialisasi atribut jenisAnomali dengan nilai default strip
+            this.jenisAnomali = "-";
+            // Inisialisasi atribut catatanDetail dengan parameter catatanDetail
             this.catatanDetail = catatanDetail;
+            // Inisialisasi atribut tingkatKeparahan dengan parameter tingkatKeparahan
             this.tingkatKeparahan = tingkatKeparahan;
+            // Inisialisasi atribut statusResolusi dengan parameter statusResolusi
+            this.statusResolusi = statusResolusi;
+        }
+
+        // Constructor lengkap dengan 9 parameter menyertakan jenisAnomali
+        public BarisOperasionalDto(int no, String idLog, String waktu, String idSlot,
+                                   String jenisKejadian, String jenisAnomali, String catatanDetail,
+                                   String tingkatKeparahan, String statusResolusi)
+        {
+            // Inisialisasi atribut no dengan parameter no
+            this.no = no;
+            // Inisialisasi atribut idLog dengan parameter idLog
+            this.idLog = idLog;
+            // Inisialisasi atribut waktu dengan parameter waktu
+            this.waktu = waktu;
+            // Inisialisasi atribut idSlot dengan parameter idSlot
+            this.idSlot = idSlot;
+            // Inisialisasi atribut jenisKejadian dengan parameter jenisKejadian
+            this.jenisKejadian = jenisKejadian;
+            // Inisialisasi atribut jenisAnomali dengan parameter jenisAnomali
+            this.jenisAnomali = (jenisAnomali != null && !jenisAnomali.trim().isEmpty()) ? jenisAnomali : "-";
+            // Inisialisasi atribut catatanDetail dengan parameter catatanDetail
+            this.catatanDetail = catatanDetail;
+            // Inisialisasi atribut tingkatKeparahan dengan parameter tingkatKeparahan
+            this.tingkatKeparahan = tingkatKeparahan;
+            // Inisialisasi atribut statusResolusi dengan parameter statusResolusi
             this.statusResolusi = statusResolusi;
         }
 
@@ -232,6 +279,10 @@ public class LaporanResponseDto
         public void setIdSlot(String idSlot) { this.idSlot = idSlot; }
         public String getJenisKejadian() { return jenisKejadian; }
         public void setJenisKejadian(String jenisKejadian) { this.jenisKejadian = jenisKejadian; }
+        // Method getter getJenisAnomali() untuk mengambil nilai jenis anomali
+        public String getJenisAnomali() { return jenisAnomali; }
+        // Method setter setJenisAnomali(String) untuk mengubah nilai jenis anomali
+        public void setJenisAnomali(String jenisAnomali) { this.jenisAnomali = jenisAnomali; }
         public String getCatatanDetail() { return catatanDetail; }
         public void setCatatanDetail(String catatanDetail) { this.catatanDetail = catatanDetail; }
         public String getTingkatKeparahan() { return tingkatKeparahan; }

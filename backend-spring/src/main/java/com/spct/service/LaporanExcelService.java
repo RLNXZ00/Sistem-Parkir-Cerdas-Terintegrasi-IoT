@@ -243,7 +243,8 @@ public class LaporanExcelService
     {
         Sheet sheet = workbook.createSheet(namaSheet);
         sheet.setDisplayGridlines(true);
-        final int maxCol = 7; // 8 kolom: 0 s.d. 7
+        // Deklarasi atribut maxCol bertipe int dengan inisialisasi nilai 8 (total 9 kolom: indeks 0 sampai 8)
+        final int maxCol = 8;
 
         int r = tulisKopSurat(sheet, styles, maxCol);
         r = tulisMetadata(sheet, styles, r, maxCol, "LAPORAN OPERASIONAL & LOG ANOMALI IOT", meta);
@@ -252,9 +253,10 @@ public class LaporanExcelService
         // Header Bagian Tabel
         buatMergedCell(sheet, r++, 0, maxCol, "RINCIAN DATA HISTORIS", styles.sectionTitleFont);
 
+        // Array judul kolom tabel operasional yang kini mencakup Jenis Anomali
         String[] headers = {
             "No", "ID Log", "Waktu Kejadian", "Slot / Node",
-            "Tipe Kejadian", "Catatan Detail", "Tingkat Keparahan", "Status Resolusi"
+            "Tipe Kejadian", "Jenis Anomali", "Catatan Detail", "Tingkat Keparahan", "Status Resolusi"
         };
 
         Row headerRow = sheet.createRow(r++);
@@ -275,29 +277,41 @@ public class LaporanExcelService
                 CellStyle baseStyle = isZebra ? styles.tdZebra : styles.tdNormal;
                 CellStyle centerStyle = isZebra ? styles.tdZebraCenter : styles.tdNormalCenter;
 
+                // Kolom 0: Nomor urut baris
                 row.createCell(0).setCellValue(op.getNo());
                 row.getCell(0).setCellStyle(centerStyle);
 
+                // Kolom 1: Kode ID Log
                 row.createCell(1).setCellValue(op.getIdLog() != null ? op.getIdLog() : "-");
                 row.getCell(1).setCellStyle(centerStyle);
 
+                // Kolom 2: Waktu kejadian sensor IoT
                 row.createCell(2).setCellValue(op.getWaktu() != null ? op.getWaktu() : "-");
                 row.getCell(2).setCellStyle(centerStyle);
 
+                // Kolom 3: Identitas slot parkir
                 row.createCell(3).setCellValue(op.getIdSlot() != null ? op.getIdSlot() : "-");
                 row.getCell(3).setCellStyle(centerStyle);
 
+                // Kolom 4: Jenis kejadian dari sistem
                 row.createCell(4).setCellValue(op.getJenisKejadian() != null ? op.getJenisKejadian() : "-");
                 row.getCell(4).setCellStyle(baseStyle);
 
-                row.createCell(5).setCellValue(op.getCatatanDetail() != null ? op.getCatatanDetail() : "-");
-                row.getCell(5).setCellStyle(baseStyle);
+                // Kolom 5: Kategori jenis anomali yang divalidasi petugas lapangan
+                row.createCell(5).setCellValue(op.getJenisAnomali() != null ? op.getJenisAnomali() : "-");
+                row.getCell(5).setCellStyle(centerStyle);
 
-                row.createCell(6).setCellValue(op.getTingkatKeparahan() != null ? op.getTingkatKeparahan() : "-");
-                row.getCell(6).setCellStyle(centerStyle);
+                // Kolom 6: Catatan detail kejadian atau kronologi
+                row.createCell(6).setCellValue(op.getCatatanDetail() != null ? op.getCatatanDetail() : "-");
+                row.getCell(6).setCellStyle(baseStyle);
 
-                row.createCell(7).setCellValue(op.getStatusResolusi() != null ? op.getStatusResolusi() : "-");
+                // Kolom 7: Tingkat keparahan severity (CRITICAL, WARNING, INFO)
+                row.createCell(7).setCellValue(op.getTingkatKeparahan() != null ? op.getTingkatKeparahan() : "-");
                 row.getCell(7).setCellStyle(centerStyle);
+
+                // Kolom 8: Status resolusi tindak lanjut
+                row.createCell(8).setCellValue(op.getStatusResolusi() != null ? op.getStatusResolusi() : "-");
+                row.getCell(8).setCellStyle(centerStyle);
 
                 r++;
             }

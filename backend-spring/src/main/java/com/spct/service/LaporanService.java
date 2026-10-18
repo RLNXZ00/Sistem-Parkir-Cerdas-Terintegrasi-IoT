@@ -223,15 +223,22 @@ public class LaporanService
             String keparahan = (l.getTingkatKeparahan() != null) ? l.getTingkatKeparahan().name() : "-";
             String status = (l.getStatusResolusi() != null) ? l.getStatusResolusi().name() : "-";
 
+            // Inisialisasi atribut jenisAnomaliStr dengan nilai dari entity log jika tersedia, atau tanda hubung jika null/kosong
+            String jenisAnomaliStr = (l.getJenisAnomali() != null && !l.getJenisAnomali().trim().isEmpty())
+                ? l.getJenisAnomali().trim()
+                : "-";
+
+            // Menambahkan baris baru ke list tabel operasional dengan memanggil konstruktor 9 parameter
             tabel.add(new BarisOperasionalDto(
-                no++,
-                idLogStr,
-                waktuStr,
-                idSlot,
-                jenisKej,
-                l.getCatatanDetail(),
-                keparahan,
-                status
+                no++,              // Parameter nomor urut dengan increment 1
+                idLogStr,          // Parameter format ID log
+                waktuStr,          // Parameter teks waktu kejadian
+                idSlot,            // Parameter ID slot parkir
+                jenisKej,          // Parameter tipe event sistem
+                jenisAnomaliStr,   // Parameter kategori jenis anomali dari validasi petugas
+                l.getCatatanDetail(), // Parameter detail catatan kejadian
+                keparahan,         // Parameter tingkat keparahan severity
+                status             // Parameter status resolusi penanganan
             ));
         }
 
