@@ -24,15 +24,25 @@ export default function AnomalyLogsPage() {
       const res = await fetch(`${API_BASE}/api/monitoring/log-iot`);
       if (res.ok) {
         const data = await res.json();
-        // Map backend model to frontend structure
+        // Melakukan pemetaan properti dari model backend ke struktur data state frontend
         const mapped = data.map(log => ({
+          // Inisialisasi properti id dengan idLog dari database
           id: log.idLog,
+          // Inisialisasi properti slot dengan kode slot terkait
           slot: log.slotTerkait?.idSlot || '-',
+          // Inisialisasi properti type dengan enum jenisKejadian sistem
           type: log.jenisKejadian,
+          // Inisialisasi properti jenisAnomali dengan nilai kategori anomali dari database
+          jenisAnomali: log.jenisAnomali || '-',
+          // Inisialisasi properti severity dengan tingkat keparahan
           severity: log.tingkatKeparahan,
+          // Inisialisasi format waktu kejadian ke string lokal Indonesia
           time: new Date(log.waktuKejadian).toLocaleTimeString('id-ID'),
+          // Inisialisasi properti desc dengan catatan detail log
           desc: log.catatanDetail,
+          // Inisialisasi properti plate dengan plat nomor kendaraan aktif
           plate: log.slotTerkait?.kendaraanAktif?.platNomor || 'UNKNOWN',
+          // Inisialisasi properti status dengan status resolusi saat ini
           status: log.statusResolusi
         }));
         setAnomalies(mapped);
@@ -50,16 +60,36 @@ export default function AnomalyLogsPage() {
     return () => clearInterval(interval);
   }, [fetchAnomalies]);
 
+  // Method handleAction untuk mengirim payload validasi anomali ke endpoint backend
   const handleAction = async (id, action) => {
     try {
-      // You could pass jenisAnomali and pesanLain to backend if the API supported it
-      // but for now we just resolve it
+      // Inisialisasi objek payload body request yang akan dikirimkan ke server backend
+      const payload = {
+        // Jika action adalah dismiss (False Positive), beri nilai 'False Positive', jika tidak ambil nilai state jenisAnomali
+        jenisAnomali: action === 'dismiss' ? 'False Positive' : jenisAnomali,
+        // Jika action adalah dismiss, beri keterangan default, jika tidak ambil nilai state pesanLain
+        catatanTambahan: action === 'dismiss' ? 'Ditandai False Positive oleh petugas' : pesanLain
+      };
+
+      // Mengirimkan request HTTP PUT ke server Spring Boot dengan header JSON dan payload body
       await fetch(`${API_BASE}/api/monitoring/anomali/${id}/selesai`, {
-        method: 'PUT'
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
       });
-      fetchAnomalies(); // refresh
+
+      // Mengambil data log anomali terbaru dari database
+      fetchAnomalies();
+      // Menutup tampilan modal dialog dengan mengubah state selectedAnomaly menjadi null
       setSelectedAnomaly(null);
+      // Mereset isian teks catatan tambahan menjadi string kosong
+      setPesanLain('');
+      // Mereset pilihan dropdown jenis anomali kembali ke default "Salah Parkir"
+      setJenisAnomali('Salah Parkir');
     } catch (e) {
+      // Menampilkan log error di konsol jika terjadi kegagalan pemanggilan API
       console.error('Failed to resolve anomaly', e);
     }
   };
@@ -128,6 +158,10 @@ export default function AnomalyLogsPage() {
                       <div className="flex flex-wrap gap-4 text-xs font-mono text-on-surface-variant">
                         <span>Plat: <span className="text-primary">{anomaly.plate}</span></span>
                         <span>Waktu: {anomaly.time}</span>
+                        {/* Jika jenis anomali sudah tersimpan dan bukan strip default, tampilkan badge kategori */}
+                        {anomaly.jenisAnomali && anomaly.jenisAnomali !== '-' && (
+                          <span>Kategori: <span className="text-on-surface font-semibold bg-surface-container px-2 py-0.5 rounded border border-outline-variant/30 text-primary">{anomaly.jenisAnomali}</span></span>
+                        )}
                         <span className={`font-semibold ${resolved ? 'text-eco-success' : 'text-warning-reserved'}`}>
                           {resolved ? '✓ Selesai Divalidasi' : '⚠ Belum Ditangani'}
                         </span>
@@ -144,8 +178,16 @@ export default function AnomalyLogsPage() {
                       >
                         False Positive
                       </button>
+                      {/* Tombol Tangani untuk membuka modal Acknowledge Anomaly */}
                       <button
-                        onClick={() => setSelectedAnomaly(anomaly)}
+                        onClick={() => {
+                          // Mengatur objek anomali aktif yang dipilih ke state selectedAnomaly
+                          setSelectedAnomaly(anomaly);
+                          // Mengatur nilai pilihan jenis anomali default ke "Salah Parkir"
+                          setJenisAnomali('Salah Parkir');
+                          // Mengosongkan isian teks catatan pesan lain
+                          setPesanLain('');
+                        }}
                         className="px-4 py-2 rounded-lg bg-alert-anomaly hover:bg-alert-anomaly/80 text-white text-xs font-bold font-mono transition-colors"
                       >
                         Tangani
