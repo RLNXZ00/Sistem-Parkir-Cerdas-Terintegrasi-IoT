@@ -509,27 +509,50 @@ export default function ReportsPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-surface-variant text-on-surface-variant font-mono text-xs uppercase tracking-wider">
+                          {/* Header kolom nomor urut */}
                           <th className="text-left pb-3 pr-3">No</th>
+                          {/* Header kolom kode ID log */}
                           <th className="text-left pb-3 pr-4">ID Log</th>
+                          {/* Header kolom waktu kejadian */}
                           <th className="text-left pb-3 pr-4">Waktu Kejadian</th>
+                          {/* Header kolom slot atau node parkir */}
                           <th className="text-left pb-3 pr-4">Slot / Node</th>
+                          {/* Header kolom tipe kejadian dari sensor/sistem */}
                           <th className="text-left pb-3 pr-4">Tipe Kejadian</th>
+                          {/* Header kolom jenis anomali yang dipilih petugas */}
+                          <th className="text-left pb-3 pr-4">Jenis Anomali</th>
+                          {/* Header kolom catatan detail log */}
                           <th className="text-left pb-3 pr-4">Catatan Detail</th>
+                          {/* Header kolom tingkat keparahan */}
                           <th className="text-center pb-3 pr-4">Severity</th>
+                          {/* Header kolom status resolusi tindak lanjut */}
                           <th className="text-center pb-3">Status Resolusi</th>
                         </tr>
                       </thead>
                       <tbody>
                         {reportData.tabelOperasional.map((row) => (
                           <tr key={row.idLog} className="border-b border-surface-container hover:bg-surface-container-high transition-colors">
+                            {/* Sel data nomor urut */}
                             <td className="py-3 pr-3 font-mono text-on-surface-variant text-xs">{row.no}</td>
+                            {/* Sel data ID Log */}
                             <td className="py-3 pr-4 font-mono text-primary text-xs font-semibold">{row.idLog}</td>
+                            {/* Sel data waktu kejadian */}
                             <td className="py-3 pr-4 font-mono text-on-surface-variant text-xs">{row.waktu}</td>
+                            {/* Sel data ID slot */}
                             <td className="py-3 pr-4 font-mono text-on-surface text-xs font-bold">{row.idSlot}</td>
+                            {/* Sel data tipe kejadian */}
                             <td className="py-3 pr-4 font-mono text-on-surface text-xs">{row.jenisKejadian}</td>
+                            {/* Sel data jenis anomali dari validasi petugas di lapangan */}
+                            <td className="py-3 pr-4 font-mono text-on-surface text-xs">
+                              <span className="px-2 py-0.5 rounded bg-surface-container-highest border border-outline-variant/30 text-[11px] font-semibold text-primary">
+                                {row.jenisAnomali || '-'}
+                              </span>
+                            </td>
+                            {/* Sel data catatan detail */}
                             <td className="py-3 pr-4 text-xs text-text-muted max-w-xs truncate" title={row.catatanDetail}>
                               {row.catatanDetail}
                             </td>
+                            {/* Sel data tingkat keparahan severity */}
                             <td className="py-3 pr-4 text-center">
                               <span
                                 className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
@@ -543,10 +566,11 @@ export default function ReportsPage() {
                                 {row.tingkatKeparahan}
                               </span>
                             </td>
+                            {/* Sel data status resolusi dengan badge hijau jika sudah divalidasi */}
                             <td className="py-3 text-center">
                               <span
                                 className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                                  row.statusResolusi === 'SUDAH_DITANGANI'
+                                  (row.statusResolusi === 'SELESAI_DIVALIDASI' || row.statusResolusi === 'SUDAH_DITANGANI')
                                     ? 'bg-eco-success/20 text-eco-success border border-eco-success/30'
                                     : 'bg-alert-anomaly/20 text-alert-anomaly border border-alert-anomaly/30'
                                 }`}
