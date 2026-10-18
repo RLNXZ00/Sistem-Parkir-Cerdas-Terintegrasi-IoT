@@ -166,23 +166,31 @@ public class DeteksiPlatService // Kelas service yang mengelola alur lengkap saa
             return new HasilDeteksiKeluarDto("KENDARAAN_TIDAK_DITEMUKAN", platNomor, null, null, 0, BigDecimal.ZERO, "Tidak ada kendaraan di dalam area parkir (semua sudah lunas / basement kosong).");
         }
 
-        // Perbarui platNomor dengan plat kendaraan aktual dari antrean
+        // Mengambil plat nomor kendaraan aktif dari data transaksi
         platNomor = transaksi.getKendaraan().getPlatNomor();
 
-        LocalDateTime waktuMasuk = transaksi.getWaktuMasuk();
-        LocalDateTime waktuKeluar = LocalDateTime.now();
+        // Mencatat waktu keluar secara real-time saat ini saat kendaraan berada di gerbang keluar
+        LocalDateTime waktuKeluar = LocalDateTime.now(); // Waktu keluar riil adalah saat ini (tidak boleh di masa depan)
+
+        // Mengambil waktu masuk awal dari transaksi
+        LocalDateTime waktuMasuk = transaksi.getWaktuMasuk(); // Waktu masuk awal saat tiket dicetak
         
         // 2. Hitung durasi parkir dalam menit, dan jam (pembulatan ke atas, minimal 1 jam) untuk tampilan kiosk
-        long minutes;
+        long minutes; // Variabel penyimpan total durasi parkir dalam satuan menit
         if (durasiMenitSimulasi != null && durasiMenitSimulasi > 0) {
-            minutes = durasiMenitSimulasi;
-            waktuKeluar = waktuMasuk.plusMinutes(minutes);
+            // Menggunakan nilai durasi simulasi yang dipilih dari panel kiosk
+            minutes = durasiMenitSimulasi; // Menetapkan menit parkir sesuai simulasi
+            // Memundurkan waktu masuk ke belakang agar transaksi keluar tetap terjadi saat ini (real-time)
+            waktuMasuk = waktuKeluar.minusMinutes(minutes); // Simulasi waktu masuk mundur ke masa lalu
+            transaksi.setWaktuMasuk(waktuMasuk); // Memperbarui waktu masuk transaksi agar konsisten dengan durasi
         } else {
-            java.time.Duration duration = java.time.Duration.between(waktuMasuk, waktuKeluar);
-            minutes = duration.toMinutes();
+            // Menghitung selisih durasi riil antara waktu masuk awal dan waktu keluar saat ini
+            java.time.Duration duration = java.time.Duration.between(waktuMasuk, waktuKeluar); // Menghitung interval durasi waktu
+            minutes = duration.toMinutes(); // Mengonversi interval durasi ke dalam satuan menit
         }
-        long hours = (long) Math.ceil(minutes / 60.0);
-        if (hours < 1) hours = 1; 
+        // Menghitung jumlah jam dengan pembulatan ke atas (ceiling)
+        long hours = (long) Math.ceil(minutes / 60.0); // Menghitung jam pembulatan ke atas
+        if (hours < 1) hours = 1; // Memastikan durasi minimum terhitung adalah 1 jam
         
         // 3. Hitung biaya memakai rumus RESMI dari TransaksiPembayaranService
         //    (Grace period <= 10 menit = Rp 0, flat Rp 5.000 s.d. 8 jam, +Rp 2.000/jam berikutnya, > 12 jam flat Rp 10.000)
