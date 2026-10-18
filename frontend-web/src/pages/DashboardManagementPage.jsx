@@ -49,8 +49,11 @@ export default function DashboardManagementPage() {
   };
 
   useEffect(() => {
+    // Memanggil fungsi fetchDashboardData saat komponen pertama kali dimuat
     fetchDashboardData();
-    const interval = setInterval(fetchDashboardData, 10000); // Polling tiap 10 detik
+    // Mengatur interval polling pembaruan data analitik setiap 2 detik (2000 ms) agar sinkron secara real-time
+    const interval = setInterval(fetchDashboardData, 2000); // Polling real-time tiap 2 detik
+    // Membersihkan interval timer saat komponen di-unmount untuk mencegah kebocoran memori
     return () => clearInterval(interval);
   }, []);
 
