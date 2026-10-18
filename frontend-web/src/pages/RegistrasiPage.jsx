@@ -113,13 +113,13 @@ export default function RegistrasiPage() {
                 Nama Pengguna (Username)
               </label>
               <div className="relative flex items-center">
-                <span className="absolute left-3.5 font-mono text-xs text-[#6e8294] select-none font-medium">usr_</span>
+                {/* Input teks nama pengguna tanpa prefix tambahan */}
                 <input
                   id="username"
                   type="text"
                   placeholder="apratama"
                   required
-                  className="w-full bg-[#0f1419] border border-[#2c3743] hover:border-[#3d4c5c] focus:border-[#7ad0ff] text-white font-mono text-sm pl-12 pr-3.5 py-2.5 rounded-lg focus:outline-none placeholder:text-[#5d6f80] transition-colors"
+                  className="w-full bg-[#0f1419] border border-[#2c3743] hover:border-[#3d4c5c] focus:border-[#7ad0ff] text-white font-mono text-sm px-3.5 py-2.5 rounded-lg focus:outline-none placeholder:text-[#5d6f80] transition-colors"
                 />
               </div>
             </div>
