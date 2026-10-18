@@ -111,8 +111,10 @@ public class LaporanController
                 .contentLength(pdfBytes.length)
                 .body(pdfBytes);
         }
-        else if ("xlsx".equalsIgnoreCase(format))
+        // Jika parameter format bernilai "xlsx" atau "excel", maka:
+        else if ("xlsx".equalsIgnoreCase(format) || "excel".equalsIgnoreCase(format))
         {
+            // Memanggil method generateExcel untuk membuat file spreadsheet dalam format byte array
             byte[] xlsxBytes = laporanExcelService.generateExcel(dto);
             String namaFile = String.format("Laporan_%s_%s_sd_%s.xlsx",
                 jenis.substring(0, 1).toUpperCase() + jenis.substring(1), dari, sampai);
