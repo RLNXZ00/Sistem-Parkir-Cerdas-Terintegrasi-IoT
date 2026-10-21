@@ -58,29 +58,44 @@ public class SpctApplication {
 
             // Cek apakah akun admin sudah terdaftar di database
             if (userRepo.findByUsername("admin").isEmpty()) {
-                // Inisialisasi objek user admin baru dengan role ADMIN
-                User admin = new User("admin", "admin123", "Administrator Sistem", "ADMIN");
-                // Menyimpan data akun admin ke tabel users
+                // Inisialisasi objek user admin baru dengan role ADMIN dan NIP 10000001
+                User admin = new User("admin", "admin123", "Administrator Sistem", "ADMIN", "10000001");
                 userRepo.save(admin);
-                System.out.println("AKUN ADMIN BERHASIL DIBUAT (user: admin, pass: admin123)");
+                System.out.println("AKUN ADMIN BERHASIL DIBUAT (user: admin, nip: 10000001, pass: admin123)");
+            } else {
+                User admin = userRepo.findByUsername("admin").get();
+                if (admin.getNip() == null || admin.getNip().trim().isEmpty()) {
+                    admin.setNip("10000001");
+                    userRepo.save(admin);
+                }
             }
 
             // Cek apakah akun petugas01 sudah terdaftar di database
             if (userRepo.findByUsername("petugas01").isEmpty()) {
-                // Inisialisasi objek user petugas01 baru dengan role PETUGAS_LAPANGAN
-                User petugas = new User("petugas01", "petugas123", "Budi Santoso", "PETUGAS_LAPANGAN");
-                // Menyimpan data akun petugas01 ke tabel users
+                // Inisialisasi objek user petugas01 baru dengan role PETUGAS_LAPANGAN dan NIP 10000002
+                User petugas = new User("petugas01", "petugas123", "Budi Santoso", "PETUGAS_LAPANGAN", "10000002");
                 userRepo.save(petugas);
-                System.out.println("AKUN PETUGAS BERHASIL DIBUAT (user: petugas01, pass: petugas123)");
+                System.out.println("AKUN PETUGAS BERHASIL DIBUAT (user: petugas01, nip: 10000002, pass: petugas123)");
+            } else {
+                User petugas = userRepo.findByUsername("petugas01").get();
+                if (petugas.getNip() == null || petugas.getNip().trim().isEmpty()) {
+                    petugas.setNip("10000002");
+                    userRepo.save(petugas);
+                }
             }
 
             // Cek apakah akun manajer sudah terdaftar di database
             if (userRepo.findByUsername("manajer").isEmpty()) {
-                // Inisialisasi objek user manajer baru dengan role Manajemen RS
-                User manajer = new User("manajer", "manajer123", "Manajer RS Panti Rapih", "Manajemen RS");
-                // Menyimpan data akun manajer ke tabel users
+                // Inisialisasi objek user manajer baru dengan role Manajemen RS dan NIP 10000003
+                User manajer = new User("manajer", "manajer123", "Manajer RS Panti Rapih", "Manajemen RS", "10000003");
                 userRepo.save(manajer);
-                System.out.println("AKUN MANAJER BERHASIL DIBUAT (user: manajer, pass: manajer123)");
+                System.out.println("AKUN MANAJER BERHASIL DIBUAT (user: manajer, nip: 10000003, pass: manajer123)");
+            } else {
+                User manajer = userRepo.findByUsername("manajer").get();
+                if (manajer.getNip() == null || manajer.getNip().trim().isEmpty()) {
+                    manajer.setNip("10000003");
+                    userRepo.save(manajer);
+                }
             }
 
             // =====================================================================
