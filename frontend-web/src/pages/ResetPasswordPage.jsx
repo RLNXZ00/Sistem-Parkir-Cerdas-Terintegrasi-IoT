@@ -3,12 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import AuthBrand from '../components/AuthBrand';
 import AuthFooter from '../components/AuthFooter';
 
+const API_BASE = 'http://localhost:8081';
+
 export default function ResetPasswordPage() {
+  const [nip, setNip] = useState('');
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
 
@@ -25,30 +29,68 @@ export default function ResetPasswordPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Validasi password strength sudah dilakukan di UI
+    setError('');
+
+    // Validasi NIP 8 digit angka
+    if (!nip.trim()) {
+      setError('Nomor Induk Pegawai (NIP) wajib diisi.');
+      return;
+    }
+
+    if (!/^\d{8}$/.test(nip.trim())) {
+      setError('NIP harus terdiri dari 8 digit angka.');
+      return;
+    }
+
+    // Validasi kata sandi
+    if (!newPassword || !confirmPassword) {
+      setError('Harap lengkapi kata sandi baru dan konfirmasinya.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError('Konfirmasi kata sandi tidak cocok.');
+      return;
+    }
+
+    if (!hasLength) {
+      setError('Kata sandi minimal 8 karakter.');
+      return;
+    }
+
+    if (!/\d/.test(newPassword)) {
+      setError('Kata sandi harus mengandung kombinasi angka.');
+      return;
+    }
+
+    if (!hasSpecial) {
+      setError('Kata sandi harus mengandung kombinasi karakter khusus.');
+      return;
+    }
+
     setLoading(true);
     try {
-        const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                email,
-                newPassword,
-            }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-            setError(data.pesan || 'Gagal memperbarui kata sandi.');
-            return;
-        }
-        setSuccess(true);
-        setTimeout(() => navigate('/'), 2000);
+      const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nip: nip.trim(),
+          newPassword,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.pesan || 'Gagal memperbarui kata sandi.');
+        return;
+      }
+      setSuccess(true);
+      setTimeout(() => navigate('/'), 2000);
     } catch {
-        setError('Tidak dapat terhubung ke server. Pastikan backend berjalan.');
+      setError('Tidak dapat terhubung ke server backend (port 8081).');
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-};
+  };
 
   const PillReq = ({ met, children }) => (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[11px] font-mono transition-colors ${met ? 'bg-[#122820] border-[#23583c] text-[#7ed99e]' : 'bg-[#11171d] border-[#2d3a46] text-[#9bb0c1]'}`}>
@@ -79,27 +121,39 @@ export default function ResetPasswordPage() {
           <div className="mb-6">
             <h1 className="text-2xl font-bold tracking-tight text-white mb-1">Atur Ulang Kata Sandi</h1>
             <p className="text-sm text-[#bcc8d1] leading-relaxed">
-              Silakan masukkan alamat email Anda dan buat kata sandi baru untuk mengamankan akun SPCT Anda.
+              Silakan masukkan 8 digit NIP Anda dan buat kata sandi baru untuk mengamankan akun SPCT Anda.
             </p>
           </div>
+
+          {/* Error Alert */}
+          {error && (
+            <div className="mb-4 rounded-lg p-3 px-4 flex items-center gap-2 bg-red-950/40 border border-red-700/50 text-red-400 text-xs font-mono">
+              <span className="material-symbols-outlined text-[18px] shrink-0">error</span>
+              <span>{error}</span>
+            </div>
+          )}
 
           {/* Form */}
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
 
-            {/* Email */}
+            {/* NIP (Nomor Induk Pegawai) */}
             <div className="flex flex-col gap-1.5">
-              <label className="font-mono text-xs font-medium text-slate-200 uppercase tracking-wider flex items-center justify-between" htmlFor="email">
-                <span>Alamat Email</span>
-                <span className="text-slate-400 text-[11px] font-normal lowercase tracking-normal">autentikasi sso</span>
+              <label className="font-mono text-xs font-medium text-slate-200 uppercase tracking-wider flex items-center justify-between" htmlFor="nip">
+                <span>Nomor Induk Pegawai (NIP)</span>
+                <span className="text-[#38bdf8] text-[11px] font-normal tracking-normal font-mono">8 digit angka</span>
               </label>
               <div className="relative flex items-center">
-                <span className="material-symbols-outlined absolute left-4 text-slate-400 text-[20px] pointer-events-none">mail</span>
+                <span className="material-symbols-outlined absolute left-4 text-slate-400 text-[20px] pointer-events-none">id_card</span>
                 <input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
+                  id="nip"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={8}
+                  placeholder="Contoh: 10000001"
                   required
-                  className="w-full h-12 pl-12 pr-4 bg-[#11171d] border border-[#323d47] text-white text-sm rounded-lg outline-none placeholder:text-slate-500 focus:border-[#38bdf8] transition-colors"
+                  value={nip}
+                  onChange={(e) => setNip(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                  className="w-full h-12 pl-12 pr-4 bg-[#11171d] border border-[#323d47] text-white font-mono text-sm rounded-lg outline-none placeholder:text-slate-500 focus:border-[#38bdf8] transition-colors"
                 />
               </div>
             </div>
