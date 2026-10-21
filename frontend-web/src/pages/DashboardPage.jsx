@@ -10,14 +10,40 @@ const SLOT_STYLES = {
   ANOMALI:   'bg-alert-anomaly/20 border-2 border-alert-anomaly text-alert-anomaly pulse-anomaly cursor-pointer hover:bg-alert-anomaly/30 group relative',
 };
 
+// Kunci sessionStorage untuk status peta (tab jenis + lantai terakhir per jenis)
+const KUNCI_STATUS_PETA = 'spct_peta_slot';
+
+// Default setelah login: Mobil, Lantai 1 untuk kedua jenis
+function bacaStatusPeta() {
+  const bawaan = { jenis: 'MOBIL', lantai: { MOBIL: 1, MOTOR: 1 } };
+  try {
+    const tersimpan = JSON.parse(sessionStorage.getItem(KUNCI_STATUS_PETA) || 'null');
+    if (!tersimpan) return bawaan;
+    return {
+      jenis: tersimpan.jenis === 'MOTOR' ? 'MOTOR' : 'MOBIL',
+      lantai: { ...bawaan.lantai, ...(tersimpan.lantai || {}) },
+    };
+  } catch {
+    return bawaan;
+  }
+}
+
 export default function DashboardPage() {
   const [slots, setSlots]           = useState([]);
   const [kameraList, setKameraList] = useState([]);
   const [sensorList, setSensorList] = useState([]);
   const [logs, setLogs]             = useState([]);
   const [isLoading, setIsLoading]   = useState(true);
-  const [lantaiAktif, setLantaiAktif] = useState(1);        // Lantai yang sedang ditampilkan di peta
-  const [jenisAktif, setJenisAktif]   = useState('MOBIL');  // Tab jenis kendaraan: MOBIL / MOTOR
+  // Status peta disimpan di sessionStorage (bertahan saat pindah halaman, di-reset saat login).
+  // Lantai diingat PER jenis kendaraan: mis. Mobil di Lantai 3, Motor di Lantai 2.
+  const [jenisAktif, setJenisAktif] = useState(() => bacaStatusPeta().jenis);
+  const [lantaiPerJenis, setLantaiPerJenis] = useState(() => bacaStatusPeta().lantai);
+  const lantaiAktif = lantaiPerJenis[jenisAktif] || 1;
+  const setLantaiUntukJenis = (lt) => setLantaiPerJenis(prev => ({ ...prev, [jenisAktif]: lt }));
+
+  useEffect(() => {
+    sessionStorage.setItem(KUNCI_STATUS_PETA, JSON.stringify({ jenis: jenisAktif, lantai: lantaiPerJenis }));
+  }, [jenisAktif, lantaiPerJenis]);
 
   // ── Fetch semua data dari API ──────────────────────────────────────────
   const fetchAll = useCallback(async () => {
@@ -238,11 +264,16 @@ export default function DashboardPage() {
           <div className="col-span-12 xl:col-span-8 flex flex-col gap-4">
             <div className="map-shell bg-bg-primary rounded-xl border border-surface-variant p-5 flex flex-col">
 
-              {/* Header: panel lantai (kiri atas), judul di bawahnya, legenda di kanan */}
+              {/* Header: judul di kiri; panel lantai di kanan atas dengan legenda di bawahnya */}
               <div className="flex justify-between items-end gap-4 flex-wrap mb-4">
-                <div className="flex flex-col gap-3">
+                <h2 className="font-semibold text-xl text-on-surface flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary">map</span>
+                  Peta Slot Parkir — Real-time
+                </h2>
+
+                <div className="flex flex-col items-end gap-3">
                   {/* Panel pemilih lantai */}
-                  <div id="panel-lantai" className="floor-panel inline-flex items-center gap-1 p-1 rounded-lg border border-surface-variant bg-surface-container-lowest self-start" role="tablist" aria-label="Pilih lantai">
+                  <div id="panel-lantai" className="floor-panel inline-flex items-center gap-1 p-1 rounded-lg border border-surface-variant bg-surface-container-lowest" role="tablist" aria-label="Pilih lantai">
                     <span className="material-symbols-outlined text-[18px] text-text-muted px-1.5">layers</span>
                     {lantaiTersedia.map(lt => {
                       const aktif = lt === lantaiTerpilih;
@@ -253,7 +284,7 @@ export default function DashboardPage() {
                           type="button"
                           role="tab"
                           aria-selected={aktif}
-                          onClick={() => setLantaiAktif(lt)}
+                          onClick={() => setLantaiUntukJenis(lt)}
                           className={`floor-btn px-3 py-1.5 rounded-md text-xs font-semibold font-mono border transition-all duration-200 ${
                             aktif
                               ? 'bg-primary/15 text-primary border-primary/40 shadow-[0_0_10px_rgba(143,214,255,0.15)]'
@@ -266,17 +297,12 @@ export default function DashboardPage() {
                     })}
                   </div>
 
-                  <h2 className="font-semibold text-xl text-on-surface flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary">map</span>
-                    Peta Slot Parkir — Real-time
-                  </h2>
-                </div>
-
-                <div className="flex gap-4 text-xs font-mono">
-                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-eco-success rounded-sm"></div>Terisi</div>
-                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-warning-reserved rounded-sm"></div>Dipesan</div>
-                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 border border-dashed border-outline rounded-sm"></div>Kosong</div>
-                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-alert-anomaly rounded-sm"></div>Anomali</div>
+                  <div className="flex gap-4 text-xs font-mono">
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-eco-success rounded-sm"></div>Terisi</div>
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-warning-reserved rounded-sm"></div>Dipesan</div>
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 border border-dashed border-outline rounded-sm"></div>Kosong</div>
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-alert-anomaly rounded-sm"></div>Anomali</div>
+                  </div>
                 </div>
               </div>
 

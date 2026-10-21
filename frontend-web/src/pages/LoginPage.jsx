@@ -36,6 +36,9 @@ export default function LoginPage() {
       // Simpan sesi user ke sessionStorage agar bisa diakses halaman lain
       sessionStorage.setItem('spct_user', JSON.stringify(data));
 
+      // Reset pilihan Peta Slot Parkir (jenis & lantai) agar default Mobil Lantai 1 setiap login
+      sessionStorage.removeItem('spct_peta_slot');
+
       // Arahkan berdasarkan role
       if (data.role === 'ADMIN' || data.role === 'Manajemen RS') {
         navigate('/dashboard-management');
