@@ -28,9 +28,39 @@ public class AuthController
     // ─── POST /api/auth/login ────────────────────────────────────────────────
     // Endpoint login Dashboard: menerima username dan password, mengembalikan data user
     // Prototype MVP: perbandingan password dilakukan plain-text (tanpa enkripsi)
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> body)
-    {
+@PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+        String email = body.get("email"); // using email as username identifier
+        String newPassword = body.get("newPassword");
+        if (email == null || email.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("pesan", "Email wajib diisi."));
+        }
+        if (newPassword == null || newPassword.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("pesan", "Kata sandi baru wajib diisi."));
+        }
+        // Validate password strength
+        if (newPassword.length() < 8) {
+            return ResponseEntity.badRequest().body(Map.of("pesan", "Kata sandi minimal 8 karakter."));
+        }
+        if (!newPassword.matches(".*\\d.*")) {
+            return ResponseEntity.badRequest().body(Map.of("pesan", "Kata sandi harus mengandung angka."));
+        }
+        if (!newPassword.matches(".*[^A-Za-z0-9].*")) {
+            return ResponseEntity.badRequest().body(Map.of("pesan", "Kata sandi harus mengandung karakter spesial."));
+        }
+        // Find user by username (email)
+        Optional<User> userOpt = userRepository.findByUsername(email.trim());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("pesan", "Pengguna tidak ditemukan."));
+        }
+        User user = userOpt.get();
+        user.setPassword(newPassword);
+        userRepository.save(user);
+        return ResponseEntity.ok(Map.of("pesan", "Kata sandi berhasil diperbarui."));
+    }
+
+@PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
         String username = body.get("username");
         String password = body.get("password");
 
