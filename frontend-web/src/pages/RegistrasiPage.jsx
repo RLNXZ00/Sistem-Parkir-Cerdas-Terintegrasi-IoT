@@ -248,9 +248,10 @@ export default function RegistrasiPage() {
                 <span className="material-symbols-outlined text-[14px] text-[#7ad0ff]">verified_user</span>
                 Ketentuan Kredensial Parkir
               </span>
-              <div className="grid grid-cols-2 gap-1 text-[11px] text-[#9bb0c1]">
+              <div className="grid grid-cols-3 gap-1 text-[11px] text-[#9bb0c1]">
                 <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[#2e8b57]"></span>Min. 8 karakter</span>
                 <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[#2e8b57]"></span>Kombinasi angka</span>
+                <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[#2e8b57]"></span>Kombinasi karakter khusus</span>
               </div>
             </div>
 
