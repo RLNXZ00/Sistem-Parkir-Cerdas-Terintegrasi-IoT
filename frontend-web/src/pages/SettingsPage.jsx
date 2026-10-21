@@ -530,29 +530,136 @@ export default function SettingsPage() {
         <div className="grid grid-cols-12 gap-6">
 
           {/* Kolom Kiri: Tab Menu Pengaturan */}
-          <div className="col-span-12 lg:col-span-4 flex flex-col gap-2">
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-start gap-4 p-4 rounded-xl text-left transition-all border ${
-                    isActive
-                      ? 'bg-surface-container border-primary shadow-sm text-primary font-semibold'
-                      : 'bg-surface-container-lowest border-surface-container hover:bg-surface-container-low text-on-surface-variant hover:text-on-surface'
-                  }`}
-                >
-                  <span className={`material-symbols-outlined text-[24px] mt-0.5 ${isActive ? 'text-primary' : 'text-on-surface-variant'}`}>
-                    {tab.icon}
-                  </span>
-                  <div className="flex-1">
-                    <p className={`text-sm ${isActive ? 'text-on-surface font-bold' : 'font-medium'}`}>{tab.label}</p>
-                    <p className="text-xs text-text-muted mt-0.5 font-mono">{tab.desc}</p>
-                  </div>
-                </button>
-              );
-            })}
+          <div className="col-span-12 lg:col-span-4 flex flex-col gap-3">
+
+            {/* === Role Context Badge === */}
+            <div className={`p-3 rounded-xl border flex items-center gap-3 ${
+              isManager
+                ? 'bg-[#00BFFF]/10 border-[#00BFFF]/30'
+                : 'bg-eco-success/10 border-eco-success/30'
+            }`}>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                isManager ? 'bg-[#00BFFF]/20' : 'bg-eco-success/20'
+              }`}>
+                <span className={`material-symbols-outlined text-[18px] ${
+                  isManager ? 'text-[#00BFFF]' : 'text-eco-success'
+                }`}>
+                  {isManager ? 'admin_panel_settings' : 'engineering'}
+                </span>
+              </div>
+              <div className="min-w-0">
+                <p className={`text-xs font-bold leading-tight ${
+                  isManager ? 'text-[#00BFFF]' : 'text-eco-success'
+                }`}>
+                  {isManager
+                    ? (lang === 'id' ? 'Manajer / Admin' : 'Manager / Admin')
+                    : (lang === 'id' ? 'Petugas Lapangan' : 'Field Operator')}
+                </p>
+                <p className="text-[10px] text-text-muted font-mono truncate">
+                  {isManager
+                    ? (lang === 'id' ? 'Akses: Manajemen Data & Analitik' : 'Access: Data Management & Analytics')
+                    : (lang === 'id' ? 'Akses: Pemantauan Lapangan & Sensor' : 'Access: Field Monitoring & Sensors')}
+                </p>
+              </div>
+            </div>
+
+            {/* === Tab Group: Umum (Atas) === */}
+            <div className="flex flex-col gap-1.5">
+              <p className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-widest px-1">
+                {lang === 'id' ? 'Umum' : 'General'}
+              </p>
+              {commonTopTabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-start gap-4 p-4 rounded-xl text-left transition-all border ${
+                      isActive
+                        ? 'bg-surface-container border-primary shadow-sm text-primary font-semibold'
+                        : 'bg-surface-container-lowest border-surface-container hover:bg-surface-container-low text-on-surface-variant hover:text-on-surface'
+                    }`}
+                  >
+                    <span className={`material-symbols-outlined text-[24px] mt-0.5 ${isActive ? 'text-primary' : 'text-on-surface-variant'}`}>
+                      {tab.icon}
+                    </span>
+                    <div className="flex-1">
+                      <p className={`text-sm ${isActive ? 'text-on-surface font-bold' : 'font-medium'}`}>{tab.label}</p>
+                      <p className="text-xs text-text-muted mt-0.5 font-mono">{tab.desc}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* === Tab Group: Khusus Peran === */}
+            <div className="flex flex-col gap-1.5">
+              <p className={`text-[10px] font-mono font-bold uppercase tracking-widest px-1 ${
+                isManager ? 'text-[#00BFFF]/70' : 'text-eco-success/70'
+              }`}>
+                {isManager
+                  ? (lang === 'id' ? 'Manajemen Data' : 'Data Management')
+                  : (lang === 'id' ? 'Pemantauan Lapangan' : 'Field Monitoring')}
+              </p>
+              {(isManager ? managementTabs : fieldOperatorTabs).map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-start gap-4 p-4 rounded-xl text-left transition-all border ${
+                      isActive
+                        ? 'bg-surface-container border-primary shadow-sm text-primary font-semibold'
+                        : isManager
+                          ? 'bg-[#00BFFF]/5 border-[#00BFFF]/15 hover:bg-[#00BFFF]/10 text-on-surface-variant hover:text-on-surface'
+                          : 'bg-eco-success/5 border-eco-success/15 hover:bg-eco-success/10 text-on-surface-variant hover:text-on-surface'
+                    }`}
+                  >
+                    <span className={`material-symbols-outlined text-[24px] mt-0.5 ${
+                      isActive
+                        ? 'text-primary'
+                        : isManager ? 'text-[#00BFFF]/60' : 'text-eco-success/60'
+                    }`}>
+                      {tab.icon}
+                    </span>
+                    <div className="flex-1">
+                      <p className={`text-sm ${isActive ? 'text-on-surface font-bold' : 'font-medium'}`}>{tab.label}</p>
+                      <p className="text-xs text-text-muted mt-0.5 font-mono">{tab.desc}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* === Tab Group: Panduan Sistem (Bawah) === */}
+            <div className="flex flex-col gap-1.5">
+              <p className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-widest px-1">
+                {lang === 'id' ? 'Referensi' : 'Reference'}
+              </p>
+              {commonBottomTabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-start gap-4 p-4 rounded-xl text-left transition-all border ${
+                      isActive
+                        ? 'bg-surface-container border-primary shadow-sm text-primary font-semibold'
+                        : 'bg-surface-container-lowest border-surface-container hover:bg-surface-container-low text-on-surface-variant hover:text-on-surface'
+                    }`}
+                  >
+                    <span className={`material-symbols-outlined text-[24px] mt-0.5 ${isActive ? 'text-primary' : 'text-on-surface-variant'}`}>
+                      {tab.icon}
+                    </span>
+                    <div className="flex-1">
+                      <p className={`text-sm ${isActive ? 'text-on-surface font-bold' : 'font-medium'}`}>{tab.label}</p>
+                      <p className="text-xs text-text-muted mt-0.5 font-mono">{tab.desc}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
           </div>
 
           {/* Kolom Kanan: Isi Tab Aktif */}
