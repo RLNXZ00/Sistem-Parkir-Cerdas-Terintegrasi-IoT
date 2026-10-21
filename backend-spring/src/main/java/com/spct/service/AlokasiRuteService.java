@@ -43,6 +43,9 @@ public class AlokasiRuteService // Kelas service yang mengorkestrasi semua langk
         }
     }
 
+    // Jumlah lantai yang didukung graf (harus sinkron dengan seeder data di SpctApplication)
+    private static final int JUMLAH_LANTAI = 3;
+
     // Mendefinisikan koordinat tiap Node
     private static final Map<String, GraphNodeData> GRAPH_NODES = new HashMap<>();
     
@@ -56,17 +59,23 @@ public class AlokasiRuteService // Kelas service yang mengorkestrasi semua langk
             GRAPH_NODES.put("N-" + i, new GraphNodeData("N-" + i, 20.0 * i, 50, false));
         }
 
-        // 2. Inisialisasi Node Slot (Di Y = 30 untuk atas, Y = 70 untuk bawah: B1-01 s.d. B1-16)
-        for (int i = 1; i <= 16; i++) {
-            int col = (i + 1) / 2; // Menentukan pasangan (1-2 di col 1, 3-4 di col 2, dst)
-            double x = 20.0 * col;
-            double y = (i % 2 != 0) ? 30.0 : 70.0;
-            String slotNodeId = "NODE_B1_" + i;
-            GRAPH_NODES.put(slotNodeId, new GraphNodeData(slotNodeId, x, y, true));
-            
-            // Hubungkan Slot ke Node Jalan di depannya secara langsung
-            String pathNodeId = "N-" + col;
-            tambahEdge(pathNodeId, slotNodeId);
+        // 2. Inisialisasi Node Slot untuk setiap zona (Y = 30 untuk atas, Y = 70 untuk bawah)
+        //    Zona mobil: B1..B3, zona motor: M1..M3 (tata letak sama, koridor jalan dipakai bersama)
+        for (int lantai = 1; lantai <= JUMLAH_LANTAI; lantai++) {
+            for (String prefix : new String[] {"B", "M"}) {
+                String zona = prefix + lantai;
+                for (int i = 1; i <= 16; i++) {
+                    int col = (i + 1) / 2; // Menentukan pasangan (1-2 di col 1, 3-4 di col 2, dst)
+                    double x = 20.0 * col;
+                    double y = (i % 2 != 0) ? 30.0 : 70.0;
+                    String slotNodeId = "NODE_" + zona + "_" + i;
+                    GRAPH_NODES.put(slotNodeId, new GraphNodeData(slotNodeId, x, y, true));
+
+                    // Hubungkan Slot ke Node Jalan di depannya secara langsung
+                    String pathNodeId = "N-" + col;
+                    tambahEdge(pathNodeId, slotNodeId);
+                }
+            }
         }
 
         // 3. Hubungkan antar Node Jalan secara berurutan (Gate -> N1 -> N2 dst)
@@ -91,13 +100,17 @@ public class AlokasiRuteService // Kelas service yang mengorkestrasi semua langk
     {
         DataKendaraan kendaraan = cariAtauDaftarkanKendaraan(platNomor, jenisKendaraan);
 
-        // Ambil semua slot parkir kosong dari database untuk pencocokan status
-        List<SlotParkir> slotKosongList = slotParkirRepository.findByStatusSlotAndLantaiOrderByKoordinatXAsc(StatusSlot.KOSONG, 1);
+        // Cari slot kosong sesuai jenis kendaraan (MOBIL/MOTOR), mulai dari lantai terendah
+        // sampai ditemukan lantai yang masih memiliki slot kosong
         Set<String> setNodeSlotKosong = new HashSet<>();
         Map<String, SlotParkir> mapSlotKosong = new HashMap<>();
-        for (SlotParkir slot : slotKosongList) {
-            setNodeSlotKosong.add(slot.getNodeId());
-            mapSlotKosong.put(slot.getNodeId(), slot);
+        for (int lantai = 1; lantai <= JUMLAH_LANTAI && setNodeSlotKosong.isEmpty(); lantai++) {
+            List<SlotParkir> slotKosongList = slotParkirRepository
+                .findByStatusSlotAndLantaiAndJenisKendaraanOrderByKoordinatXAsc(StatusSlot.KOSONG, lantai, jenisKendaraan);
+            for (SlotParkir slot : slotKosongList) {
+                setNodeSlotKosong.add(slot.getNodeId());
+                mapSlotKosong.put(slot.getNodeId(), slot);
+            }
         }
 
         // --- Langkah 2 & 3: Pencarian Slot Terdekat + Rute sekaligus (BFS/Dijkstra dari Gate) ---

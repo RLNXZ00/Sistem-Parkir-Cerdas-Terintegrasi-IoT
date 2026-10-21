@@ -29,23 +29,26 @@ import com.spct.repository.SensorIoTRepository;
 
 @SpringBootApplication
 @EnableScheduling
-public class SpctApplication 
-{
-    public static void main(String[] args) 
-    {
+public class SpctApplication {
+    // Konfigurasi denah gedung parkir: jumlah lantai dan jumlah slot per zona (per lantai per jenis kendaraan)
+    private static final int JUMLAH_LANTAI = 3;
+    private static final int SLOT_PER_ZONA = 16;
+
+    public static void main(String[] args) {
         SpringApplication.run(SpctApplication.class, args);
         System.out.println("==========================================================");
         System.out.println("SERVER SPCT IoT BERHASIL DIJALANKAN DI PORT 8081");
         System.out.println("==========================================================");
     }
 
-    // Method seederData bertipe CommandLineRunner untuk auto-seeder data master (Akun, 16 Slot, 4 Kamera ANPR, 16 Sensor IoT)
+    // Method seederData bertipe CommandLineRunner untuk auto-seeder data master
+    // (Akun, Slot Mobil & Motor per Lantai, 4 Kamera ANPR, Sensor IoT per Slot)
     @Bean
     public CommandLineRunner seederData(
-        SlotParkirRepository slotRepo,       // Injeksi repository slot_parkir
-        UserRepository userRepo,             // Injeksi repository users
-        KameraAnprRepository kameraRepo,     // Injeksi repository kamera_anpr
-        SensorIoTRepository sensorRepo       // Injeksi repository sensor_iot
+            SlotParkirRepository slotRepo, // Injeksi repository slot_parkir
+            UserRepository userRepo, // Injeksi repository users
+            KameraAnprRepository kameraRepo, // Injeksi repository kamera_anpr
+            SensorIoTRepository sensorRepo // Injeksi repository sensor_iot
     ) {
         return args -> {
             // =====================================================================
@@ -81,47 +84,60 @@ public class SpctApplication
             }
 
             // =====================================================================
-            // 2. Sinkronisasi 16 Slot Parkir (Grid Basement B1)
+            // 2. Sinkronisasi Slot Parkir Multi-Lantai (Mobil & Motor)
             // =====================================================================
-            System.out.println("SINKRONISASI KOORDINAT 16 SLOT PARKIR (GRID)...");
-            // Looping i dari 1 hingga 16 untuk membentuk 16 slot parkir
-            for (int i = 1; i <= 16; i++) {
-                // Menentukan idSlot dengan format dua digit angka (B1-01 s.d. B1-16)
-                String idSlot = "B1-" + String.format("%02d", i);
-                // Menentukan nodeId penanda titik pada peta navigasi graf
-                String nodeId = "NODE_B1_" + i;
+            System.out.println("SINKRONISASI KOORDINAT SLOT PARKIR (GRID MULTI-LANTAI)...");
+            // Looping setiap lantai (1 s.d. JUMLAH_LANTAI)
+            for (int lantai = 1; lantai <= JUMLAH_LANTAI; lantai++) {
+                // Looping setiap jenis kendaraan: MOBIL (prefix B) dan MOTOR (prefix M)
+                for (JenisKendaraan jenis : JenisKendaraan.values()) {
+                    // Menentukan prefix kode slot: B = Basement mobil, M = zona motor
+                    String zona = ((jenis == JenisKendaraan.MOBIL) ? "B" : "M") + lantai;
 
-                // Menghitung indeks kolom grid kiosk (kelipatan 2 baris)
-                int col = (i + 1) / 2;
-                // Menghitung koordinat sumbu X pada denah denah
-                Double x = 20.0 * col;
-                // Menghitung koordinat sumbu Y pada denah (baris atas atau bawah)
-                Double y = (i % 2 != 0) ? 30.0 : 70.0;
+                    // Looping i dari 1 hingga SLOT_PER_ZONA untuk membentuk slot pada zona ini
+                    for (int i = 1; i <= SLOT_PER_ZONA; i++) {
+                        // Menentukan idSlot dengan format dua digit angka (misal: B1-01, B2-16, M1-05)
+                        String idSlot = zona + "-" + String.format("%02d", i);
+                        // Menentukan nodeId penanda titik pada peta navigasi graf (misal: NODE_B1_1, NODE_M2_5)
+                        String nodeId = "NODE_" + zona + "_" + i;
 
-                // Mencari apakah idSlot sudah tersimpan di database
-                java.util.Optional<SlotParkir> existingSlot = slotRepo.findById(idSlot);
-                // Jika slot sudah ada sebelumnya di database, maka:
-                if (existingSlot.isPresent()) {
-                    // Mengambil referensi entitas slot yang sudah ada
-                    SlotParkir slot = existingSlot.get();
-                    // Memperbarui atribut nodeId
-                    slot.setNodeId(nodeId);
-                    // Memperbarui koordinat X
-                    slot.setKoordinatX(x);
-                    // Memperbarui koordinat Y
-                    slot.setKoordinatY(y);
-                    // Menyimpan kembali pembaruan data slot ke database
-                    slotRepo.save(slot);
-                } else { // Jika slot belum ada di database, maka:
-                    // Inisialisasi entitas objek SlotParkir baru
-                    SlotParkir slot = new SlotParkir(idSlot, 1, nodeId, x, y);
-                    // Mengatur status awal slot parkir menjadi KOSONG
-                    slot.setStatusSlot(StatusSlot.KOSONG);
-                    // Menyimpan data slot baru ke tabel slot_parkir
-                    slotRepo.save(slot);
+                        // Menghitung indeks kolom grid kiosk (kelipatan 2 baris)
+                        int col = (i + 1) / 2;
+                        // Menghitung koordinat sumbu X pada denah
+                        Double x = 20.0 * col;
+                        // Menghitung koordinat sumbu Y pada denah (baris atas atau bawah)
+                        Double y = (i % 2 != 0) ? 30.0 : 70.0;
+
+                        // Mencari apakah idSlot sudah tersimpan di database
+                        java.util.Optional<SlotParkir> existingSlot = slotRepo.findById(idSlot);
+                        // Jika slot sudah ada sebelumnya di database, maka:
+                        if (existingSlot.isPresent()) {
+                            // Mengambil referensi entitas slot yang sudah ada
+                            SlotParkir slot = existingSlot.get();
+                            // Memperbarui atribut nodeId
+                            slot.setNodeId(nodeId);
+                            // Memperbarui koordinat X
+                            slot.setKoordinatX(x);
+                            // Memperbarui koordinat Y
+                            slot.setKoordinatY(y);
+                            // Backfill peruntukan slot (data lama B1-xx belum memiliki jenis_kendaraan)
+                            slot.setJenisKendaraan(jenis);
+                            // Menyimpan kembali pembaruan data slot ke database
+                            slotRepo.save(slot);
+                        } else { // Jika slot belum ada di database, maka:
+                            // Inisialisasi entitas objek SlotParkir baru
+                            SlotParkir slot = new SlotParkir(idSlot, lantai, nodeId, x, y);
+                            // Mengatur peruntukan slot (MOBIL / MOTOR)
+                            slot.setJenisKendaraan(jenis);
+                            // Mengatur status awal slot parkir menjadi KOSONG
+                            slot.setStatusSlot(StatusSlot.KOSONG);
+                            // Menyimpan data slot baru ke tabel slot_parkir
+                            slotRepo.save(slot);
+                        }
+                    }
                 }
             }
-            System.out.println("16 SLOT PARKIR (GRID) BERHASIL DISINKRONISASI!");
+            System.out.println("SLOT PARKIR MOBIL & MOTOR (" + JUMLAH_LANTAI + " LANTAI) BERHASIL DISINKRONISASI!");
 
             // =====================================================================
             // 3. Sinkronisasi Status Kamera ANPR (4 Unit Gerbang Masuk & Keluar)
@@ -129,10 +145,10 @@ public class SpctApplication
             System.out.println("SINKRONISASI UNIT KAMERA ANPR...");
             // Definisi array data master 4 kamera ANPR gerbang
             String[][] dataKamera = {
-                {"PG-IN-MOB", "MASUK", "MOBIL", "Gerbang Masuk Jalur Mobil (Kiri)"},
-                {"PG-IN-MOT", "MASUK", "MOTOR", "Gerbang Masuk Jalur Motor (Kanan)"},
-                {"PG-OUT-MOB", "KELUAR", "MOBIL", "Gerbang Keluar Jalur Mobil (Kiri)"},
-                {"PG-OUT-MOT", "KELUAR", "MOTOR", "Gerbang Keluar Jalur Motor (Kanan)"}
+                    { "PG-IN-MOB", "MASUK", "MOBIL", "Gerbang Masuk Jalur Mobil (Kiri)" },
+                    { "PG-IN-MOT", "MASUK", "MOTOR", "Gerbang Masuk Jalur Motor (Kanan)" },
+                    { "PG-OUT-MOB", "KELUAR", "MOBIL", "Gerbang Keluar Jalur Mobil (Kiri)" },
+                    { "PG-OUT-MOT", "KELUAR", "MOTOR", "Gerbang Keluar Jalur Motor (Kanan)" }
             };
 
             // Melakukan perulangan untuk setiap data kamera dalam array dataKamera
@@ -155,32 +171,25 @@ public class SpctApplication
             System.out.println("4 UNIT KAMERA ANPR BERHASIL DISINKRONISASI!");
 
             // =====================================================================
-            // 4. Sinkronisasi Sensor IoT per-Slot (16 Unit Sensor Ultrasonic)
+            // 4. Sinkronisasi Sensor IoT per-Slot (satu sensor ultrasonic untuk setiap slot)
             // =====================================================================
             System.out.println("SINKRONISASI SENSOR IOT PER-SLOT...");
-            // Melakukan perulangan i dari 1 hingga 16 untuk memetakan sensor ke tiap slot
-            for (int i = 1; i <= 16; i++) {
-                // Menentukan idSlot target pemantauan
-                String idSlot = "B1-" + String.format("%02d", i);
-                // Menentukan idSensor dengan format SNS-B1-xx
-                String idSensor = "SNS-" + idSlot;
+            // Melakukan perulangan untuk setiap slot yang ada di database (semua lantai, mobil & motor)
+            for (SlotParkir slotTarget : slotRepo.findAll()) {
+                // Menentukan idSensor dengan format SNS-<idSlot> (misal: SNS-B1-01, SNS-M2-05)
+                String idSensor = "SNS-" + slotTarget.getIdSlot();
 
                 // Cek apakah sensor sudah tersimpan di tabel sensor_iot
                 if (sensorRepo.findById(idSensor).isEmpty()) {
-                    // Mengambil entitas slot yang dipantau dari slotRepo
-                    java.util.Optional<SlotParkir> slotOpt = slotRepo.findById(idSlot);
-                    // Jika slot terkait ditemukan di database, maka:
-                    if (slotOpt.isPresent()) {
-                        // Inisialisasi objek SensorIoT baru yang memantau slot tersebut
-                        SensorIoT sensor = new SensorIoT(idSensor, slotOpt.get());
-                        // Mengatur status operasional sensor menjadi ON
-                        sensor.setStatusSensor("ON");
-                        // Menyimpan entitas sensor ke tabel sensor_iot
-                        sensorRepo.save(sensor);
-                    }
+                    // Inisialisasi objek SensorIoT baru yang memantau slot tersebut
+                    SensorIoT sensor = new SensorIoT(idSensor, slotTarget);
+                    // Mengatur status operasional sensor menjadi ON
+                    sensor.setStatusSensor("ON");
+                    // Menyimpan entitas sensor ke tabel sensor_iot
+                    sensorRepo.save(sensor);
                 }
             }
-            System.out.println("16 UNIT SENSOR IOT BERHASIL DISINKRONISASI!");
+            System.out.println("UNIT SENSOR IOT PER-SLOT BERHASIL DISINKRONISASI!");
         };
     }
 }

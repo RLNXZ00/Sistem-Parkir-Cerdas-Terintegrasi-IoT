@@ -40,6 +40,10 @@ public class SlotParkir // Kelas model untuk setiap unit slot parkir dalam gedun
     @Column(name = "waktu_dipesan")
     private LocalDateTime waktuDipesan; // Timestamp kapan slot ini mulai berstatus 'DIPESAN' (untuk deteksi timeout)
 
+    @Enumerated(EnumType.STRING) // Menyimpan nama Enum sebagai String di database
+    @Column(name = "jenis_kendaraan") // Nullable agar data lama tetap valid; null dianggap MOBIL pada getter
+    private JenisKendaraan jenisKendaraan; // Peruntukan slot: MOBIL atau MOTOR (dasar tab pada Peta Slot Dashboard)
+
     // Relasi Foreign Key ke DataKendaraan (bisa NULL jika slot sedang kosong)
     @ManyToOne(fetch = FetchType.EAGER) // EAGER: langsung load data kendaraan saat slot di-query
     @JoinColumn(name = "kendaraan_aktif_id", referencedColumnName = "id_kendaraan")
@@ -137,6 +141,16 @@ public class SlotParkir // Kelas model untuk setiap unit slot parkir dalam gedun
     public LocalDateTime getWaktuDipesan() // Deklarasi method getter untuk waktuDipesan
     {
         return waktuDipesan; // Mengembalikan timestamp kapan slot ini berstatus DIPESAN
+    }
+
+    public void setJenisKendaraan(JenisKendaraan jenisKendaraan) // Deklarasi method setter untuk jenisKendaraan
+    {
+        this.jenisKendaraan = jenisKendaraan; // Mengubah peruntukan slot (MOBIL/MOTOR)
+    }
+
+    public JenisKendaraan getJenisKendaraan() // Deklarasi method getter untuk jenisKendaraan
+    {
+        return (jenisKendaraan != null) ? jenisKendaraan : JenisKendaraan.MOBIL; // Data lama tanpa nilai dianggap slot MOBIL
     }
 
     public void setKendaraanAktif(DataKendaraan kendaraanAktif) // Deklarasi method setter untuk kendaraanAktif

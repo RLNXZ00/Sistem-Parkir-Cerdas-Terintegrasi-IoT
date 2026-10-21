@@ -1,5 +1,6 @@
 package com.spct.repository;
 
+import com.spct.model.JenisKendaraan;
 import com.spct.model.SlotParkir;
 import com.spct.model.StatusSlot;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -25,6 +26,14 @@ public interface SlotParkirRepository extends JpaRepository<SlotParkir, String>
     // Mencari semua slot berdasarkan lantai (untuk keperluan tampilan peta Dashboard)
     // Setara: SELECT * FROM slot_parkir WHERE lantai = ?
     List<SlotParkir> findByLantai(Integer lantai);
+
+    // Mencari slot kosong pada lantai tertentu yang diperuntukkan bagi jenis kendaraan tertentu (MOBIL/MOTOR)
+    // Setara: SELECT * FROM slot_parkir WHERE status_slot = ? AND lantai = ? AND jenis_kendaraan = ? ORDER BY koordinat_x ASC
+    List<SlotParkir> findByStatusSlotAndLantaiAndJenisKendaraanOrderByKoordinatXAsc(StatusSlot statusSlot, Integer lantai, JenisKendaraan jenisKendaraan);
+
+    // Mencari seluruh slot berdasarkan lantai dan jenis kendaraan (untuk tampilan peta per tab)
+    List<SlotParkir> findByLantaiAndJenisKendaraan(Integer lantai, JenisKendaraan jenisKendaraan);
+
 
     // Mencari slot berdasarkan node_id (digunakan oleh Algoritma A* untuk memetakan koordinat)
     // Setara: SELECT * FROM slot_parkir WHERE node_id = ?
