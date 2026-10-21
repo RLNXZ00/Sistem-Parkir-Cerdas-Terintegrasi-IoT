@@ -93,9 +93,17 @@ public class AuthController
         if (password == null || password.trim().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("pesan", "Kata sandi wajib diisi."));
         }
-        if (password.length() < 6) {
-            return ResponseEntity.badRequest().body(Map.of("pesan", "Kata sandi minimal 6 karakter."));
+        if (password.length() < 8) {
+            return ResponseEntity.badRequest().body(Map.of("pesan", "Kata sandi minimal 8 karakter."));
         }
+        if (!password.matches(".*\\d.*")) {
+            return ResponseEntity.badRequest().body(Map.of("pesan", "Kata sandi harus mengandung angka."));
+        }
+        if (!password.matches(".*[^A-Za-z0-9].*")) {
+            return ResponseEntity.badRequest().body(Map.of("pesan", "Kata sandi harus mengandung karakter spesial."));
+        }
+
+
         if (namaLengkap == null || namaLengkap.trim().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("pesan", "Nama lengkap wajib diisi."));
         }

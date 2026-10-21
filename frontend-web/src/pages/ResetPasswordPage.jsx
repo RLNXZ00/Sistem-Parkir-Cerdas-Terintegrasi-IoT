@@ -23,13 +23,32 @@ export default function ResetPasswordPage() {
   };
   const match = matchStatus();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Hubungkan ke Spring Boot API endpoint POST /api/auth/reset-password
+    // Validasi password strength sudah dilakukan di UI
     setLoading(true);
-    setSuccess(true);
-    setTimeout(() => navigate('/'), 2000);
-  };
+    try {
+        const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email,
+                newPassword,
+            }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            setError(data.pesan || 'Gagal memperbarui kata sandi.');
+            return;
+        }
+        setSuccess(true);
+        setTimeout(() => navigate('/'), 2000);
+    } catch {
+        setError('Tidak dapat terhubung ke server. Pastikan backend berjalan.');
+    } finally {
+        setLoading(false);
+    }
+};
 
   const PillReq = ({ met, children }) => (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[11px] font-mono transition-colors ${met ? 'bg-[#122820] border-[#23583c] text-[#7ed99e]' : 'bg-[#11171d] border-[#2d3a46] text-[#9bb0c1]'}`}>
