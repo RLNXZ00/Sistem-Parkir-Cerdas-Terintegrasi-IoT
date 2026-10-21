@@ -154,13 +154,6 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Hint akun demo */}
-              <div className="bg-[#0e1e2a] border border-[#1e3a50] rounded-lg px-4 py-3 text-xs font-mono text-[#7ad0ff] flex flex-col gap-0.5">
-                <span className="text-[#5d8099] uppercase tracking-wider text-[10px] mb-1">Demo Credentials</span>
-                <span>admin / admin123 <span className="text-[#ffd700] ml-2">[ADMIN]</span></span>
-                <span>petugas01 / petugas123 <span className="text-[#7ed99e] ml-2">[PETUGAS]</span></span>
-              </div>
-
               {/* Submit Button */}
               <button
                 id="btn-login"
