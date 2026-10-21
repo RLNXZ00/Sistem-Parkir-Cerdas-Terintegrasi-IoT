@@ -32,6 +32,9 @@ public class User
     @Column(name = "role", nullable = false, length = 30)
     private String role; // Peran pengguna dalam sistem
 
+    @Column(name = "nip", length = 8, unique = true)
+    private String nip; // Nomor Induk Pegawai (8 digit angka unik untuk verifikasi akun dan reset kata sandi)
+
     @Column(name = "aktif", nullable = false)
     private Boolean aktif = true; // Status akun: true = aktif, false = dinonaktifkan
 
@@ -45,6 +48,16 @@ public class User
         this.password = password;       // Menginisialisasi atribut password
         this.namaLengkap = namaLengkap; // Menginisialisasi atribut namaLengkap
         this.role = role;               // Menginisialisasi atribut role
+        this.aktif = true;              // Akun baru selalu aktif secara default
+    }
+
+    public User(String username, String password, String namaLengkap, String role, String nip)
+    {
+        this.username = username;       // Menginisialisasi atribut username
+        this.password = password;       // Menginisialisasi atribut password
+        this.namaLengkap = namaLengkap; // Menginisialisasi atribut namaLengkap
+        this.role = role;               // Menginisialisasi atribut role
+        this.nip = nip;                 // Menginisialisasi atribut nip
         this.aktif = true;              // Akun baru selalu aktif secara default
     }
 
@@ -114,5 +127,15 @@ public class User
     public Boolean getAktif()
     {
         return aktif;
+    }
+
+    public void setNip(String nip)
+    {
+        this.nip = nip;
+    }
+
+    public String getNip()
+    {
+        return nip;
     }
 }

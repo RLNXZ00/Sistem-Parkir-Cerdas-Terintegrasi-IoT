@@ -15,4 +15,10 @@ public interface UserRepository extends JpaRepository<User, Long>
 
     // Cek apakah username sudah terdaftar (untuk validasi registrasi)
     boolean existsByUsername(String username);
+
+    // Mencari user berdasarkan NIP (untuk proses lupa/reset kata sandi)
+    Optional<User> findByNip(String nip);
+
+    // Cek apakah NIP sudah terdaftar (untuk validasi registrasi unik)
+    boolean existsByNip(String nip);
 }
