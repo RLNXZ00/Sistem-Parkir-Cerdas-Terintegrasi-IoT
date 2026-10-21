@@ -16,6 +16,8 @@ export default function DashboardPage() {
   const [sensorList, setSensorList] = useState([]);
   const [logs, setLogs]             = useState([]);
   const [isLoading, setIsLoading]   = useState(true);
+  const [lantaiAktif, setLantaiAktif] = useState(1);        // Lantai yang sedang ditampilkan di peta
+  const [jenisAktif, setJenisAktif]   = useState('MOBIL');  // Tab jenis kendaraan: MOBIL / MOTOR
 
   // ── Fetch semua data dari API ──────────────────────────────────────────
   const fetchAll = useCallback(async () => {
@@ -75,18 +77,33 @@ export default function DashboardPage() {
     return SLOT_STYLES[slot.statusSlot] || SLOT_STYLES.KOSONG;
   };
 
-  // Kelompokkan slot per lantai (semua B1 dalam 1 baris demo)
-  const groupedSlots = slots.reduce((acc, slot) => {
-    const lantai = `Lantai ${slot.lantai || 1}`;
-    if (!acc[lantai]) acc[lantai] = [];
-    acc[lantai].push(slot);
-    return acc;
-  }, {});
-  
-  // Urutkan slot berdasarkan ID agar tidak acak posisinya
-  Object.keys(groupedSlots).forEach(key => {
-    groupedSlots[key].sort((a, b) => a.idSlot.localeCompare(b.idSlot, undefined, { numeric: true, sensitivity: 'base' }));
-  });
+  // ── Filter peta: lantai & jenis kendaraan yang sedang dipilih ────────────
+  // Slot lama tanpa jenisKendaraan dianggap MOBIL
+  const getJenisSlot = (slot) => (slot.jenisKendaraan || 'MOBIL').toUpperCase();
+
+  // Daftar lantai dibentuk dinamis dari data slot (mendukung Lantai 1, 2, 3, dst.)
+  const daftarLantai = [...new Set(slots.map(s => s.lantai || 1))].sort((a, b) => a - b);
+  const lantaiTersedia = daftarLantai.length > 0 ? daftarLantai : [1];
+  const lantaiTerpilih = lantaiTersedia.includes(lantaiAktif) ? lantaiAktif : lantaiTersedia[0];
+
+  // Hitung slot kosong untuk badge pada tab (per lantai & jenis)
+  const hitungKosong = (lantai, jenis) => slots.filter(
+    s => (s.lantai || 1) === lantai && getJenisSlot(s) === jenis && s.statusSlot === 'KOSONG'
+  ).length;
+
+  // Slot yang ditampilkan, diurutkan berdasarkan ID agar tidak acak posisinya
+  const visibleSlots = slots
+    .filter(s => (s.lantai || 1) === lantaiTerpilih && getJenisSlot(s) === jenisAktif)
+    .sort((a, b) => a.idSlot.localeCompare(b.idSlot, undefined, { numeric: true, sensitivity: 'base' }));
+
+  // Sensor yang ditampilkan mengikuti slot pada tab aktif
+  const visibleSlotIds = new Set(visibleSlots.map(s => s.idSlot));
+  const visibleSensors = sensorList.filter(s => visibleSlotIds.has(s.slotDipantau?.idSlot));
+
+  const TAB_JENIS = [
+    { key: 'MOBIL', label: 'Mobil', icon: 'directions_car' },
+    { key: 'MOTOR', label: 'Motor', icon: 'two_wheeler' },
+  ];
 
   return (
     <AppLayout breadcrumb="Field Operations">
@@ -96,6 +113,100 @@ export default function DashboardPage() {
           0%   { box-shadow: 0 0 0 0 rgba(255,69,0,0.7); border-color: #FF4500; }
           70%  { box-shadow: 0 0 0 10px rgba(255,69,0,0); border-color: transparent; }
           100% { box-shadow: 0 0 0 0 rgba(255,69,0,0); border-color: #FF4500; }
+        }
+
+        /* ── Tab Mobil/Motor bergaya tab browser (Chrome) ── */
+        .map-shell {
+          --card-bg: #121212;
+          --panel-bg: #090f13;
+          --tab-hover: rgba(255,255,255,0.08);
+          --tab-idle: #87929b;
+          --tab-active: #dee3e8;
+        }
+        html.light-theme .map-shell {
+          --card-bg: #ffffff;
+          --panel-bg: #f8fafc;
+          --tab-hover: rgba(15,23,42,0.07);
+          --tab-idle: #64748b;
+          --tab-active: #0f172a;
+        }
+        .slot-tabs {
+          display: flex;
+          align-items: flex-end;
+          padding: 0 20px;
+          position: relative;
+          z-index: 1;
+        }
+        .slot-panel { position: relative; z-index: 0; }
+        .slot-tab {
+          position: relative;
+          isolation: isolate;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          height: 40px;
+          min-width: 168px;
+          padding: 0 18px;
+          margin-bottom: -1px;
+          border: 0;
+          background: transparent;
+          color: var(--tab-idle);
+          font-size: 13px;
+          cursor: pointer;
+          border-radius: 12px 12px 0 0;
+          transition: color .2s ease;
+        }
+        /* Hover tab non-aktif: pill lembut seperti Chrome */
+        .slot-tab:not(.active)::before {
+          content: '';
+          position: absolute;
+          inset: 6px 2px;
+          border-radius: 8px;
+          background: transparent;
+          transition: background .2s ease;
+          z-index: -1;
+        }
+        .slot-tab:not(.active):hover { color: var(--tab-active); }
+        .slot-tab:not(.active):hover::before { background: var(--tab-hover); }
+        .slot-tab-count {
+          margin-left: auto;
+          font-size: 10px;
+          opacity: .75;
+        }
+        /* Tab aktif: menyatu dengan panel peta + lekukan terbalik di kiri-kanan bawah */
+        .slot-tab.active {
+          background: var(--panel-bg);
+          color: var(--tab-active);
+          z-index: 2;
+        }
+        .slot-tab.active::before,
+        .slot-tab.active::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          width: 12px;
+          height: 12px;
+          background: transparent;
+          inset-inline: auto;
+          z-index: auto;
+        }
+        .slot-tab.active::before {
+          left: -12px;
+          top: auto;
+          background: radial-gradient(circle at top left, transparent 12px, var(--panel-bg) 12.5px);
+        }
+        .slot-tab.active::after {
+          right: -12px;
+          left: auto;
+          top: auto;
+          width: 12px;
+          opacity: 1;
+          background: radial-gradient(circle at top right, transparent 12px, var(--panel-bg) 12.5px);
+        }
+        .slot-fade-in { animation: slot-fade .25s ease; }
+        @keyframes slot-fade {
+          from { opacity: 0; transform: translateY(4px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
 
@@ -125,13 +236,42 @@ export default function DashboardPage() {
 
           {/* ── LEFT: Slot Map (dari slot_parkir API) ─────────────────── */}
           <div className="col-span-12 xl:col-span-8 flex flex-col gap-4">
-            <div className="bg-bg-primary rounded-xl border border-surface-variant p-5 flex flex-col">
+            <div className="map-shell bg-bg-primary rounded-xl border border-surface-variant p-5 flex flex-col">
 
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="font-semibold text-xl text-on-surface flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary">map</span>
-                  Peta Slot Parkir — Real-time
-                </h2>
+              {/* Header: panel lantai (kiri atas), judul di bawahnya, legenda di kanan */}
+              <div className="flex justify-between items-end gap-4 flex-wrap mb-4">
+                <div className="flex flex-col gap-3">
+                  {/* Panel pemilih lantai */}
+                  <div id="panel-lantai" className="floor-panel inline-flex items-center gap-1 p-1 rounded-lg border border-surface-variant bg-surface-container-lowest self-start" role="tablist" aria-label="Pilih lantai">
+                    <span className="material-symbols-outlined text-[18px] text-text-muted px-1.5">layers</span>
+                    {lantaiTersedia.map(lt => {
+                      const aktif = lt === lantaiTerpilih;
+                      return (
+                        <button
+                          key={lt}
+                          id={`btn-lantai-${lt}`}
+                          type="button"
+                          role="tab"
+                          aria-selected={aktif}
+                          onClick={() => setLantaiAktif(lt)}
+                          className={`floor-btn px-3 py-1.5 rounded-md text-xs font-semibold font-mono border transition-all duration-200 ${
+                            aktif
+                              ? 'bg-primary/15 text-primary border-primary/40 shadow-[0_0_10px_rgba(143,214,255,0.15)]'
+                              : 'border-transparent text-text-muted hover:text-on-surface hover:bg-surface-variant/40'
+                          }`}
+                        >
+                          Lantai {lt}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <h2 className="font-semibold text-xl text-on-surface flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary">map</span>
+                    Peta Slot Parkir — Real-time
+                  </h2>
+                </div>
+
                 <div className="flex gap-4 text-xs font-mono">
                   <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-eco-success rounded-sm"></div>Terisi</div>
                   <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-warning-reserved rounded-sm"></div>Dipesan</div>
@@ -140,7 +280,29 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="bg-surface-container-lowest rounded-lg border border-surface-variant p-4 relative overflow-hidden">
+              {/* Tab jenis kendaraan bergaya tab browser (Mobil / Motor) */}
+              <div className="slot-tabs" role="tablist" aria-label="Pilih jenis kendaraan">
+                {TAB_JENIS.map(t => {
+                  const aktif = t.key === jenisAktif;
+                  return (
+                    <button
+                      key={t.key}
+                      id={`tab-jenis-${t.key.toLowerCase()}`}
+                      type="button"
+                      role="tab"
+                      aria-selected={aktif}
+                      onClick={() => setJenisAktif(t.key)}
+                      className={`slot-tab ${aktif ? 'active' : ''}`}
+                    >
+                      <span className={`material-symbols-outlined text-[18px] ${aktif ? 'text-primary' : ''}`}>{t.icon}</span>
+                      <span className="font-semibold">{t.label}</span>
+                      <span className="slot-tab-count font-mono">{hitungKosong(lantaiTerpilih, t.key)} kosong</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="slot-panel bg-surface-container-lowest rounded-lg border border-surface-variant p-4 relative overflow-hidden">
                 <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none opacity-30"></div>
 
                 {isLoading ? (
@@ -152,39 +314,41 @@ export default function DashboardPage() {
                   <div className="py-12 text-center text-text-muted font-mono text-xs">
                     Tidak ada data slot parkir.
                   </div>
+                ) : visibleSlots.length === 0 ? (
+                  <div className="py-12 text-center text-text-muted font-mono text-xs">
+                    Belum ada slot {jenisAktif.toLowerCase()} di Lantai {lantaiTerpilih}.
+                  </div>
                 ) : (
-                  <div className="relative z-10 flex flex-col gap-4">
-                    {Object.entries(groupedSlots).map(([lantai, slotArr]) => (
-                      <div key={lantai}>
-                        <div className="text-xs font-mono text-outline-variant text-center border-y border-surface-variant py-1 mb-3 uppercase tracking-widest">
-                          {lantai}
-                        </div>
-                        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(slotArr.length, 8)}, minmax(0, 1fr))` }}>
-                          {slotArr.map(slot => {
-                            const styleClass = getSlotStyle(slot);
-                            const isAnomali = styleClass === SLOT_STYLES.ANOMALI;
-                            return (
-                              <div
-                                key={slot.idSlot}
-                                title={`${slot.idSlot} — ${slot.statusSlot}${slot.kendaraanAktif ? ` | ${slot.kendaraanAktif.platNomor}` : ''}`}
-                                className={`group h-10 rounded flex items-center justify-center font-mono text-xs relative ${styleClass}`}
-                              >
-                                {slot.idSlot}
-                                {isAnomali && (
-                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-surface-container-high border border-alert-anomaly p-3 rounded shadow-lg hidden group-hover:block z-50 text-left">
-                                    <p className="text-xs text-alert-anomaly font-bold mb-1">ANOMALI SLOT</p>
-                                    <p className="text-xs text-on-surface-variant font-mono">Slot: {slot.idSlot}</p>
-                                    {slot.kendaraanAktif && (
-                                      <p className="text-xs text-on-surface-variant font-mono">Plat: {slot.kendaraanAktif.platNomor}</p>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
+                  <div className="relative z-10 flex flex-col gap-4" key={`${lantaiTerpilih}-${jenisAktif}`}>
+                    <div className="slot-fade-in">
+                      <div className="text-xs font-mono text-outline-variant text-center border-y border-surface-variant py-1 mb-3 uppercase tracking-widest">
+                        Lantai {lantaiTerpilih} — {jenisAktif}
                       </div>
-                    ))}
+                      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.max(1, Math.min(visibleSlots.length, 8))}, minmax(0, 1fr))` }}>
+                        {visibleSlots.map(slot => {
+                          const styleClass = getSlotStyle(slot);
+                          const isAnomali = styleClass === SLOT_STYLES.ANOMALI;
+                          return (
+                            <div
+                              key={slot.idSlot}
+                              title={`${slot.idSlot} — ${slot.statusSlot}${slot.kendaraanAktif ? ` | ${slot.kendaraanAktif.platNomor}` : ''}`}
+                              className={`group h-10 rounded flex items-center justify-center font-mono text-xs relative ${styleClass}`}
+                            >
+                              {slot.idSlot}
+                              {isAnomali && (
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-surface-container-high border border-alert-anomaly p-3 rounded shadow-lg hidden group-hover:block z-50 text-left">
+                                  <p className="text-xs text-alert-anomaly font-bold mb-1">ANOMALI SLOT</p>
+                                  <p className="text-xs text-on-surface-variant font-mono">Slot: {slot.idSlot}</p>
+                                  {slot.kendaraanAktif && (
+                                    <p className="text-xs text-on-surface-variant font-mono">Plat: {slot.kendaraanAktif.platNomor}</p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -235,10 +399,10 @@ export default function DashboardPage() {
               <div className="bg-bg-primary rounded-xl border border-surface-variant p-4">
                 <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2 mb-3 border-b border-surface-variant pb-2">
                   <span className="material-symbols-outlined text-[#ffd700] text-[18px]">sensors</span>
-                  Status Sensor IoT ({sensorList.length} Unit)
+                  Status Sensor IoT — Lantai {lantaiTerpilih} · {jenisAktif === 'MOBIL' ? 'Mobil' : 'Motor'} ({visibleSensors.length} Unit)
                 </h3>
                 <div className="flex flex-wrap gap-1.5">
-                  {sensorList.map(s => {
+                  {visibleSensors.map(s => {
                     const sOn = isOn(s.statusSensor);
                     return (
                       <span
