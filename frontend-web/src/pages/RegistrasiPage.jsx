@@ -12,6 +12,7 @@ const ROLE_CONFIG = {
 
 export default function RegistrasiPage() {
   const [fullName, setFullName] = useState('');
+  const [nip, setNip] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -29,8 +30,13 @@ export default function RegistrasiPage() {
     setError('');
 
     // Validasi input
-    if (!fullName.trim() || !username.trim() || !password || !confirmPassword) {
+    if (!fullName.trim() || !nip.trim() || !username.trim() || !password || !confirmPassword) {
       setError('Harap lengkapi semua kolom pendaftaran.');
+      return;
+    }
+
+    if (!/^\d{8}$/.test(nip.trim())) {
+      setError('NIP harus terdiri dari tepat 8 digit angka.');
       return;
     }
 
@@ -49,6 +55,11 @@ export default function RegistrasiPage() {
       return;
     }
 
+    if (!/[^A-Za-z0-9]/.test(password)) {
+      setError('Kata sandi harus mengandung kombinasi karakter khusus.');
+      return;
+    }
+
     if (!agreeTerms) {
       setError('Anda harus menyetujui Ketentuan Layanan dan Kebijakan Privasi.');
       return;
@@ -62,6 +73,7 @@ export default function RegistrasiPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: fullName.trim(),
+          nip: nip.trim(),
           username: username.trim(),
           password,
           role,
@@ -147,6 +159,30 @@ export default function RegistrasiPage() {
                 required
                 className="w-full bg-[#0f1419] border border-[#2c3743] hover:border-[#3d4c5c] focus:border-[#7ad0ff] text-white text-sm px-3.5 py-2.5 rounded-lg focus:outline-none placeholder:text-[#5d6f80] transition-colors"
               />
+            </div>
+
+            {/* NIP (Nomor Induk Pegawai - Wajib 8 Digit Angka) */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <label className="font-mono text-xs uppercase tracking-wider text-[#bcc8d1] font-semibold flex items-center gap-1.5" htmlFor="nip">
+                  <span className="material-symbols-outlined text-[16px] text-[#38bdf8]">id_card</span>
+                  Nomor Induk Pegawai (NIP)
+                </label>
+                <span className="font-mono text-[10px] text-[#7ad0ff]">Wajib 8 Digit Angka</span>
+              </div>
+              <div className="relative flex items-center">
+                <input
+                  id="nip"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={8}
+                  placeholder="Contoh: 10000001"
+                  value={nip}
+                  onChange={(e) => setNip(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                  required
+                  className="w-full bg-[#0f1419] border border-[#2c3743] hover:border-[#3d4c5c] focus:border-[#7ad0ff] text-white font-mono text-sm px-3.5 py-2.5 rounded-lg focus:outline-none placeholder:text-[#5d6f80] transition-colors"
+                />
+              </div>
             </div>
 
             {/* Role Selector */}
