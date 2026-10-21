@@ -970,6 +970,15 @@ export default function SettingsPage() {
             {/* ============================================================== */}
             {activeTab === 'eco' && (
               <div className="space-y-6">
+                {/* Role Access Banner */}
+                <div className="flex items-center gap-2.5 p-3 rounded-xl bg-[#00BFFF]/10 border border-[#00BFFF]/30">
+                  <span className="material-symbols-outlined text-[18px] text-[#00BFFF] flex-shrink-0">admin_panel_settings</span>
+                  <p className="text-[11px] font-mono text-[#00BFFF]">
+                    {lang === 'id'
+                      ? 'Tab ini hanya ditampilkan untuk peran Manajer RS / Admin — konfigurasi metrik karbon & KPI ekologi.'
+                      : 'This tab is visible to Manager / Admin role only — carbon metrics & ecological KPI configuration.'}
+                  </p>
+                </div>
                 <div>
                   <h3 className="text-lg font-bold text-on-surface flex items-center gap-2">
                     <span className="material-symbols-outlined text-eco-success">eco</span>
@@ -981,6 +990,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                   <div className="p-4 rounded-xl bg-surface-container border border-surface-variant flex flex-col gap-2">
                     <label className="text-xs font-mono text-on-surface-variant uppercase tracking-wider">
                       {lang === 'id' ? 'Emisi Mobil (Gram CO₂ / Detik)' : 'Car Emission (g CO₂ / sec)'}
@@ -1051,6 +1061,15 @@ export default function SettingsPage() {
             {/* ============================================================== */}
             {activeTab === 'iot' && (
               <div className="space-y-6">
+                {/* Role Access Banner */}
+                <div className="flex items-center gap-2.5 p-3 rounded-xl bg-eco-success/10 border border-eco-success/30">
+                  <span className="material-symbols-outlined text-[18px] text-eco-success flex-shrink-0">engineering</span>
+                  <p className="text-[11px] font-mono text-eco-success">
+                    {lang === 'id'
+                      ? 'Tab ini hanya ditampilkan untuk peran Petugas Lapangan — konfigurasi telemetri sensor fisik basement.'
+                      : 'This tab is visible to Field Operator role only — basement physical sensor telemetry configuration.'}
+                  </p>
+                </div>
                 <div>
                   <h3 className="text-lg font-bold text-on-surface flex items-center gap-2">
                     <span className="material-symbols-outlined text-[#ffd700]">sensors</span>
@@ -1127,6 +1146,15 @@ export default function SettingsPage() {
             {/* ============================================================== */}
             {activeTab === 'anpr' && (
               <div className="space-y-6">
+                {/* Role Access Banner */}
+                <div className="flex items-center gap-2.5 p-3 rounded-xl bg-eco-success/10 border border-eco-success/30">
+                  <span className="material-symbols-outlined text-[18px] text-eco-success flex-shrink-0">engineering</span>
+                  <p className="text-[11px] font-mono text-eco-success">
+                    {lang === 'id'
+                      ? 'Tab ini hanya ditampilkan untuk peran Petugas Lapangan — konfigurasi parameter kamera ANPR & model AI.'
+                      : 'This tab is visible to Field Operator role only — ANPR camera & AI model parameter configuration.'}
+                  </p>
+                </div>
                 <div>
                   <h3 className="text-lg font-bold text-on-surface flex items-center gap-2">
                     <span className="material-symbols-outlined text-[#7ad0ff]">videocam</span>
@@ -1187,6 +1215,15 @@ export default function SettingsPage() {
             {/* ============================================================== */}
             {activeTab === 'retention' && (
               <div className="space-y-6">
+                {/* Role Access Banner */}
+                <div className="flex items-center gap-2.5 p-3 rounded-xl bg-[#00BFFF]/10 border border-[#00BFFF]/30">
+                  <span className="material-symbols-outlined text-[18px] text-[#00BFFF] flex-shrink-0">admin_panel_settings</span>
+                  <p className="text-[11px] font-mono text-[#00BFFF]">
+                    {lang === 'id'
+                      ? 'Tab ini hanya ditampilkan untuk peran Manajer RS / Admin — kebijakan siklus hidup dan retensi data log IoT.'
+                      : 'This tab is visible to Manager / Admin role only — data lifecycle and IoT log retention policy configuration.'}
+                  </p>
+                </div>
                 <div>
                   <h3 className="text-lg font-bold text-on-surface flex items-center gap-2">
                     <span className="material-symbols-outlined text-warning-reserved">auto_delete</span>
