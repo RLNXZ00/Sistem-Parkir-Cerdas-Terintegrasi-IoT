@@ -44,20 +44,23 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [fetchAll]);
 
-  // ── Hitung statistik ringkas ────────────────────────────────────────────
+  // ── Hitung statistik ringkas (case-insensitive untuk toleransi nilai DB) ──
   const totalSlot     = slots.length || 0;
   const slotTerisi    = slots.filter(s => s.statusSlot === 'TERISI').length;
   const slotKosong    = slots.filter(s => s.statusSlot === 'KOSONG').length;
   const slotDipesan   = slots.filter(s => s.statusSlot === 'DIPESAN').length;
-  const kameraOnline  = kameraList.filter(k => k.statusKamera === 'ON').length;
-  const sensorOnline  = sensorList.filter(s => s.statusSensor === 'ON').length;
+  const kameraOnline  = kameraList.filter(k => k.statusKamera?.toUpperCase() === 'ON').length;
+  const sensorOnline  = sensorList.filter(s => s.statusSensor?.toUpperCase() === 'ON').length;
   const logBelumDitangani = logs.filter(l => l.statusResolusi === 'BELUM_DITANGANI').length;
 
-  // ── Cari sensor per slot ────────────────────────────────────────────────
+  // ── Cari sensor per slot (case-insensitive) ─────────────────────────────
   const getSensorStatus = (idSlot) => {
     const sensor = sensorList.find(s => s.slotDipantau?.idSlot === idSlot);
-    return sensor ? sensor.statusSensor : null;
+    return sensor ? sensor.statusSensor?.toUpperCase() : null;
   };
+
+  // ── Helper: apakah status hardware ON? (case-insensitive) ───────────────
+  const isOn = (status) => status?.toUpperCase() === 'ON';
 
   const getSlotStyle = (slot) => {
     if (getSensorStatus(slot.idSlot) === 'OFF') return SLOT_STYLES.ANOMALI;
@@ -197,12 +200,31 @@ export default function DashboardPage() {
                   Status Kamera ANPR (4 Unit)
                 </h3>
                 <div className="grid grid-cols-2 gap-2">
-                  {kameraList.map(k => (
-                    <div key={k.idKamera} className={`flex items-center justify-between rounded-lg px-3 py-2 border text-xs font-mono ${k.statusKamera === 'ON' ? 'bg-eco-success/10 border-eco-success/30' : 'bg-red-950/20 border-red-700/30'}`}>
-                      <span className={`${k.statusKamera === 'ON' ? 'text-eco-success' : 'text-red-400'}`}>{k.idKamera}</span>
-                      <span className={`font-bold ${k.statusKamera === 'ON' ? 'text-eco-success' : 'text-red-400'}`}>{k.statusKamera}</span>
-                    </div>
-                  ))}
+                  {kameraList.map(k => {
+                    const kOn = isOn(k.statusKamera);
+                    return (
+                      <div
+                        key={k.idKamera}
+                        className={`flex items-center justify-between rounded-lg px-3 py-2 border text-xs font-mono transition-all duration-500 ${
+                          kOn
+                            ? 'bg-eco-success/10 border-eco-success/30'
+                            : 'bg-red-950/30 border-red-600/50 shadow-[inset_0_0_8px_rgba(239,68,68,0.15)]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${kOn ? 'bg-eco-success animate-pulse' : 'bg-red-500'}`} />
+                          <span className={kOn ? 'text-eco-success' : 'text-red-400'}>{k.idKamera}</span>
+                        </div>
+                        <span className={`font-bold text-[10px] px-1.5 py-0.5 rounded border ${
+                          kOn
+                            ? 'text-eco-success border-eco-success/40 bg-eco-success/10'
+                            : 'text-red-400 border-red-600/50 bg-red-950/40'
+                        }`}>
+                          {kOn ? 'ON' : 'OFF'}
+                        </span>
+                      </div>
+                    );
+                  })}
                   {kameraList.length === 0 && !isLoading && (
                     <p className="col-span-2 text-xs text-text-muted text-center font-mono py-4">Memuat data kamera...</p>
                   )}
@@ -216,15 +238,22 @@ export default function DashboardPage() {
                   Status Sensor IoT ({sensorList.length} Unit)
                 </h3>
                 <div className="flex flex-wrap gap-1.5">
-                  {sensorList.map(s => (
-                    <span
-                      key={s.idSensor}
-                      title={`${s.idSensor}: ${s.statusSensor}`}
-                      className={`text-[10px] font-mono px-2 py-1 rounded border ${s.statusSensor === 'ON' ? 'bg-eco-success/10 border-eco-success/30 text-eco-success' : 'bg-red-950/20 border-red-700/30 text-red-400'}`}
-                    >
-                      {s.idSensor.replace('SNS-', '')}
-                    </span>
-                  ))}
+                  {sensorList.map(s => {
+                    const sOn = isOn(s.statusSensor);
+                    return (
+                      <span
+                        key={s.idSensor}
+                        title={`${s.idSensor}: ${sOn ? 'ON' : 'OFF'}`}
+                        className={`text-[10px] font-mono px-2 py-1 rounded border transition-all duration-500 ${
+                          sOn
+                            ? 'bg-eco-success/10 border-eco-success/30 text-eco-success'
+                            : 'bg-red-950/30 border-red-600/60 text-red-400 shadow-[0_0_6px_rgba(239,68,68,0.3)]'
+                        }`}
+                      >
+                        {s.idSensor.replace('SNS-', '')}
+                      </span>
+                    );
+                  })}
                   {sensorList.length === 0 && !isLoading && (
                     <p className="text-xs text-text-muted text-center font-mono py-4 w-full">Memuat data sensor...</p>
                   )}
@@ -304,37 +333,51 @@ export default function DashboardPage() {
                 Live Gate Monitor
               </h2>
               <div className="grid grid-cols-2 gap-3">
-                {kameraList.length > 0 ? kameraList.map(cam => (
-                  <div key={cam.idKamera} className="relative bg-surface-container-lowest rounded overflow-hidden border border-surface-variant aspect-video flex flex-col group">
+                {kameraList.length > 0 ? kameraList.map(cam => {
+                  const camOn = isOn(cam.statusKamera);
+                  return (
+                  <div key={cam.idKamera} className={`relative bg-surface-container-lowest rounded overflow-hidden border aspect-video flex flex-col group transition-all duration-500 ${
+                    camOn ? 'border-surface-variant' : 'border-red-700/50 shadow-[0_0_12px_rgba(239,68,68,0.2)]'
+                  }`}>
                     <div className="absolute inset-0 bg-gradient-to-br from-[#1a2830] via-[#0e1418] to-[#1a1f24] flex items-center justify-center">
-                      {cam.statusKamera === 'OFF'
-                        ? <span className="material-symbols-outlined text-[40px] text-red-900 opacity-30">videocam_off</span>
+                      {!camOn
+                        ? <span className="material-symbols-outlined text-[40px] text-red-800 opacity-50">videocam_off</span>
                         : <span className="material-symbols-outlined text-[40px] text-surface-variant opacity-30 group-hover:opacity-50 transition-opacity">local_parking</span>
                       }
                     </div>
+                    {/* Overlay merah saat OFF */}
+                    {!camOn && (
+                      <div className="absolute inset-0 bg-red-950/20 pointer-events-none z-0" />
+                    )}
                     {/* HUD Top */}
                     <div className="absolute top-2 left-2 flex items-center gap-1.5 z-10">
-                      <div className={`w-1.5 h-1.5 rounded-full ${cam.statusKamera === 'ON' ? 'bg-eco-success animate-pulse' : 'bg-red-500'}`}></div>
-                      <span className="font-mono text-[9px] text-white bg-black/60 px-1.5 py-0.5 rounded backdrop-blur-sm border border-outline-variant/30">
+                      <div className={`w-1.5 h-1.5 rounded-full ${camOn ? 'bg-eco-success animate-pulse' : 'bg-red-500 animate-pulse'}`}></div>
+                      <span className={`font-mono text-[9px] bg-black/60 px-1.5 py-0.5 rounded backdrop-blur-sm border ${
+                        camOn ? 'text-white border-outline-variant/30' : 'text-red-300 border-red-700/40'
+                      }`}>
                         {cam.idKamera}
                       </span>
                     </div>
                     {/* HUD Bottom */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-md p-2 border-t border-primary/30 flex justify-between items-center z-10">
+                    <div className={`absolute bottom-0 left-0 right-0 backdrop-blur-md p-2 border-t flex justify-between items-center z-10 ${
+                      camOn ? 'bg-black/80 border-primary/30' : 'bg-red-950/80 border-red-700/50'
+                    }`}>
                       <div className="font-mono">
-                        <span className="text-[9px] text-outline block leading-none mb-0.5">
+                        <span className={`text-[9px] block leading-none mb-0.5 ${camOn ? 'text-outline' : 'text-red-400'}`}>
                           {cam.posisiGerbang} — {cam.tipeKendaraan}
                         </span>
                       </div>
                       <span className={`text-[9px] font-bold border px-1.5 py-0.5 rounded leading-none ${
-                        cam.statusKamera === 'ON'
+                        camOn
                           ? 'text-eco-success border-eco-success bg-eco-success/10'
-                          : 'text-red-400 border-red-700/40 bg-red-950/20'
+                          : 'text-red-300 border-red-600/60 bg-red-900/40'
                       }`}>
-                        {cam.statusKamera}
+                        {camOn ? 'ON' : 'OFF'}
                       </span>
                     </div>
                   </div>
+                  );
+                })
                 )) : (
                   // Fallback 4 card dummy saat loading
                   ['Entry-Mobil', 'Entry-Motor', 'Exit-Mobil', 'Exit-Motor'].map(name => (

@@ -70,7 +70,8 @@ public class KameraAnpr
 
     public void setStatusKamera(String statusKamera)
     {
-        this.statusKamera = statusKamera;
+        // Normalisasi ke uppercase agar konsisten (toleransi nilai DB: 'on', 'OFF', 'On')
+        this.statusKamera = (statusKamera != null) ? statusKamera.toUpperCase() : "OFF";
     }
 
     public String getStatusKamera()

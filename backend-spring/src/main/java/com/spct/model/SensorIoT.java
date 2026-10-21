@@ -63,7 +63,8 @@ public class SensorIoT
 
     public void setStatusSensor(String statusSensor)
     {
-        this.statusSensor = statusSensor;
+        // Normalisasi ke uppercase agar konsisten (toleransi nilai DB: 'on', 'OFF', 'On')
+        this.statusSensor = (statusSensor != null) ? statusSensor.toUpperCase() : "OFF";
     }
 
     public String getStatusSensor()
