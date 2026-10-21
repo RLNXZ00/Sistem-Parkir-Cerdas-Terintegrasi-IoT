@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import AuthBrand from '../components/AuthBrand';
 import AuthFooter from '../components/AuthFooter';
 
+const API_BASE = 'http://localhost:8081';
+
 const ROLE_CONFIG = {
   rs: { label: 'Level 2 - Pengawas', className: 'bg-[#102438] border-[#1b4363] text-[#7ad0ff]' },
   field: { label: 'Level 1 - Barrier Ctrl', className: 'bg-[#122820] border-[#23583c] text-[#7ed99e]' },
@@ -10,17 +12,77 @@ const ROLE_CONFIG = {
 };
 
 export default function RegistrasiPage() {
+  const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [role, setRole] = useState('rs');
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Hubungkan ke Spring Boot API endpoint POST /api/auth/register
-    setSuccess(true);
-    setTimeout(() => navigate('/'), 2000);
+    setError('');
+
+    // Validasi input
+    if (!fullName.trim() || !username.trim() || !password || !confirmPassword) {
+      setError('Harap lengkapi semua kolom pendaftaran.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Konfirmasi kata sandi tidak cocok.');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Kata sandi minimal 8 karakter sesuai ketentuan sistem.');
+      return;
+    }
+
+    if (!/\d/.test(password)) {
+      setError('Kata sandi harus mengandung kombinasi angka.');
+      return;
+    }
+
+    if (!agreeTerms) {
+      setError('Anda harus menyetujui Ketentuan Layanan dan Kebijakan Privasi.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: fullName.trim(),
+          username: username.trim(),
+          password,
+          role,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.pesan || 'Registrasi gagal. Silakan coba lagi.');
+        return;
+      }
+
+      setSuccess(true);
+      setTimeout(() => navigate('/'), 2000);
+    } catch {
+      setError('Tidak dapat terhubung ke server. Pastikan backend berjalan di port 8081.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const roleCfg = ROLE_CONFIG[role];
@@ -60,6 +122,14 @@ export default function RegistrasiPage() {
             </p>
           </div>
 
+          {/* Error Banner */}
+          {error && (
+            <div className="flex items-center gap-2 bg-red-950/40 border border-red-700/50 rounded-lg px-4 py-3 text-sm text-red-400 font-mono mb-4">
+              <span className="material-symbols-outlined text-[18px] shrink-0">error</span>
+              <span>{error}</span>
+            </div>
+          )}
+
           {/* Form */}
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
 
@@ -73,6 +143,8 @@ export default function RegistrasiPage() {
                 id="fullName"
                 type="text"
                 placeholder="Contoh: Antonius Pratama"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
                 required
                 className="w-full bg-[#0f1419] border border-[#2c3743] hover:border-[#3d4c5c] focus:border-[#7ad0ff] text-white text-sm px-3.5 py-2.5 rounded-lg focus:outline-none placeholder:text-[#5d6f80] transition-colors"
               />
@@ -118,6 +190,8 @@ export default function RegistrasiPage() {
                   id="username"
                   type="text"
                   placeholder="apratama"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   required
                   className="w-full bg-[#0f1419] border border-[#2c3743] hover:border-[#3d4c5c] focus:border-[#7ad0ff] text-white font-mono text-sm px-3.5 py-2.5 rounded-lg focus:outline-none placeholder:text-[#5d6f80] transition-colors"
                 />
@@ -136,6 +210,8 @@ export default function RegistrasiPage() {
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
                     className="w-full bg-[#0f1419] border border-[#2c3743] hover:border-[#3d4c5c] focus:border-[#7ad0ff] text-white font-mono text-sm pl-3 pr-9 py-2.5 rounded-lg focus:outline-none placeholder:text-[#5d6f80] transition-colors"
                   />
@@ -154,6 +230,8 @@ export default function RegistrasiPage() {
                     id="confirmPassword"
                     type={showConfirm ? 'text' : 'password'}
                     placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     className="w-full bg-[#0f1419] border border-[#2c3743] hover:border-[#3d4c5c] focus:border-[#7ad0ff] text-white font-mono text-sm pl-3 pr-9 py-2.5 rounded-lg focus:outline-none placeholder:text-[#5d6f80] transition-colors"
                   />
@@ -178,7 +256,13 @@ export default function RegistrasiPage() {
 
             {/* Terms Checkbox */}
             <label className="flex items-start gap-2.5 cursor-pointer mt-0.5 group">
-              <input type="checkbox" required className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-[#2e8b57]" />
+              <input
+                type="checkbox"
+                checked={agreeTerms}
+                onChange={(e) => setAgreeTerms(e.target.checked)}
+                required
+                className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-[#2e8b57]"
+              />
               <span className="text-xs text-[#9bb0c1] leading-snug group-hover:text-white transition-colors">
                 Saya menyetujui <a href="#" className="text-[#7ad0ff] hover:underline font-semibold">Ketentuan Layanan</a> dan <a href="#" className="text-[#7ad0ff] hover:underline font-semibold">Kebijakan Privasi</a> SPCT.
               </span>
@@ -188,14 +272,27 @@ export default function RegistrasiPage() {
             {success && (
               <div className="rounded-lg bg-[#122820] border border-[#23583c] p-3 text-[#7ed99e] flex items-center gap-2.5">
                 <span className="material-symbols-outlined text-[20px]">check_circle</span>
-                <span className="font-mono text-xs">Registrasi berhasil diajukan! Mengalihkan ke portal...</span>
+                <span className="font-mono text-xs">Registrasi berhasil diajukan! Mengalihkan ke portal login...</span>
               </div>
             )}
 
             {/* Submit Button */}
-            <button type="submit" className="w-full mt-2 py-3 px-4 rounded-lg bg-[#f97316] hover:bg-[#ea580c] active:bg-[#c2410c] text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-lg shadow-orange-950/40 cursor-pointer">
-              <span>Daftar Akun</span>
-              <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+            <button
+              type="submit"
+              disabled={isLoading || success}
+              className="w-full mt-2 py-3 px-4 rounded-lg bg-[#f97316] hover:bg-[#ea580c] active:bg-[#c2410c] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-lg shadow-orange-950/40 cursor-pointer"
+            >
+              {isLoading ? (
+                <>
+                  <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                  <span>Mendaftarkan Akun...</span>
+                </>
+              ) : (
+                <>
+                  <span>Daftar Akun</span>
+                  <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                </>
+              )}
             </button>
           </form>
 
