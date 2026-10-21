@@ -401,25 +401,27 @@ export default function SettingsPage() {
     return matchesCategory && matchesSearch;
   });
 
-  const tabs = [
+  // Deteksi konteks peran pengguna (RBAC)
+  const isManager = currentUser.role === 'ADMIN' || currentUser.role === 'Manajemen RS';
+
+  // 1. Tab Bersama (Paling Atas untuk Kedua User)
+  const commonTopTabs = [
     {
       id: 'account',
       label: lang === 'id' ? 'Akun & Keamanan' : 'Account & Security',
       icon: 'manage_accounts',
-      desc: lang === 'id' ? 'Profil operator & ganti password' : 'Operator profile & password change'
+      desc: lang === 'id' ? 'Profil pengguna & perbarui kata sandi' : 'User profile & password update'
     },
     {
       id: 'display',
       label: lang === 'id' ? 'Tampilan & Bahasa' : 'Theme & Language',
       icon: 'palette',
-      desc: lang === 'id' ? 'Mode gelap/cerah & pilihan bahasa' : 'Dark/light theme & language selector'
+      desc: lang === 'id' ? 'Mode tema gelap/cerah & pilihan bahasa' : 'Dark/light theme & language selector'
     },
-    {
-      id: 'eco',
-      label: lang === 'id' ? 'Eco-Metrics & Emisi' : 'Eco-Metrics & Carbon',
-      icon: 'eco',
-      desc: lang === 'id' ? 'Rumus standar CO₂ & baseline efisiensi' : 'CO2 standard formula & baseline'
-    },
+  ];
+
+  // 2. Tab Khusus Petugas Lapangan (Fokus Fitur Pemantauan Lapangan & Gerbang)
+  const fieldOperatorTabs = [
     {
       id: 'iot',
       label: lang === 'id' ? 'Sensor IoT & Basement' : 'IoT Sensors & Basement',
@@ -432,18 +434,39 @@ export default function SettingsPage() {
       icon: 'videocam',
       desc: lang === 'id' ? 'Confidence threshold YOLOv11 & OCR' : 'YOLOv11 & OCR confidence threshold'
     },
+  ];
+
+  // 3. Tab Khusus Manajer (Fokus Manajemen Data & Analitik Kebijakan)
+  const managementTabs = [
+    {
+      id: 'eco',
+      label: lang === 'id' ? 'Eco-Metrics & Emisi' : 'Eco-Metrics & Carbon',
+      icon: 'eco',
+      desc: lang === 'id' ? 'Rumus standar CO₂ & baseline efisiensi' : 'CO2 standard formula & baseline'
+    },
     {
       id: 'retention',
       label: lang === 'id' ? 'Retensi & Kebijakan Data' : 'Data Retention Policy',
       icon: 'auto_delete',
       desc: lang === 'id' ? 'Siklus hidup log telemetri 90 hari' : '90-day telemetry log lifecycle'
     },
+  ];
+
+  // 4. Tab Bersama (Paling Bawah untuk Kedua User)
+  const commonBottomTabs = [
     {
       id: 'sop',
       label: lang === 'id' ? 'Panduan Sistem (SOP)' : 'System Guide (SOP)',
       icon: 'menu_book',
       desc: lang === 'id' ? 'Prosedur operasional sistem parkir cerdas' : 'Smart parking operational procedures'
     },
+  ];
+
+  // Susun tab aktif sesuai peran login
+  const tabs = [
+    ...commonTopTabs,
+    ...(isManager ? managementTabs : fieldOperatorTabs),
+    ...commonBottomTabs
   ];
 
   return (
