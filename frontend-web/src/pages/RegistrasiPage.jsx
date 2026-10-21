@@ -7,8 +7,7 @@ const API_BASE = 'http://localhost:8081';
 
 const ROLE_CONFIG = {
   rs: { label: 'Level 2 - Pengawas', className: 'bg-[#102438] border-[#1b4363] text-[#7ad0ff]' },
-  field: { label: 'Level 1 - Barrier Ctrl', className: 'bg-[#122820] border-[#23583c] text-[#7ed99e]' },
-  technician: { label: 'Level 3 - Root Tech', className: 'bg-[#2b2112] border-[#6b4716] text-[#ffb86e]' },
+  field: { label: 'Level 1 - Barrier Ctrl', className: 'bg-[#122820] border-[#23583c] text-[#7ed99e]' }
 };
 
 export default function RegistrasiPage() {
@@ -170,7 +169,6 @@ export default function RegistrasiPage() {
                 >
                   <option value="rs">Manajemen RS (Monitoring & Audit)</option>
                   <option value="field">Petugas Lapangan (Operasional Barrier)</option>
-                  <option value="technician">Teknisi Green-IoT (Sensors & Gate)</option>
                 </select>
                 <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#7d90a1]">
                   <span className="material-symbols-outlined text-[18px]">expand_more</span>
