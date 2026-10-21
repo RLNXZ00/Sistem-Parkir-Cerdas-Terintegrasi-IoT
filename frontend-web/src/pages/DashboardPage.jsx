@@ -377,8 +377,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   );
-                })
-                )) : (
+                }) : (
                   // Fallback 4 card dummy saat loading
                   ['Entry-Mobil', 'Entry-Motor', 'Exit-Mobil', 'Exit-Motor'].map(name => (
                     <div key={name} className="relative bg-surface-container-lowest rounded overflow-hidden border border-surface-variant aspect-video flex items-center justify-center">

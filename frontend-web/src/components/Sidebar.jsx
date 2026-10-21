@@ -13,18 +13,18 @@ export default function Sidebar() {
   const isManagementRoute = location.pathname.startsWith('/dashboard-management') || location.pathname.startsWith('/reports');
   const isManager = userData.role === 'ADMIN' || userData.role === 'Manajemen RS' || isManagementRoute;
 
-  // 3. Menu STRICT terpisah sesuai RBAC:
-  //    - Manajemen RS: HANYA 2 MENU (Live Dashboard & Reports)
-  //    - Petugas Lapangan: HANYA 3 MENU (Live Dashboard, Gate OCR Feed, Anomaly Logs)
+  // 3. Menu terpisah sesuai RBAC + Panduan Sistem (SOP):
   const navItems = isManager 
     ? [
         { to: '/dashboard-management', icon: 'dashboard', label: 'Live Dashboard' },
-        { to: '/reports', icon: 'bar_chart', label: 'Reports' }
+        { to: '/reports', icon: 'bar_chart', label: 'Reports' },
+        { to: '/panduan', icon: 'menu_book', label: 'Panduan Sistem' }
       ]
     : [
         { to: '/dashboard', icon: 'dashboard', label: 'Live Dashboard' },
         { to: '/gate-live', icon: 'videocam', label: 'Gate OCR Feed' },
-        { to: '/anomaly-logs', icon: 'report_problem', label: 'Anomaly Logs' }
+        { to: '/anomaly-logs', icon: 'report_problem', label: 'Anomaly Logs' },
+        { to: '/panduan', icon: 'menu_book', label: 'Panduan Sistem' }
       ];
 
   return (
@@ -64,10 +64,19 @@ export default function Sidebar() {
       {/* Bottom Links */}
       <ul className="flex flex-col gap-1 px-2 lg:px-4 mt-auto">
         <li>
-          <button className="w-full flex items-center gap-4 px-3 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-all duration-200">
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `w-full flex items-center gap-4 px-3 py-3 rounded-lg transition-all duration-200
+              ${isActive
+                ? 'text-primary font-bold border-r-4 border-primary bg-secondary-container/10'
+                : 'text-on-surface-variant hover:bg-surface-variant hover:text-on-surface'
+              }`
+            }
+          >
             <span className="material-symbols-outlined">settings</span>
             <span className="hidden lg:block whitespace-nowrap">Settings</span>
-          </button>
+          </NavLink>
         </li>
         <li>
           <button

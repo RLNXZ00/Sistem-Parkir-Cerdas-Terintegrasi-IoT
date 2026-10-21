@@ -11,6 +11,8 @@ import DashboardManagementPage from './pages/DashboardManagementPage';
 import GateLivePage from './pages/GateLivePage';
 import AnomalyLogsPage from './pages/AnomalyLogsPage';
 import ReportsPage from './pages/ReportsPage';
+import SettingsPage from './pages/SettingsPage';
+import PanduanPage from './pages/PanduanPage';
 
 export default function App() {
   return (
@@ -35,6 +37,12 @@ export default function App() {
 
         {/* === Operational Reports === */}
         <Route path="/reports" element={<ReportsPage />} />
+
+        {/* === Panduan Sistem & SOP === */}
+        <Route path="/panduan" element={<PanduanPage />} />
+
+        {/* === Pengaturan Sistem === */}
+        <Route path="/settings" element={<SettingsPage />} />
 
         {/* === Fallback === */}
         <Route path="*" element={<Navigate to="/" replace />} />
