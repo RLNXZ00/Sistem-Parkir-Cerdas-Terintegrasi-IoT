@@ -34,3 +34,32 @@
   direction: ltr;
   -webkit-font-smoothing: antialiased;
 }
+
+/* ===================================================================
+   DUKUNGAN TEMA CERAH (LIGHT MODE) UNTUK SPCT IoT
+   =================================================================== */
+html.light-theme body {
+  background-color: #f4f6f9 !important;
+  color: #1e293b !important;
+}
+
+html.light-theme .bg-background { background-color: #f4f6f9 !important; }
+html.light-theme .bg-surface { background-color: #ffffff !important; }
+html.light-theme .bg-bg-primary { background-color: #ffffff !important; }
+html.light-theme .bg-surface-container-lowest { background-color: #f8fafc !important; }
+html.light-theme .bg-surface-container-low { background-color: #ffffff !important; }
+html.light-theme .bg-surface-container { background-color: #f1f5f9 !important; }
+html.light-theme .bg-surface-container-high { background-color: #e2e8f0 !important; }
+html.light-theme .bg-surface-container-highest { background-color: #cbd5e1 !important; }
+
+html.light-theme .text-on-surface { color: #0f172a !important; }
+html.light-theme .text-on-surface-variant { color: #334155 !important; }
+html.light-theme .text-on-background { color: #0f172a !important; }
+html.light-theme .text-text-muted { color: #64748b !important; }
+
+html.light-theme .border-surface-container { border-color: #e2e8f0 !important; }
+html.light-theme .border-surface-container-low { border-color: #e2e8f0 !important; }
+html.light-theme .border-surface-variant { border-color: #e2e8f0 !important; }
+html.light-theme .border-outline-variant { border-color: #cbd5e1 !important; }
+html.light-theme .border-outline { border-color: #94a3b8 !important; }
+
