@@ -5,7 +5,7 @@ export default function SettingsPage() {
   // 1. Ambil preferensi tema dan bahasa yang tersimpan
   const [theme, setTheme] = useState(() => localStorage.getItem('spct_theme') || 'dark');
   const [lang, setLang] = useState(() => localStorage.getItem('spct_language') || 'id');
-  const [activeTab, setActiveTab] = useState('display'); // default tab ke Tampilan & Bahasa atau SOP
+  const [activeTab, setActiveTab] = useState('account'); // Akun & Keamanan di paling atas
   const [toast, setToast] = useState(null);
 
   // Ambil info akun yang sedang login
@@ -164,7 +164,7 @@ export default function SettingsPage() {
         { no: '2', actor: lang === 'id' ? 'Pengendara' : 'Driver', text: lang === 'id' ? 'Menekan tombol hijau pada terminal kios masuk.' : 'Presses the green button on the kiosk terminal.' },
         { no: '3', actor: lang === 'id' ? 'Kamera ANPR' : 'ANPR Camera', text: lang === 'id' ? 'Menangkap citra plat nomor resolusi tinggi secara otomatis.' : 'Automatically captures high-res plate image.' },
         { no: '4', actor: lang === 'id' ? 'AI YOLOv11' : 'YOLOv11 AI', text: lang === 'id' ? 'Mengekstrak karakter string plat dan memvalidasi kejelasan nomor (< 3 detik).' : 'Extracts plate string and validates legibility in < 3s.' },
-        { no: '5', actor: lang === 'id' ? 'Sistem Backend' : 'Backend System', text: lang === 'id' ? 'Mencatat timestamp masuk dan memanggil alokasi slot kosong (PK-UC002).' : 'Records entry timestamp and requests slot allocation (PK-UC002).' }
+        { no: '5', actor: lang === 'id' ? 'Sistem Backend' : 'Backend System', text: lang === 'id' ? 'Mencatat timestamp masuk dan memanggil alokasi slot kosong.' : 'Records entry timestamp and requests slot allocation.' }
       ],
       troubleshooting: lang === 'id'
         ? 'Jika plat kotor/tidak terbaca, layar terminal meminta pengendara memajukan kendaraan sedikit atau menekan tombol panggil bantuan ke petugas pos.'
@@ -187,7 +187,7 @@ export default function SettingsPage() {
         { no: '1', actor: lang === 'id' ? 'Sistem Backend' : 'Backend', text: lang === 'id' ? 'Memeriksa ketersediaan 16 slot parkir di Basement B1 secara real-time.' : 'Checks availability of 16 slots on Basement B1 in real-time.' },
         { no: '2', actor: lang === 'id' ? 'Algoritma Graf' : 'Graph Algorithm', text: lang === 'id' ? 'Memilih slot kosong terdekat dengan pintu akses basement.' : 'Selects closest available slot to basement entrance.' },
         { no: '3', actor: lang === 'id' ? 'Database' : 'Database', text: lang === 'id' ? 'Mengubah status slot terpilih menjadi DIPESAN agar tidak diserobot.' : 'Sets slot status to RESERVED to prevent conflicts.' },
-        { no: '4', actor: lang === 'id' ? 'Terminal Kios' : 'Kiosk Terminal', text: lang === 'id' ? 'Mengarahkan pengendara ke halaman denah navigasi visual (PK-UC003).' : 'Navigates driver to interactive route guidance map (PK-UC003).' },
+        { no: '4', actor: lang === 'id' ? 'Terminal Kios' : 'Kiosk Terminal', text: lang === 'id' ? 'Mengarahkan pengendara ke halaman denah navigasi visual.' : 'Navigates driver to interactive route guidance map.' },
         { no: '5', actor: lang === 'id' ? 'Sistem Gerbang' : 'Barrier System', text: lang === 'id' ? 'Membuka palang pintu gerbang masuk secara otomatis.' : 'Opens entry barrier gate automatically.' }
       ],
       troubleshooting: lang === 'id'
@@ -236,8 +236,8 @@ export default function SettingsPage() {
         { no: '4', actor: lang === 'id' ? 'Kalkulator Eco' : 'Eco Calculator', text: lang === 'id' ? 'Mencatat waktuTibaSlot dan menghitung menitDihemat untuk kalkulasi reduksi polusi CO₂.' : 'Computes minutes saved for real-time CO2 reduction analytics.' }
       ],
       troubleshooting: lang === 'id'
-        ? 'Jika sensor mendeteksi objek namun tidak ada alokasi aktif, sistem otomatis mencatat peringatan anomali (PK-UC005).'
-        : 'If an unallocated vehicle takes the slot, system logs an anomaly ticket (PK-UC005).',
+        ? 'Jika sensor mendeteksi objek namun tidak ada alokasi aktif, sistem otomatis mencatat peringatan anomali.'
+        : 'If an unallocated vehicle takes the slot, system logs an anomaly ticket.',
       businessRules: lang === 'id'
         ? 'Filter debounce 4 detik diterapkan agar orang yang lewat tidak memicu status slot terisi.'
         : 'A 4-second debounce prevents pedestrian movement from falsely occupying slots.'
@@ -280,7 +280,7 @@ export default function SettingsPage() {
         { no: '2', actor: lang === 'id' ? 'Kamera Keluar' : 'Exit Camera', text: lang === 'id' ? 'Memindai plat nomor dan mencocokkan dengan transaksi parkir aktif di database.' : 'Scans plate and matches active transaction in DB.' },
         { no: '3', actor: lang === 'id' ? 'Sistem Tagihan' : 'Billing Engine', text: lang === 'id' ? 'Menghitung durasiTotalMenit = waktuKeluar - waktuMasuk.' : 'Calculates total parking duration in minutes.' },
         { no: '4', actor: lang === 'id' ? 'Aturan Bisnis' : 'Business Rules', text: lang === 'id' ? 'Jika durasi < 10 menit (Grace Period Drop-Off), tagihan otomatis Rp 0 (LUNAS).' : 'If duration < 10 mins (Grace Period), fee is Rp 0 (PAID).' },
-        { no: '5', actor: lang === 'id' ? 'Layar Kiosk' : 'Kiosk Screen', text: lang === 'id' ? 'Menampilkan rincian waktu parkir dan QRIS pembayaran digital (PK-UC007).' : 'Displays duration summary and dynamic QRIS payment QR.' }
+        { no: '5', actor: lang === 'id' ? 'Layar Kiosk' : 'Kiosk Screen', text: lang === 'id' ? 'Menampilkan rincian waktu parkir dan QRIS pembayaran digital.' : 'Displays duration summary and dynamic QRIS payment QR.' }
       ],
       troubleshooting: lang === 'id'
         ? 'Jika data transaksi masuk tidak ditemukan, sistem memanggil petugas pos keluar.'
@@ -403,16 +403,16 @@ export default function SettingsPage() {
 
   const tabs = [
     {
+      id: 'account',
+      label: lang === 'id' ? 'Akun & Keamanan' : 'Account & Security',
+      icon: 'manage_accounts',
+      desc: lang === 'id' ? 'Profil operator & ganti password' : 'Operator profile & password change'
+    },
+    {
       id: 'display',
       label: lang === 'id' ? 'Tampilan & Bahasa' : 'Theme & Language',
       icon: 'palette',
       desc: lang === 'id' ? 'Mode gelap/cerah & pilihan bahasa' : 'Dark/light theme & language selector'
-    },
-    {
-      id: 'sop',
-      label: lang === 'id' ? 'Panduan Sistem (SOP)' : 'System Guide (SOP)',
-      icon: 'menu_book',
-      desc: lang === 'id' ? 'Narasi Use Case PK-UC001 s.d PK-UC010' : 'Operational Use Case Procedures'
     },
     {
       id: 'eco',
@@ -439,10 +439,10 @@ export default function SettingsPage() {
       desc: lang === 'id' ? 'Siklus hidup log telemetri 90 hari' : '90-day telemetry log lifecycle'
     },
     {
-      id: 'account',
-      label: lang === 'id' ? 'Akun & Keamanan' : 'Account & Security',
-      icon: 'manage_accounts',
-      desc: lang === 'id' ? 'Profil operator & ganti password' : 'Operator profile & password change'
+      id: 'sop',
+      label: lang === 'id' ? 'Panduan Sistem (SOP)' : 'System Guide (SOP)',
+      icon: 'menu_book',
+      desc: lang === 'id' ? 'Prosedur operasional sistem parkir cerdas' : 'Smart parking operational procedures'
     },
   ];
 
@@ -686,7 +686,7 @@ export default function SettingsPage() {
             )}
 
             {/* ============================================================== */}
-            {/* TAB 2: PANDUAN SISTEM (SOP - USE CASE PK-UC001 s.d PK-UC010)   */}
+            {/* TAB: PANDUAN SISTEM (SOP TERINTEGRASI)                         */}
             {/* ============================================================== */}
             {activeTab === 'sop' && (
               <div className="space-y-6">
@@ -697,8 +697,8 @@ export default function SettingsPage() {
                   </h3>
                   <p className="text-xs text-on-surface-variant font-mono mt-1">
                     {lang === 'id'
-                      ? 'Dokumentasi langkah kerja resmi berdasarkan Narasi Use Case PK-UC001 s.d. PK-UC010 (Blueprint RPL Tahap V).'
-                      : 'Standard Operating Procedures extracted from Use Case Specifications PK-UC001 to PK-UC010.'}
+                      ? 'Dokumentasi langkah kerja resmi dan standar operasional sistem parkir cerdas (Blueprint RPL).'
+                      : 'Official standard operating procedures for smart parking system operations.'}
                   </p>
                 </div>
 
@@ -759,9 +759,6 @@ export default function SettingsPage() {
                           className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 cursor-pointer select-none"
                         >
                           <div className="flex items-center gap-3 flex-1">
-                            <span className="px-2 py-0.5 rounded text-xs font-mono font-bold bg-surface-container-high text-primary border border-outline-variant">
-                              {item.id}
-                            </span>
                             <div>
                               <h4 className="text-sm font-bold text-on-surface">{item.title}</h4>
                               <p className="text-xs text-text-muted font-mono mt-0.5">{item.summary}</p>
