@@ -72,3 +72,15 @@ html.light-theme .hover\:bg-surface-container-high:hover { background-color: #e2
 html.light-theme .hover\:bg-surface-container-highest:hover { background-color: #cbd5e1 !important; }
 html.light-theme .hover\:text-on-surface:hover { color: #0f172a !important; }
 
+/* Kontras Warna Primer & Status Aktif Tema Cerah */
+html.light-theme .text-primary { color: #0284c7 !important; }
+html.light-theme .hover\:text-primary:hover { color: #0369a1 !important; }
+html.light-theme .border-primary { border-color: #0284c7 !important; }
+html.light-theme .bg-primary { background-color: #0284c7 !important; }
+html.light-theme .text-on-primary { color: #ffffff !important; }
+html.light-theme .hover\:bg-primary\/90:hover { background-color: #0369a1 !important; }
+html.light-theme .bg-primary\/10 { background-color: rgba(2, 132, 199, 0.12) !important; }
+html.light-theme .bg-primary\/15 { background-color: rgba(2, 132, 199, 0.18) !important; }
+html.light-theme .bg-primary\/20 { background-color: rgba(2, 132, 199, 0.22) !important; }
+html.light-theme .bg-secondary-container\/10 { background-color: rgba(2, 132, 199, 0.12) !important; }
+
