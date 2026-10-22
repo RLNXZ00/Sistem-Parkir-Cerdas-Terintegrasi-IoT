@@ -87,22 +87,30 @@ public class AuthController
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
-        String username = body.get("username");
+        String identifier = body.get("username");
+        if (identifier == null || identifier.trim().isEmpty()) {
+            identifier = body.get("nip");
+        }
+        if (identifier == null || identifier.trim().isEmpty()) {
+            identifier = body.get("identifier");
+        }
         String password = body.get("password");
 
         // Validasi input tidak boleh kosong
-        if (username == null || password == null)
+        if (identifier == null || identifier.trim().isEmpty() || password == null || password.trim().isEmpty())
         {
-            return ResponseEntity.badRequest().body(Map.of("pesan", "Username dan password wajib diisi."));
+            return ResponseEntity.badRequest().body(Map.of("pesan", "Username/NIP dan kata sandi wajib diisi."));
         }
 
-        // Cari user berdasarkan username di database
-        Optional<User> userOpt = userRepository.findByUsername(username);
+        String cleanIdentifier = identifier.trim();
 
-        // Validasi: username tidak ditemukan
+        // Cari user berdasarkan username ATAU NIP di database
+        Optional<User> userOpt = userRepository.findByUsernameOrNip(cleanIdentifier, cleanIdentifier);
+
+        // Validasi: kredensial tidak ditemukan
         if (userOpt.isEmpty())
         {
-            return ResponseEntity.status(401).body(Map.of("pesan", "Username tidak ditemukan."));
+            return ResponseEntity.status(401).body(Map.of("pesan", "Username atau NIP tidak ditemukan."));
         }
 
         User user = userOpt.get();
@@ -110,7 +118,7 @@ public class AuthController
         // Validasi: password tidak cocok
         if (!user.getPassword().equals(password))
         {
-            return ResponseEntity.status(401).body(Map.of("pesan", "Password salah."));
+            return ResponseEntity.status(401).body(Map.of("pesan", "Kata sandi salah."));
         }
 
         // Validasi: akun dinonaktifkan
