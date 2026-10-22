@@ -46,6 +46,7 @@ html.light-theme body {
 html.light-theme .bg-background { background-color: #f4f6f9 !important; }
 html.light-theme .bg-surface { background-color: #ffffff !important; }
 html.light-theme .bg-bg-primary { background-color: #ffffff !important; }
+html.light-theme .bg-bg-surface { background-color: #ffffff !important; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05) !important; }
 html.light-theme .bg-surface-container-lowest { background-color: #f8fafc !important; }
 html.light-theme .bg-surface-container-low { background-color: #ffffff !important; }
 html.light-theme .bg-surface-container { background-color: #f1f5f9 !important; }
@@ -83,4 +84,11 @@ html.light-theme .bg-primary\/10 { background-color: rgba(2, 132, 199, 0.12) !im
 html.light-theme .bg-primary\/15 { background-color: rgba(2, 132, 199, 0.18) !important; }
 html.light-theme .bg-primary\/20 { background-color: rgba(2, 132, 199, 0.22) !important; }
 html.light-theme .bg-secondary-container\/10 { background-color: rgba(2, 132, 199, 0.12) !important; }
+
+/* Komponen Chart & Kartu Khusus Tema Cerah */
+html.light-theme .co2-track { stroke: #e2e8f0 !important; }
+html.light-theme .border-outline-variant\/30 { border-color: #e2e8f0 !important; }
+html.light-theme .border-outline-variant\/20 { border-color: #e2e8f0 !important; }
+html.light-theme .bg-error-container\/10 { background-color: rgba(255, 69, 0, 0.06) !important; }
+html.light-theme .hover\:bg-error-container\/20:hover { background-color: rgba(255, 69, 0, 0.1) !important; }
 
