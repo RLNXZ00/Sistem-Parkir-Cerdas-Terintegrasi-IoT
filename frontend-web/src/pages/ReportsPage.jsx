@@ -194,7 +194,7 @@ export default function ReportsPage() {
         {/* Header Halaman */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-white tracking-tight">Operational Reports</h1>
+            <h1 className="text-4xl font-bold text-on-surface tracking-tight">Operational Reports</h1>
             <p className="text-text-muted font-mono text-sm mt-1">MANAJEMEN // DATA HISTORIS & ANALITIK RESMI (PK-UC010)</p>
           </div>
           <div className="flex items-center gap-2">
@@ -217,7 +217,7 @@ export default function ReportsPage() {
             </div>
             <button
               onClick={() => setErrorMsg(null)}
-              className="text-text-muted hover:text-white transition-colors p-1"
+              className="text-text-muted hover:text-on-surface transition-colors p-1 cursor-pointer"
               title="Tutup pesan"
             >
               <span className="material-symbols-outlined text-[18px]">close</span>
@@ -431,21 +431,21 @@ export default function ReportsPage() {
                       <button
                         type="button"
                         onClick={() => setKomprehensifTab('finansial')}
-                        className={`px-3 py-1.5 rounded-md transition-colors ${komprehensifTab === 'finansial' ? 'bg-primary text-on-primary font-bold shadow' : 'text-on-surface-variant hover:text-white'}`}
+                        className={`px-3 py-1.5 rounded-md transition-colors ${komprehensifTab === 'finansial' ? 'bg-primary text-on-primary font-bold shadow' : 'text-on-surface-variant hover:text-on-surface'}`}
                       >
                         1. Finansial ({reportData.tabelFinansial.length})
                       </button>
                       <button
                         type="button"
                         onClick={() => setKomprehensifTab('operasional')}
-                        className={`px-3 py-1.5 rounded-md transition-colors ${komprehensifTab === 'operasional' ? 'bg-primary text-on-primary font-bold shadow' : 'text-on-surface-variant hover:text-white'}`}
+                        className={`px-3 py-1.5 rounded-md transition-colors ${komprehensifTab === 'operasional' ? 'bg-primary text-on-primary font-bold shadow' : 'text-on-surface-variant hover:text-on-surface'}`}
                       >
                         2. Operasional ({reportData.tabelOperasional.length})
                       </button>
                       <button
                         type="button"
                         onClick={() => setKomprehensifTab('lingkungan')}
-                        className={`px-3 py-1.5 rounded-md transition-colors ${komprehensifTab === 'lingkungan' ? 'bg-primary text-on-primary font-bold shadow' : 'text-on-surface-variant hover:text-white'}`}
+                        className={`px-3 py-1.5 rounded-md transition-colors ${komprehensifTab === 'lingkungan' ? 'bg-primary text-on-primary font-bold shadow' : 'text-on-surface-variant hover:text-on-surface'}`}
                       >
                         3. Lingkungan ({reportData.tabelLingkungan.length})
                       </button>
