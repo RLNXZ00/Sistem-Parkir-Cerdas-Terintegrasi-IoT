@@ -29,7 +29,7 @@ export default function LoginPage() {
 
       if (!res.ok) {
         // Server mengembalikan error (401/403)
-        setError(data.pesan || 'Login gagal. Periksa username dan password Anda.');
+        setError(data.pesan || 'Login gagal. Periksa Username / NIP dan kata sandi Anda.');
         return;
       }
 
@@ -84,7 +84,7 @@ export default function LoginPage() {
             <div className="flex flex-col gap-1">
               <h1 className="text-2xl font-bold tracking-tight text-white">Selamat Datang</h1>
               <p className="text-xs text-[#9bb0c1] leading-relaxed">
-                Masukkan kredensial Anda untuk mengakses Sistem Parkir Cerdas Terintegrasi IoT.
+                Masukkan kredensial atau NIP Anda untuk mengakses Sistem Parkir Cerdas Terintegrasi IoT.
               </p>
             </div>
 
@@ -99,18 +99,21 @@ export default function LoginPage() {
             {/* Form */}
             <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
 
-              {/* Username */}
+              {/* Username / NIP */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-[#bcc8d1] uppercase tracking-wider font-mono flex items-center gap-1.5" htmlFor="username">
-                  <span className="material-symbols-outlined text-[16px] text-[#7ad0ff]">person</span>
-                  Username
-                </label>
+                <div className="flex justify-between items-center">
+                  <label className="text-sm font-semibold text-[#bcc8d1] uppercase tracking-wider font-mono flex items-center gap-1.5" htmlFor="username">
+                    <span className="material-symbols-outlined text-[16px] text-[#7ad0ff]">badge</span>
+                    Username / NIP
+                  </label>
+                  <span className="text-[11px] font-mono text-[#7ad0ff]">Username atau 8 digit NIP</span>
+                </div>
                 <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8fa0b0] text-[20px]">alternate_email</span>
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8fa0b0] text-[20px]">badge</span>
                   <input
                     id="username"
                     type="text"
-                    placeholder="Enter credentials"
+                    placeholder="Masukkan Username atau 8 digit NIP"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
