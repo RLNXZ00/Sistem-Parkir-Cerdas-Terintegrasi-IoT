@@ -19,14 +19,23 @@ export default function TopBar({ breadcrumb, status = 'IoT Connected' }) {
 
         {/* Icon Buttons */}
         <div className="flex items-center gap-2">
-          <button className="text-on-surface-variant hover:text-primary transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-high">
-            <span className="material-symbols-outlined">notifications</span>
+          <button
+            title="Notifikasi Sistem"
+            className="text-on-surface-variant hover:text-primary transition-all duration-200 w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-high"
+          >
+            <span className="material-symbols-outlined text-[20px]">notifications</span>
           </button>
-          <button className="text-on-surface-variant hover:text-primary transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-high">
-            <span className="material-symbols-outlined">wifi</span>
+          <button
+            title="Status Jaringan IoT"
+            className="text-on-surface-variant hover:text-primary transition-all duration-200 w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-high"
+          >
+            <span className="material-symbols-outlined text-[20px]">wifi</span>
           </button>
-          <button className="text-eco-success hover:text-primary transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-high">
-            <span className="material-symbols-outlined">eco</span>
+          <button
+            title="Indikator Efisiensi Eco"
+            className="text-eco-success hover:text-primary transition-all duration-200 w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-high"
+          >
+            <span className="material-symbols-outlined text-[20px]">eco</span>
           </button>
         </div>
       </div>
