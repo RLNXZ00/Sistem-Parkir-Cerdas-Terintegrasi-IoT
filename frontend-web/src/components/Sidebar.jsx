@@ -47,14 +47,14 @@ export default function Sidebar() {
             <NavLink
               to={to}
               className={({ isActive }) =>
-                `flex items-center gap-4 px-3 py-3 rounded-lg transition-all duration-200 ease-in-out
+                `flex items-center gap-4 px-3 py-3 rounded-xl transition-all duration-200 ease-in-out font-medium
                 ${isActive
-                  ? 'text-primary font-bold border-r-4 border-primary bg-secondary-container/10'
+                  ? 'text-primary font-bold border-r-4 border-primary bg-primary/10 shadow-sm'
                   : 'text-on-surface-variant hover:bg-surface-variant hover:text-on-surface'
                 }`
               }
             >
-              <span className="material-symbols-outlined">{icon}</span>
+              <span className="material-symbols-outlined transition-colors duration-200">{icon}</span>
               <span className="hidden lg:block whitespace-nowrap">{label}</span>
             </NavLink>
           </li>
@@ -67,23 +67,23 @@ export default function Sidebar() {
           <NavLink
             to="/settings"
             className={({ isActive }) =>
-              `w-full flex items-center gap-4 px-3 py-3 rounded-lg transition-all duration-200
+              `w-full flex items-center gap-4 px-3 py-3 rounded-xl transition-all duration-200 ease-in-out font-medium
               ${isActive
-                ? 'text-primary font-bold border-r-4 border-primary bg-secondary-container/10'
+                ? 'text-primary font-bold border-r-4 border-primary bg-primary/10 shadow-sm'
                 : 'text-on-surface-variant hover:bg-surface-variant hover:text-on-surface'
               }`
             }
           >
-            <span className="material-symbols-outlined">settings</span>
+            <span className="material-symbols-outlined transition-colors duration-200">settings</span>
             <span className="hidden lg:block whitespace-nowrap">Settings</span>
           </NavLink>
         </li>
         <li>
           <button
             onClick={() => navigate('/')}
-            className="w-full flex items-center gap-4 px-3 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-all duration-200"
+            className="w-full flex items-center gap-4 px-3 py-3 rounded-xl text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-all duration-200 ease-in-out font-medium"
           >
-            <span className="material-symbols-outlined">logout</span>
+            <span className="material-symbols-outlined transition-colors duration-200">logout</span>
             <span className="hidden lg:block whitespace-nowrap">Logout</span>
           </button>
         </li>
