@@ -63,3 +63,12 @@ html.light-theme .border-surface-variant { border-color: #e2e8f0 !important; }
 html.light-theme .border-outline-variant { border-color: #cbd5e1 !important; }
 html.light-theme .border-outline { border-color: #94a3b8 !important; }
 
+/* Status Hover & Varian Permukaan Tema Cerah */
+html.light-theme .bg-surface-variant { background-color: #f1f5f9 !important; }
+html.light-theme .hover\:bg-surface-variant:hover { background-color: #f1f5f9 !important; }
+html.light-theme .hover\:bg-surface-container:hover { background-color: #e2e8f0 !important; }
+html.light-theme .hover\:bg-surface-container-low:hover { background-color: #f8fafc !important; }
+html.light-theme .hover\:bg-surface-container-high:hover { background-color: #e2e8f0 !important; }
+html.light-theme .hover\:bg-surface-container-highest:hover { background-color: #cbd5e1 !important; }
+html.light-theme .hover\:text-on-surface:hover { color: #0f172a !important; }
+
