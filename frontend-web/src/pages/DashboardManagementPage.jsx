@@ -146,6 +146,12 @@ export default function DashboardManagementPage() {
       chartInstanceRef.current.destroy();
     }
 
+    // Deteksi tema aktif untuk pewarnaan grid dan label yang adaptif
+    const isLight = document.documentElement.classList.contains('light-theme');
+    const gridColor = isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)';
+    const pointBorder = isLight ? '#ffffff' : '#050B14';
+    const tickColor = isLight ? '#64748b' : '#94A3B8';
+
     const ctx = chartRef.current.getContext('2d');
     const gradient = ctx.createLinearGradient(0, 0, 0, 150);
     gradient.addColorStop(0, 'rgba(46, 139, 87, 0.45)');
@@ -164,7 +170,7 @@ export default function DashboardManagementPage() {
           fill: true,
           tension: 0.35,
           pointBackgroundColor: '#10b981',
-          pointBorderColor: '#050B14',
+          pointBorderColor: pointBorder,
           pointHoverRadius: 6,
           pointRadius: 4,
         }]
@@ -175,9 +181,11 @@ export default function DashboardManagementPage() {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#0F172A',
-            borderColor: '#334155',
+            backgroundColor: isLight ? '#ffffff' : '#0F172A',
+            borderColor: isLight ? '#cbd5e1' : '#334155',
             borderWidth: 1,
+            titleColor: isLight ? '#0f172a' : '#ffffff',
+            bodyColor: isLight ? '#0f172a' : '#ffffff',
             titleFont: { family: 'Space Grotesk', size: 12 },
             bodyFont: { family: 'Space Grotesk', size: 13, weight: 'bold' },
             callbacks: {
@@ -187,17 +195,17 @@ export default function DashboardManagementPage() {
         },
         scales: {
           x: {
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            grid: { color: gridColor },
             ticks: {
-              color: '#94A3B8',
+              color: tickColor,
               font: { family: 'Space Grotesk', size: 11 }
             }
           },
           y: {
             beginAtZero: true,
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            grid: { color: gridColor },
             ticks: {
-              color: '#94A3B8',
+              color: tickColor,
               font: { family: 'Space Grotesk', size: 10 },
               callback: (val) => val >= 1000 ? `${val / 1000}k` : val
             }
@@ -353,7 +361,7 @@ export default function DashboardManagementPage() {
         {/* KPI Cards Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {KPI_DATA.map(kpi => (
-            <div key={kpi.label} className="bg-bg-surface rounded-xl p-5 border border-outline-variant/30 flex flex-col gap-3 group hover:brightness-110 transition-all">
+            <div key={kpi.label} className="bg-bg-surface rounded-xl p-5 border border-outline-variant/30 flex flex-col gap-3 group hover:shadow-md hover:border-primary/40 transition-all duration-200">
               <div className="flex items-center gap-2">
                 <span className={`material-symbols-outlined ${kpi.color}`}>{kpi.icon}</span>
                 <span className="text-on-surface-variant text-sm font-mono">{kpi.label}</span>
@@ -444,7 +452,7 @@ export default function DashboardManagementPage() {
             </div>
             <div className="relative w-48 h-48 flex items-center justify-center">
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#30363a" strokeWidth="12" />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#30363a" strokeWidth="12" className="co2-track transition-colors duration-200" />
                 <circle cx="50" cy="50" r="40" fill="transparent" stroke="#2E8B57" strokeWidth="12"
                   strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * safeData.persentaseCo2 / 100)} strokeLinecap="round"
                   className="drop-shadow-[0_0_6px_rgba(46,139,87,0.6)]" />
