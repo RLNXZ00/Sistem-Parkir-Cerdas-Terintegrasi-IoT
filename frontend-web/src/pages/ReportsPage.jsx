@@ -646,7 +646,7 @@ export default function ReportsPage() {
               onClick={fetchAuditLogs}
               disabled={loadingAudit}
               title="Perbarui daftar riwayat audit"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-outline-variant/60 text-on-surface-variant hover:text-white bg-surface-container hover:bg-surface-container-high text-xs font-mono transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-outline-variant/60 text-on-surface-variant hover:text-on-surface bg-surface-container hover:bg-surface-container-high text-xs font-mono transition-colors cursor-pointer"
             >
               <span className={`material-symbols-outlined text-[16px] ${loadingAudit ? 'animate-spin' : ''}`}>
                 refresh
