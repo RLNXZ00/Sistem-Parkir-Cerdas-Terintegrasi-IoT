@@ -338,10 +338,14 @@ export default function DashboardManagementPage() {
         {/* Page Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
-            <h1 className="text-5xl font-bold text-white tracking-tight font-['Space_Grotesk']">Management Oversight</h1>
-            <p className="text-on-surface-variant mt-2">Ringkasan eksekutif metrik keuangan, operasional, dan reduksi emisi CO2.</p>
+            <h1 className="text-4xl md:text-5xl font-bold text-on-surface tracking-tight font-['Space_Grotesk']">
+              Management Oversight
+            </h1>
+            <p className="text-on-surface-variant text-sm md:text-base mt-2">
+              Ringkasan eksekutif metrik keuangan, operasional, dan reduksi emisi CO2.
+            </p>
           </div>
-          <span className="px-4 py-2 rounded-lg bg-surface-container-high border border-outline-variant font-mono text-sm text-on-surface">
+          <span className="px-4 py-2 rounded-xl bg-surface-container-high border border-outline-variant font-mono text-xs md:text-sm text-on-surface shadow-sm">
             Last updated: Just now
           </span>
         </div>
