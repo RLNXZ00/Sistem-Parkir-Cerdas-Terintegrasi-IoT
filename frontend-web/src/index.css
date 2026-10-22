@@ -92,3 +92,9 @@ html.light-theme .border-outline-variant\/20 { border-color: #e2e8f0 !important;
 html.light-theme .bg-error-container\/10 { background-color: rgba(255, 69, 0, 0.06) !important; }
 html.light-theme .hover\:bg-error-container\/20:hover { background-color: rgba(255, 69, 0, 0.1) !important; }
 
+/* Kontras Warna Metrik Semantik Tema Cerah (KPI & Indikator Status) */
+html.light-theme .text-secondary { color: #16a34a !important; }
+html.light-theme .text-tertiary { color: #d97706 !important; }
+html.light-theme .text-tertiary-container { color: #d97706 !important; }
+html.light-theme .text-system-info { color: #0284c7 !important; }
+
