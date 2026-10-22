@@ -173,7 +173,7 @@ export default function GateLivePage() {
         {/* Header */}
         <div className="flex justify-between items-end border-b border-surface-container-highest pb-4">
           <div>
-            <h1 className="text-4xl font-bold text-white tracking-tight">Live OCR Feed</h1>
+            <h1 className="text-4xl font-bold text-on-surface tracking-tight">Live OCR Feed</h1>
             <p className="text-text-muted font-mono text-sm mt-1">
               GATE_CLUSTER // {totalOnline} KAMERA AKTIF {totalOffline > 0 && `• ${totalOffline} OFFLINE`}
               {lastRefresh && <span className="ml-3 text-[#5d8099]">Last update: {lastRefresh}</span>}

@@ -104,7 +104,7 @@ export default function AnomalyLogsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-white tracking-tight">Anomaly Logs</h1>
+            <h1 className="text-4xl font-bold text-on-surface tracking-tight">Anomaly Logs</h1>
             <p className="text-text-muted font-mono text-sm mt-1">IOT_SENSOR_NETWORK // OPERATIONAL CONTROL</p>
           </div>
           <div className="flex items-center gap-2">
