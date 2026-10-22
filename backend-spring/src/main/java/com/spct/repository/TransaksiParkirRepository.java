@@ -36,6 +36,13 @@ public interface TransaksiParkirRepository extends JpaRepository<TransaksiParkir
     List<TransaksiParkir> findByStatusPembayaranOrderByWaktuMasukAsc(
         StatusPembayaran statusPembayaran);
 
+    // Versi FIFO per jenis kendaraan (gerbang keluar mobil dan motor memiliki antrean masing-masing)
+    Optional<TransaksiParkir> findFirstByStatusPembayaranAndKendaraan_JenisKendaraanOrderByWaktuMasukAsc(
+        StatusPembayaran statusPembayaran, com.spct.model.JenisKendaraan jenisKendaraan);
+
+    List<TransaksiParkir> findByStatusPembayaranAndKendaraan_JenisKendaraanOrderByWaktuMasukAsc(
+        StatusPembayaran statusPembayaran, com.spct.model.JenisKendaraan jenisKendaraan);
+
     // Mengambil semua transaksi dalam rentang waktu tertentu (digunakan untuk laporan bulanan)
     // Setara: SELECT * FROM transaksi_parkir WHERE waktu_masuk BETWEEN ? AND ?
     List<TransaksiParkir> findByWaktuMasukBetween(LocalDateTime awal, LocalDateTime akhir);

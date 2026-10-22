@@ -52,7 +52,7 @@ public class DeteksiPlatController // Kelas controller untuk mengelola seluruh a
     public ResponseEntity<HasilDeteksiMasukDto> prosesKendaraanMasuk(
         @RequestBody(required = false) java.util.Map<String, String> body,
         @RequestParam(required = false) String platNomor,
-        @RequestParam(required = false) String jenisKendaraanParam,
+        @RequestParam(name = "jenisKendaraan", required = false) String jenisKendaraanParam,
         @RequestParam(defaultValue = "1.0") double confidence)
     {
         // Ambil platNomor dan jenisKendaraan dari body JSON (kiosk) atau query param (ALPR)
@@ -147,7 +147,8 @@ public class DeteksiPlatController // Kelas controller untuk mengelola seluruh a
     public ResponseEntity<com.spct.dto.HasilDeteksiKeluarDto> prosesKendaraanKeluar(
         @RequestBody(required = false) java.util.Map<String, Object> body,
         @RequestParam(required = false) String platNomor,
-        @RequestParam(required = false) java.math.BigDecimal saldoEwallet) 
+        @RequestParam(required = false) java.math.BigDecimal saldoEwallet,
+        @RequestParam(name = "jenisKendaraan", required = false) String jenisKendaraanParam) 
     {
         String platFinal = (body != null && body.containsKey("platNomor") && body.get("platNomor") != null) 
             ? String.valueOf(body.get("platNomor")) 
@@ -179,7 +180,19 @@ public class DeteksiPlatController // Kelas controller untuk mengelola seluruh a
             }
         }
 
-        com.spct.dto.HasilDeteksiKeluarDto hasil = deteksiPlatService.prosesKendaraanKeluar(platFinal, saldoFinal, durasiMenitFinal);
+        // Jenis kendaraan gerbang keluar (MOBIL/MOTOR) - menentukan antrean FIFO yang diproses
+        JenisKendaraan jenisKeluar = null;
+        Object jenisRaw = (body != null) ? body.get("jenisKendaraan") : null;
+        String jenisKeluarStr = (jenisRaw != null) ? String.valueOf(jenisRaw) : jenisKendaraanParam;
+        if (jenisKeluarStr != null && !jenisKeluarStr.isBlank()) {
+            try {
+                jenisKeluar = JenisKendaraan.valueOf(jenisKeluarStr.trim().toUpperCase());
+            } catch (IllegalArgumentException ex) {
+                System.err.println("[GATE KELUAR] jenisKendaraan tidak valid: " + jenisKeluarStr);
+            }
+        }
+
+        com.spct.dto.HasilDeteksiKeluarDto hasil = deteksiPlatService.prosesKendaraanKeluar(platFinal, saldoFinal, durasiMenitFinal, jenisKeluar);
         
         if ("KENDARAAN_TIDAK_DITEMUKAN".equals(hasil.getStatus())) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(hasil);
@@ -198,10 +211,21 @@ public class DeteksiPlatController // Kelas controller untuk mengelola seluruh a
     // URL: GET /api/gate/antrean-keluar
     // =====================================================================
     @GetMapping("/antrean-keluar")
-    public ResponseEntity<?> getAntreanKeluar()
+    public ResponseEntity<?> getAntreanKeluar(
+        @RequestParam(name = "jenisKendaraan", required = false) String jenisKendaraanParam)
     {
+        // Filter opsional per jenis kendaraan (gerbang keluar mobil / motor punya antrean sendiri)
+        JenisKendaraan jenisFilter = null;
+        if (jenisKendaraanParam != null && !jenisKendaraanParam.isBlank()) {
+            try {
+                jenisFilter = JenisKendaraan.valueOf(jenisKendaraanParam.trim().toUpperCase());
+            } catch (IllegalArgumentException ex) {
+                jenisFilter = null;
+            }
+        }
+
         return ResponseEntity.ok(
-            deteksiPlatService.ambilAntreanKendaraanKeluar()
+            deteksiPlatService.ambilAntreanKendaraanKeluar(jenisFilter)
                 .stream()
                 .map(t -> java.util.Map.of(
                     "idTransaksi", t.getIdTransaksi(),

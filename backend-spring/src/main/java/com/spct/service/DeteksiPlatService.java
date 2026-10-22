@@ -127,13 +127,20 @@ public class DeteksiPlatService // Kelas service yang mengelola alur lengkap saa
     private DataKendaraan cariAtauDaftarkanKendaraan(String platNomor, JenisKendaraan jenisKendaraan)
     {
         // Mencari kendaraan di database berdasarkan plat nomor
-        return dataKendaraanRepository.findByPlatNomor(platNomor)
-            .orElseGet(() ->
+        DataKendaraan terdaftar = dataKendaraanRepository.findByPlatNomor(platNomor).orElse(null);
+        if (terdaftar != null)
+        {
+            // Sinkronkan jenis jika plat yang sama masuk lewat gerbang jenis lain (mobil <-> motor)
+            if (terdaftar.getJenisKendaraan() != jenisKendaraan)
             {
-                // Jika kendaraan belum terdaftar, buat objek baru dan simpan ke database
-                DataKendaraan kendaraanBaru = new DataKendaraan(platNomor, jenisKendaraan);
-                return dataKendaraanRepository.save(kendaraanBaru); // Simpan kendaraan baru dan kembalikan objeknya
-            });
+                terdaftar.setJenisKendaraan(jenisKendaraan);
+                terdaftar = dataKendaraanRepository.save(terdaftar);
+            }
+            return terdaftar;
+        }
+
+        // Jika kendaraan belum terdaftar, buat objek baru dan simpan ke database
+        return dataKendaraanRepository.save(new DataKendaraan(platNomor, jenisKendaraan));
     }
 
     // =====================================================================
@@ -148,6 +155,13 @@ public class DeteksiPlatService // Kelas service yang mengelola alur lengkap saa
     @Transactional
     public HasilDeteksiKeluarDto prosesKendaraanKeluar(String platNomor, BigDecimal saldoEwallet, Integer durasiMenitSimulasi)
     {
+        return prosesKendaraanKeluar(platNomor, saldoEwallet, durasiMenitSimulasi, null);
+    }
+
+    // Versi lengkap: jenisKendaraan (MOBIL/MOTOR) membatasi antrean FIFO pada gerbang keluar terkait (null = semua jenis)
+    @Transactional
+    public HasilDeteksiKeluarDto prosesKendaraanKeluar(String platNomor, BigDecimal saldoEwallet, Integer durasiMenitSimulasi, JenisKendaraan jenisKendaraan)
+    {
         // 1. Cari transaksi yang belum lunas (utamakan plat spesifik jika valid)
         TransaksiParkir transaksi = null;
         if (platNomor != null && !platNomor.trim().isEmpty() && !"QUEUE".equalsIgnoreCase(platNomor.trim()) && !"AUTO".equalsIgnoreCase(platNomor.trim())) {
@@ -156,10 +170,12 @@ public class DeteksiPlatService // Kelas service yang mengelola alur lengkap saa
         }
 
         // Fallback FIFO: jika plat tidak diisi / bernilai "QUEUE" / atau plat dummy tidak ada di DB aktif,
-        // maka otomatis proses kendaraan antrean terdepan (First In First Out)
+        // maka otomatis proses kendaraan antrean terdepan (First In First Out) sesuai jenis gerbang
         if (transaksi == null) {
-            transaksi = transaksiParkirRepository.findFirstByStatusPembayaranOrderByWaktuMasukAsc(
-                    StatusPembayaran.BELUM_LUNAS).orElse(null);
+            transaksi = (jenisKendaraan == null)
+                ? transaksiParkirRepository.findFirstByStatusPembayaranOrderByWaktuMasukAsc(StatusPembayaran.BELUM_LUNAS).orElse(null)
+                : transaksiParkirRepository.findFirstByStatusPembayaranAndKendaraan_JenisKendaraanOrderByWaktuMasukAsc(
+                        StatusPembayaran.BELUM_LUNAS, jenisKendaraan).orElse(null);
         }
 
         if (transaksi == null) {
@@ -240,6 +256,15 @@ public class DeteksiPlatService // Kelas service yang mengelola alur lengkap saa
 
     // Method untuk mengambil daftar kendaraan yang sedang parkir (antrean keluar FIFO)
     public List<TransaksiParkir> ambilAntreanKendaraanKeluar() {
-        return transaksiParkirRepository.findByStatusPembayaranOrderByWaktuMasukAsc(StatusPembayaran.BELUM_LUNAS);
+        return ambilAntreanKendaraanKeluar(null);
+    }
+
+    // Versi dengan filter jenis kendaraan (null = semua jenis)
+    public List<TransaksiParkir> ambilAntreanKendaraanKeluar(JenisKendaraan jenisKendaraan) {
+        if (jenisKendaraan == null) {
+            return transaksiParkirRepository.findByStatusPembayaranOrderByWaktuMasukAsc(StatusPembayaran.BELUM_LUNAS);
+        }
+        return transaksiParkirRepository.findByStatusPembayaranAndKendaraan_JenisKendaraanOrderByWaktuMasukAsc(
+            StatusPembayaran.BELUM_LUNAS, jenisKendaraan);
     }
 }
