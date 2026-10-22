@@ -8,14 +8,15 @@ export default function AllocatingSlotPage() {
   const [errorMsg, setErrorMsg] = useState(null);
 
   // Ambil data yang dikirim dari ScanPage
-  const { platNomor = "D 1234 SPCT", slotDialokasikan = null, jalurRuteGraf = null, error = null } = location.state || {};
+  const { platNomor = "D 1234 SPCT", slotDialokasikan = null, jalurRuteGraf = null, error = null, jenisKendaraan = 'MOBIL' } = location.state || {};
+  const jalurKembali = jenisKendaraan === 'MOTOR' ? '/motor' : '/'; // Gerbang masuk asal
 
   useEffect(() => {
     let isMounted = true;
 
     if (error) {
       setErrorMsg(error);
-      setTimeout(() => navigate('/'), 3000);
+      setTimeout(() => navigate(jalurKembali), 3000);
       return;
     }
 
@@ -35,11 +36,11 @@ export default function AllocatingSlotPage() {
       };
     } else {
       // Jika tidak ada data state, kembali ke home
-      navigate('/');
+      navigate(jalurKembali);
     }
 
     return () => { isMounted = false; };
-  }, [navigate, slotDialokasikan, error, location.state]);
+  }, [navigate, slotDialokasikan, error, location.state, jalurKembali]);
 
   return (
     <div className="bg-[#050B14] h-screen w-screen overflow-hidden flex items-center justify-center font-['Outfit'] text-slate-100">

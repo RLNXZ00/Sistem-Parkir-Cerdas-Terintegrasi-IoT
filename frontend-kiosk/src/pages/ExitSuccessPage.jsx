@@ -5,13 +5,14 @@ export default function ExitSuccessPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const data = location.state?.data || {};
+  const jalurKembali = location.state?.jenisKendaraan === 'MOTOR' ? '/exit/motor' : '/exit'; // Gerbang keluar asal
   
   const [currentTime, setCurrentTime] = useState('');
 
   useEffect(() => {
     // Redirect back to standby after 10 seconds
     const timer = setTimeout(() => {
-      navigate('/exit');
+      navigate(jalurKembali);
     }, 10000);
 
     const interval = setInterval(() => {
@@ -23,7 +24,7 @@ export default function ExitSuccessPage() {
       clearTimeout(timer);
       clearInterval(interval);
     };
-  }, [navigate]);
+  }, [navigate, jalurKembali]);
 
   return (
     <div className="bg-[#121212] text-white min-h-screen flex flex-col items-center justify-center relative overflow-hidden" 

@@ -5,15 +5,16 @@ export default function ExitFailedPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const data = location.state?.data || {};
+  const jalurKembali = location.state?.jenisKendaraan === 'MOTOR' ? '/exit/motor' : '/exit'; // Gerbang keluar asal
 
   useEffect(() => {
     // Redirect back to standby after 15 seconds
     const timer = setTimeout(() => {
-      navigate('/exit');
+      navigate(jalurKembali);
     }, 15000);
 
     return () => clearTimeout(timer);
-  }, [navigate]);
+  }, [navigate, jalurKembali]);
 
   return (
     <div className="bg-[#121212] text-[#dee3e8] h-screen w-screen overflow-hidden flex flex-col items-center justify-center relative">
@@ -66,7 +67,7 @@ export default function ExitFailedPage() {
           {/* Quick Actions */}
           <div className="flex w-full gap-4 mt-4">
             <button 
-              onClick={() => navigate('/exit')}
+              onClick={() => navigate(jalurKembali)}
               className="flex-1 hover:bg-[#343a3e] text-[#dee3e8] font-['Inter'] text-[16px] py-4 rounded-lg transition-colors border border-[#3d4850] flex items-center justify-center gap-2 bg-white/10"
             >
               <span className="material-symbols-outlined">refresh</span>

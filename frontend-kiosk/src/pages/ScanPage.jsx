@@ -1,8 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import JenisKendaraanToggle from '../components/JenisKendaraanToggle';
 
-export default function ScanPage() {
+// Gerbang masuk: jenis = 'MOBIL' (GATE_IN_01) atau 'MOTOR' (GATE_IN_02). Tampilan sama, label & data berbeda.
+export default function ScanPage({ jenis = 'MOBIL' }) {
   const navigate = useNavigate();
+  const isMotor = jenis === 'MOTOR';
+  const labelKamera = isMotor ? 'GATE_IN_02_LIVE' : 'GATE_IN_01_LIVE';
   const [isScanning, setIsScanning] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
 
@@ -23,7 +27,7 @@ export default function ScanPage() {
 
     try {
       // 1. Panggil API Deteksi Plat Masuk (Backend Port 8081 via Proxy Vite)
-      const response = await fetch(`/api/gate/masuk?platNomor=${encodeURIComponent(activePlate)}&jenisKendaraan=MOBIL&confidence=1.0`, {
+      const response = await fetch(`/api/gate/masuk?platNomor=${encodeURIComponent(activePlate)}&jenisKendaraan=${jenis}&confidence=1.0`, {
         method: 'POST',
       });
       
@@ -41,6 +45,7 @@ export default function ScanPage() {
       navigate('/allocating', { 
         state: { 
           platNomor: activePlate,
+          jenisKendaraan: jenis,
           slotDialokasikan: data.slotDialokasikan,
           slotData: {
             idSlotDialokasikan: data.slotDialokasikan,
@@ -65,8 +70,9 @@ export default function ScanPage() {
           <span className="font-['Space_Grotesk'] text-sky-400 uppercase text-[14px] font-semibold">System Ready</span>
         </div>
         <div className="flex items-center gap-4">
+          <JenisKendaraanToggle jenis={jenis} onChange={(j) => navigate(j === 'MOTOR' ? '/motor' : '/')} />
           <button 
-            onClick={() => navigate('/exit')}
+            onClick={() => navigate(isMotor ? '/exit/motor' : '/exit')}
             className="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 px-4 py-1.5 rounded-full border border-slate-600 transition-colors cursor-pointer text-sm font-['Space_Grotesk']"
           >
             <span className="material-symbols-outlined text-[18px]">swap_horiz</span>
@@ -74,7 +80,7 @@ export default function ScanPage() {
           </button>
           <div className="flex items-center gap-2 text-slate-400 font-['Space_Grotesk'] text-[14px] bg-[#0B1526]/50 px-3 py-1 rounded-full border border-slate-800">
             <span className="material-symbols-outlined text-[18px]">videocam</span>
-            <span>GATE_IN_01_LIVE</span>
+            <span>{labelKamera}</span>
           </div>
         </div>
       </header>
@@ -96,7 +102,7 @@ export default function ScanPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-sky-500/5 via-transparent to-transparent rounded-xl"></div>
           
           {/* Center Icon Focus */}
-          <span className="material-symbols-outlined text-[64px] text-sky-500/30" style={{ fontVariationSettings: "'FILL' 1" }}>directions_car</span>
+          <span className="material-symbols-outlined text-[64px] text-sky-500/30" style={{ fontVariationSettings: "'FILL' 1" }}>{isMotor ? 'two_wheeler' : 'directions_car'}</span>
         </div>
 
         {/* Typography Display */}
@@ -136,7 +142,7 @@ export default function ScanPage() {
             className="glass-button px-8 py-4 rounded-xl w-full flex items-center justify-center gap-3 cursor-pointer"
           >
             <span className="material-symbols-outlined animate-spin">radar</span>
-            <span>{isScanning ? "Menghubungi Server..." : "Simulasi Mobil Datang"}</span>
+            <span>{isScanning ? "Menghubungi Server..." : (isMotor ? "Simulasi Motor Datang" : "Simulasi Mobil Datang")}</span>
           </button>
         </div>
       </main>

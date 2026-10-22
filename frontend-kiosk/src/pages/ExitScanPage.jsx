@@ -1,8 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import JenisKendaraanToggle from '../components/JenisKendaraanToggle';
+import PanelSimulasiExit from '../components/PanelSimulasiExit';
 
-export default function ExitScanPage() {
+// Gerbang keluar: jenis = 'MOBIL' (PG_EXIT_01) atau 'MOTOR' (PG_EXIT_02). Tampilan sama, antrean FIFO terpisah per jenis.
+export default function ExitScanPage({ jenis = 'MOBIL' }) {
   const navigate = useNavigate();
+  const isMotor = jenis === 'MOTOR';
+  const labelKamera = isMotor ? 'PG_EXIT_02' : 'PG_EXIT_01';
   const [isScanning, setIsScanning] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   
@@ -14,11 +19,11 @@ export default function ExitScanPage() {
   const [saldo, setSaldo] = useState(50000); 
   const [durasiSimulasi, setDurasiSimulasi] = useState(60); // Default 60 menit (Tarif Flat Rp 5.000)
 
-  // Fetch antrean kendaraan secara periodik (setiap 2 detik)
+  // Fetch antrean kendaraan secara periodik (setiap 2 detik) - hanya jenis kendaraan gerbang ini
   useEffect(() => {
     const fetchAntrean = async () => {
       try {
-        const res = await fetch('/api/gate/antrean-keluar');
+        const res = await fetch(`/api/gate/antrean-keluar?jenisKendaraan=${jenis}`);
         if (res.ok) {
           const data = await res.json();
           setAntrean(data);
@@ -33,7 +38,7 @@ export default function ExitScanPage() {
     fetchAntrean();
     const interval = setInterval(fetchAntrean, 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [jenis]);
 
   const kendaraanTerdepan = antrean.length > 0 ? antrean[0] : null;
 
@@ -58,6 +63,7 @@ export default function ExitScanPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
             platNomor: platKeluar,
+            jenisKendaraan: jenis,
             saldoEwallet: Number(saldo),
             durasiMenit: Number(durasiSimulasi)
         })
@@ -68,7 +74,7 @@ export default function ExitScanPage() {
 
       if (response.status === 402 || data.status === "SALDO_KURANG") {
         // Gagal Bayar
-        navigate('/exit/failed', { state: { data } });
+        navigate('/exit/failed', { state: { data, jenisKendaraan: jenis } });
         return;
       }
       
@@ -79,7 +85,7 @@ export default function ExitScanPage() {
       }
       
       // Sukses Bayar
-      navigate('/exit/success', { state: { data } });
+      navigate('/exit/success', { state: { data, jenisKendaraan: jenis } });
 
     } catch (error) {
       console.error("Gagal terhubung ke server:", error);
@@ -97,8 +103,9 @@ export default function ExitScanPage() {
           <span className="font-['Space_Grotesk'] text-green-400 uppercase text-[14px] font-semibold tracking-wider">System Ready (EXIT)</span>
         </div>
         <div className="flex items-center gap-4">
+          <JenisKendaraanToggle jenis={jenis} accent="red" onChange={(j) => navigate(j === 'MOTOR' ? '/exit/motor' : '/exit')} />
           <button 
-            onClick={() => navigate('/')}
+            onClick={() => navigate(isMotor ? '/motor' : '/')}
             className="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 px-4 py-1.5 rounded-full border border-slate-600 transition-colors cursor-pointer text-sm font-['Space_Grotesk'] tracking-wider"
           >
             <span className="material-symbols-outlined text-[18px]">swap_horiz</span>
@@ -106,7 +113,7 @@ export default function ExitScanPage() {
           </button>
           <div className="flex items-center gap-2 text-slate-400 font-['Space_Grotesk'] text-[14px] bg-[#0B1526]/50 px-3 py-1 rounded-full border border-slate-800 tracking-wider">
             <span className="material-symbols-outlined text-[18px]">videocam</span>
-            <span>PG_EXIT_001</span>
+            <span>{labelKamera}</span>
           </div>
         </div>
       </header>
@@ -114,36 +121,13 @@ export default function ExitScanPage() {
       {/* Main Content Canvas */}
       <main className="flex flex-col items-center justify-center w-full max-w-lg mx-auto px-container-margin z-10 relative">
         
-        {/* Simulasi Input Saldo & Durasi Parkir */}
-        <div className="absolute top-0 right-0 -mt-24 p-4 border border-slate-700 bg-slate-900/95 backdrop-blur-md rounded-xl shadow-xl w-72 z-20">
-            <div className="flex items-center gap-2 mb-2 pb-1 border-b border-slate-800">
-              <span className="material-symbols-outlined text-amber-400 text-sm">tune</span>
-              <span className="text-xs font-semibold text-slate-300 font-['Space_Grotesk'] tracking-wider">PANEL SIMULASI EXIT</span>
-            </div>
-            
-            <label className="text-[11px] text-slate-400 block mb-1">Simulasi Saldo E-Wallet (Rp)</label>
-            <input 
-              type="number" 
-              value={saldo} 
-              onChange={e => setSaldo(e.target.value)} 
-              className="bg-slate-800 text-white p-2 rounded border border-slate-600 w-full text-sm font-mono mb-3 focus:outline-none focus:border-red-400" 
-              placeholder="Contoh: 2000 atau 50000"
-            />
-
-            <label className="text-[11px] text-slate-400 block mb-1">Simulasi Durasi Parkir</label>
-            <select 
-              value={durasiSimulasi} 
-              onChange={e => setDurasiSimulasi(Number(e.target.value))}
-              className="bg-slate-800 text-white p-2 rounded border border-slate-600 w-full text-xs font-mono focus:outline-none focus:border-red-400"
-            >
-              <option value="0">Real-time (Waktu Sebenarnya)</option>
-              <option value="60">1 Jam (Tarif Flat Rp 5.000)</option>
-              <option value="5">5 Menit (Grace Period / Gratis Rp 0)</option>
-              <option value="300">5 Jam (Tarif Flat Rp 5.000)</option>
-              <option value="600">10 Jam (Tarif Rp 9.000)</option>
-              <option value="800">14 Jam (Rawat Inap / Rp 10.000)</option>
-            </select>
-        </div>
+        {/* Panel simulasi saldo & durasi: bisa digeser, default di tengah layar */}
+        <PanelSimulasiExit
+          saldo={saldo}
+          setSaldo={setSaldo}
+          durasi={durasiSimulasi}
+          setDurasi={setDurasiSimulasi}
+        />
 
         {/* Dynamic Scanner Reticle UI dengan Indikator Kendaraan Antrean Keluar */}
         <div className="relative w-full max-w-[320px] aspect-[16/9] border border-slate-700/50 rounded-xl bg-[#0B1526]/30 backdrop-blur-sm mb-12 flex items-center justify-center shadow-lg">
@@ -164,7 +148,8 @@ export default function ExitScanPage() {
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
                 Antrean 1 dari {antrean.length}
               </span>
-              <span className="font-mono text-2xl font-bold tracking-widest text-slate-100 drop-shadow-[0_0_12px_rgba(255,255,255,0.4)]">
+              <span className="font-mono text-2xl font-bold tracking-widest text-slate-100 drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] flex items-center gap-2">
+                <span className="material-symbols-outlined text-[26px] text-red-400/80" style={{ fontVariationSettings: "'FILL' 1" }}>{isMotor ? 'two_wheeler' : 'directions_car'}</span>
                 {kendaraanTerdepan.platNomor}
               </span>
               <span className="text-xs font-mono text-slate-400">
@@ -173,7 +158,7 @@ export default function ExitScanPage() {
             </div>
           ) : (
             <div className="flex flex-col items-center gap-1 z-10 text-center px-4">
-              <span className="material-symbols-outlined text-[42px] text-slate-600 mb-1">no_crash</span>
+              <span className="material-symbols-outlined text-[42px] text-slate-600 mb-1">{isMotor ? 'two_wheeler' : 'no_crash'}</span>
               <span className="font-mono text-xs text-slate-400 tracking-wider">AREA PARKIR KOSONG</span>
               <span className="text-[10px] text-slate-500">Semua kendaraan sudah keluar</span>
             </div>

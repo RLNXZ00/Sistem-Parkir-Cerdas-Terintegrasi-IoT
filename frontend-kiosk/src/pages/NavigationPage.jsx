@@ -6,8 +6,10 @@ export default function NavigationPage() {
   const location = useLocation();
   
   // Ambil data dari halaman sebelumnya
-  const { slotData, platNomor } = location.state || {};
+  const { slotData, platNomor, jenisKendaraan = 'MOBIL' } = location.state || {};
   const targetSlot = slotData?.idSlotDialokasikan || "B1-01";
+  const prefixZona = targetSlot.split('-')[0] || 'B1';
+  const jalurKembali = jenisKendaraan === 'MOTOR' ? '/motor' : '/'; // Gerbang masuk asal
   const ruteKoordinat = slotData?.urutan || []; // Array of TitikRuteDto {id, x, y}
 
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -73,14 +75,15 @@ export default function NavigationPage() {
     }
   };
 
-  // Generate 16 Slot Statis untuk digambar di Peta sebagai latar belakang (B1-01 s.d. B1-16)
+  // Generate 16 Slot Statis untuk digambar di Peta sebagai latar belakang.
+  // Prefix zona diambil dari slot tujuan (B1 = mobil lantai 1, M1 = motor lantai 1, dst.)
   const allSlots = Array.from({length: 16}, (_, i) => {
     const id = i + 1;
     const col = Math.floor((id + 1) / 2);
     const x = 20 * col;
     const y = (id % 2 !== 0) ? 30 : 70;
-    const isTarget = `B1-${id.toString().padStart(2, '0')}` === targetSlot;
-    return { id: `B1-${id.toString().padStart(2, '0')}`, x, y, isTarget };
+    const slotId = `${prefixZona}-${id.toString().padStart(2, '0')}`;
+    return { id: slotId, x, y, isTarget: slotId === targetSlot };
   });
 
   // Membangun SVG Path (garis rute siku-siku)
@@ -147,7 +150,7 @@ export default function NavigationPage() {
           </div>
 
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate(jalurKembali)}
             className="flex items-center gap-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full border border-slate-600 transition-colors text-xs font-['Space_Grotesk'] cursor-pointer"
           >
             <span className="material-symbols-outlined text-sm">close</span>
@@ -244,7 +247,7 @@ export default function NavigationPage() {
               </div>
             </div>
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate(jalurKembali)}
               className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-5 py-2 rounded-xl text-sm transition-all shadow-md cursor-pointer flex items-center gap-1.5"
             >
               <span>Selesai (Kembali)</span>

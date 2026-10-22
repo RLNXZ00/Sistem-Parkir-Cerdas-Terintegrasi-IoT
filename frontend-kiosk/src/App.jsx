@@ -17,12 +17,14 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         {/* === Kiosk Flow === */}
-        <Route path="/" element={<ScanPage />} />
+        <Route path="/" element={<ScanPage key="masuk-mobil" jenis="MOBIL" />} />
+        <Route path="/motor" element={<ScanPage key="masuk-motor" jenis="MOTOR" />} />
         <Route path="/allocating" element={<AllocatingSlotPage />} />
         <Route path="/navigation" element={<NavigationPage />} />
         
         {/* === Exit Gate Flow === */}
-        <Route path="/exit" element={<ExitScanPage />} />
+        <Route path="/exit" element={<ExitScanPage key="keluar-mobil" jenis="MOBIL" />} />
+        <Route path="/exit/motor" element={<ExitScanPage key="keluar-motor" jenis="MOTOR" />} />
         <Route path="/exit/success" element={<ExitSuccessPage />} />
         <Route path="/exit/failed" element={<ExitFailedPage />} />
 
