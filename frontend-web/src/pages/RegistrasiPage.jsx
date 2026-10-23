@@ -25,6 +25,10 @@ export default function RegistrasiPage() {
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
 
+  const hasLength = password.length >= 8;
+  const hasNumber = /\d/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -255,10 +259,17 @@ export default function RegistrasiPage() {
                 </div>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="font-mono text-xs uppercase tracking-wider text-[#bcc8d1] font-semibold flex items-center gap-1.5" htmlFor="confirmPassword">
-                  <span className="material-symbols-outlined text-[16px] text-[#ffd700]">lock_reset</span>
-                  Konfirmasi
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="font-mono text-xs uppercase tracking-wider text-[#bcc8d1] font-semibold flex items-center gap-1.5" htmlFor="confirmPassword">
+                    <span className="material-symbols-outlined text-[16px] text-[#ffd700]">lock_reset</span>
+                    Konfirmasi
+                  </label>
+                  {confirmPassword && (
+                    <span className={`font-mono text-[10px] ${password === confirmPassword ? 'text-[#7ed99e]' : 'text-rose-400'}`}>
+                      {password === confirmPassword ? '✓ Cocok' : '✗ Belum cocok'}
+                    </span>
+                  )}
+                </div>
                 <div className="relative flex items-center">
                   <input
                     id="confirmPassword"
@@ -277,15 +288,38 @@ export default function RegistrasiPage() {
             </div>
 
             {/* Password Requirements */}
-            <div className="p-3 rounded-lg bg-[#0f1419] border border-[#232c36] flex flex-col gap-1.5">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-[#8fa0b0] font-semibold flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[14px] text-[#7ad0ff]">shield_lock</span>
-                Ketentuan Kata Sandi
-              </span>
-              <div className="grid grid-cols-3 gap-1 text-[11px] text-[#9bb0c1]">
-                <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[#2e8b57]"></span>Min. 8 karakter</span>
-                <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[#2e8b57]"></span>Kombinasi angka</span>
-                <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[#2e8b57]"></span>Kombinasi karakter khusus</span>
+            <div className="p-3 rounded-lg bg-[#0f1419] border border-[#232c36] flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-[#8fa0b0] font-semibold flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[14px] text-[#7ad0ff]">shield_lock</span>
+                  Ketentuan Kata Sandi
+                </span>
+                {hasLength && hasNumber && hasSpecial && (
+                  <span className="text-[10px] font-mono text-[#7ed99e] flex items-center gap-1 bg-[#122820] border border-[#23583c] px-2 py-0.5 rounded-full">
+                    <span className="material-symbols-outlined text-[12px]">verified</span>
+                    Terverifikasi
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 text-[11px] font-mono">
+                <span className={`flex items-center gap-1.5 transition-colors ${hasLength ? 'text-[#7ed99e]' : 'text-[#7d90a1]'}`}>
+                  <span className="material-symbols-outlined text-[15px]">
+                    {hasLength ? 'check_circle' : 'radio_button_unchecked'}
+                  </span>
+                  Min. 8 karakter
+                </span>
+                <span className={`flex items-center gap-1.5 transition-colors ${hasNumber ? 'text-[#7ed99e]' : 'text-[#7d90a1]'}`}>
+                  <span className="material-symbols-outlined text-[15px]">
+                    {hasNumber ? 'check_circle' : 'radio_button_unchecked'}
+                  </span>
+                  Kombinasi angka
+                </span>
+                <span className={`flex items-center gap-1.5 transition-colors ${hasSpecial ? 'text-[#7ed99e]' : 'text-[#7d90a1]'}`}>
+                  <span className="material-symbols-outlined text-[15px]">
+                    {hasSpecial ? 'check_circle' : 'radio_button_unchecked'}
+                  </span>
+                  Karakter khusus
+                </span>
               </div>
             </div>
 
