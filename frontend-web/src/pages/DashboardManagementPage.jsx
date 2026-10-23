@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import AppLayout from '../components/AppLayout';
 import Chart from 'chart.js/auto';
+import { useLanguage } from '../context/LanguageContext';
 
 // Daftar 16 Slot Standar Lantai 1
 const DEFAULT_SLOTS = [
@@ -9,6 +10,7 @@ const DEFAULT_SLOTS = [
 ];
 
 export default function DashboardManagementPage() {
+  const { t, lang } = useLanguage();
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [networkPing, setNetworkPing] = useState(null);
@@ -293,21 +295,21 @@ export default function DashboardManagementPage() {
 
   const KPI_DATA = [
     { 
-      label: 'Pendapatan Hari Ini', 
+      label: t('mgmt.totalRevenue', 'Pendapatan Hari Ini'), 
       value: `Rp ${Number(pendapatanHariIniVal).toLocaleString('id-ID')}`, 
-      sub: `${safeData.persentasePendapatan >= 0 ? '+' : ''}${safeData.persentasePendapatan}% vs Kemarin`, 
+      sub: `${safeData.persentasePendapatan >= 0 ? '+' : ''}${safeData.persentasePendapatan}% vs ${lang === 'en' ? 'Yesterday' : 'Kemarin'}`, 
       icon: 'payments', 
       color: 'text-eco-success' 
     },
     { 
-      label: 'Total Kendaraan', 
+      label: t('mgmt.totalTransactions', 'Total Kendaraan'), 
       value: safeData.totalKendaraan.toLocaleString('id-ID'), 
-      sub: `${safeData.totalKendaraanHariIni || 0} Masuk Hari Ini`, 
+      sub: `${safeData.totalKendaraanHariIni || 0} ${lang === 'en' ? 'Vehicles Today' : 'Masuk Hari Ini'}`, 
       icon: 'directions_car', 
       color: 'text-primary' 
     },
     { 
-      label: 'CO2 Dicegah', 
+      label: t('mgmt.co2Reduction', 'CO2 Dicegah'), 
       value: `${safeData.reduksiCo2Kg} kg`, 
       sub: `${safeData.persentaseCo2}% vs Benchmark`, 
       icon: 'eco', 
@@ -316,7 +318,7 @@ export default function DashboardManagementPage() {
     { 
       label: 'Avg Fee / Kendaraan', 
       value: `Rp ${Number(avgFeeVal).toLocaleString('id-ID')}`, 
-      sub: `${totalTransaksiLunasVal} Transaksi Lunas Bulan Ini`, 
+      sub: `${totalTransaksiLunasVal} ${lang === 'en' ? 'Paid Transactions' : 'Transaksi Lunas Bulan Ini'}`, 
       icon: 'receipt_long', 
       color: 'text-tertiary' 
     },
@@ -331,7 +333,7 @@ export default function DashboardManagementPage() {
   const row2Slots = DEFAULT_SLOTS.slice(8, 16); // B1-09 s.d. B1-16 (8 Slot)
 
   return (
-    <AppLayout breadcrumb="Management Oversight" status="System Optimal">
+    <AppLayout breadcrumb={t('topbar.mgmtOversight', 'Management Oversight')} status={t('topbar.systemHealthy', 'System Optimal')}>
       <style>{`
         .pulse-anomaly { animation: pulse-red 2s infinite; }
         @keyframes pulse-red {
@@ -347,14 +349,14 @@ export default function DashboardManagementPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
             <h1 className="text-4xl md:text-5xl font-bold text-on-surface tracking-tight font-['Space_Grotesk']">
-              Management Oversight
+              {t('mgmt.title', 'Management Oversight')}
             </h1>
             <p className="text-on-surface-variant text-sm md:text-base mt-2">
-              Ringkasan eksekutif metrik keuangan, operasional, dan reduksi emisi CO2.
+              {t('mgmt.subtitle', 'Ringkasan eksekutif metrik keuangan, operasional, dan reduksi emisi CO2.')}
             </p>
           </div>
           <span className="px-4 py-2 rounded-xl bg-surface-container-high border border-outline-variant font-mono text-xs md:text-sm text-on-surface shadow-sm">
-            Last updated: Just now
+            {lang === 'en' ? 'Last updated: Just now' : 'Pembaruan: Baru saja'}
           </span>
         </div>
 

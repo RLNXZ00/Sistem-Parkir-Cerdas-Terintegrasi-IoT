@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '../components/AppLayout';
+import { useLanguage } from '../context/LanguageContext';
 
 const API_BASE = 'http://localhost:8081';
 
@@ -29,6 +30,7 @@ function bacaStatusPeta() {
 }
 
 export default function DashboardPage() {
+  const { t } = useLanguage();
   const [slots, setSlots]           = useState([]);
   const [kameraList, setKameraList] = useState([]);
   const [sensorList, setSensorList] = useState([]);
@@ -127,12 +129,12 @@ export default function DashboardPage() {
   const visibleSensors = sensorList.filter(s => visibleSlotIds.has(s.slotDipantau?.idSlot));
 
   const TAB_JENIS = [
-    { key: 'MOBIL', label: 'Mobil', icon: 'directions_car' },
-    { key: 'MOTOR', label: 'Motor', icon: 'two_wheeler' },
+    { key: 'MOBIL', label: t('dash.car', 'Mobil'), icon: 'directions_car' },
+    { key: 'MOTOR', label: t('dash.motorcycle', 'Motor'), icon: 'two_wheeler' },
   ];
 
   return (
-    <AppLayout breadcrumb="Field Operations">
+    <AppLayout breadcrumb={t('topbar.fieldOps', 'Field Operations')}>
       <style>{`
         .pulse-anomaly { animation: pulse-red 2s infinite; }
         @keyframes pulse-red {
@@ -241,12 +243,12 @@ export default function DashboardPage() {
         {/* ── Stats Strip ───────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {[
-            { label: 'Total Slot',       val: totalSlot,            icon: 'local_parking',     color: 'text-system-info' },
-            { label: 'Terisi',           val: slotTerisi,           icon: 'directions_car',    color: 'text-eco-success' },
-            { label: 'Kosong',           val: slotKosong,           icon: 'check_circle',      color: 'text-text-muted' },
-            { label: 'Kamera Online',    val: `${kameraOnline}/4`,  icon: 'videocam',          color: 'text-[#7ad0ff]' },
-            { label: 'Sensor Online',    val: `${sensorOnline}/${sensorList.length}`, icon: 'sensors', color: 'text-[#ffd700]' },
-            { label: 'Alert Aktif',      val: logBelumDitangani,    icon: 'warning',           color: 'text-warning-reserved' },
+            { label: t('dash.totalSlots', 'Total Slot'),       val: totalSlot,            icon: 'local_parking',     color: 'text-system-info' },
+            { label: t('dash.occupied', 'Terisi'),           val: slotTerisi,           icon: 'directions_car',    color: 'text-eco-success' },
+            { label: t('dash.vacant', 'Kosong'),           val: slotKosong,           icon: 'check_circle',      color: 'text-text-muted' },
+            { label: t('dash.cameraOnline', 'Kamera Online'),    val: `${kameraOnline}/4`,  icon: 'videocam',          color: 'text-[#7ad0ff]' },
+            { label: t('dash.sensorOnline', 'Sensor Online'),    val: `${sensorOnline}/${sensorList.length}`, icon: 'sensors', color: 'text-[#ffd700]' },
+            { label: t('dash.activeAlerts', 'Alert Aktif'),      val: logBelumDitangani,    icon: 'warning',           color: 'text-warning-reserved' },
           ].map(s => (
             <div key={s.label} className="bg-bg-primary rounded-xl border border-surface-variant p-4 flex flex-col gap-1">
               <div className="flex items-center gap-2">
@@ -268,7 +270,7 @@ export default function DashboardPage() {
               <div className="flex justify-between items-end gap-4 flex-wrap mb-4">
                 <h2 className="font-semibold text-xl text-on-surface flex items-center gap-2">
                   <span className="material-symbols-outlined text-primary">map</span>
-                  Peta Slot Parkir — Real-time
+                  {t('dash.slotMapTitle', 'Peta Slot Parkir — Real-time')}
                 </h2>
 
                 <div className="flex flex-col items-end gap-3">
@@ -291,17 +293,17 @@ export default function DashboardPage() {
                               : 'border-transparent text-text-muted hover:text-on-surface hover:bg-surface-variant/40'
                           }`}
                         >
-                          Lantai {lt}
+                          {t('dash.floor', 'Lantai')} {lt}
                         </button>
                       );
                     })}
                   </div>
 
                   <div className="flex gap-4 text-xs font-mono">
-                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-eco-success rounded-sm"></div>Terisi</div>
-                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-warning-reserved rounded-sm"></div>Dipesan</div>
-                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 border border-dashed border-outline rounded-sm"></div>Kosong</div>
-                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-alert-anomaly rounded-sm"></div>Anomali</div>
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-eco-success rounded-sm"></div>{t('dash.legendOccupied', 'Terisi')}</div>
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-warning-reserved rounded-sm"></div>{t('dash.legendReserved', 'Dipesan')}</div>
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 border border-dashed border-outline rounded-sm"></div>{t('dash.legendVacant', 'Kosong')}</div>
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-alert-anomaly rounded-sm"></div>{t('dash.legendAnomaly', 'Anomali')}</div>
                   </div>
                 </div>
               </div>
