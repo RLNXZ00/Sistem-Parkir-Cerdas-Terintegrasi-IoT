@@ -279,8 +279,8 @@ export default function RegistrasiPage() {
             {/* Password Requirements */}
             <div className="p-3 rounded-lg bg-[#0f1419] border border-[#232c36] flex flex-col gap-1.5">
               <span className="text-[11px] font-mono uppercase tracking-wider text-[#8fa0b0] font-semibold flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[14px] text-[#7ad0ff]">verified_user</span>
-                Ketentuan Kredensial Parkir
+                <span className="material-symbols-outlined text-[14px] text-[#7ad0ff]">shield_lock</span>
+                Ketentuan Kata Sandi
               </span>
               <div className="grid grid-cols-3 gap-1 text-[11px] text-[#9bb0c1]">
                 <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[#2e8b57]"></span>Min. 8 karakter</span>
