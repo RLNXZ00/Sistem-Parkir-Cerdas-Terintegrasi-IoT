@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 import AppLayout from '../components/AppLayout';
+import { useLanguage } from '../context/LanguageContext';
 
 const API_BASE = 'http://localhost:8081';
 
-const REPORT_TYPES = [
-  { value: 'finansial', label: 'Laporan Finansial' },
-  { value: 'operasional', label: 'Laporan Operasional & Okupansi' },
-  { value: 'lingkungan', label: 'Laporan Lingkungan (Eco-Metric)' },
-  { value: 'komprehensif', label: 'Laporan Komprehensif (Master)' },
-];
-
 export default function ReportsPage() {
+  const { t } = useLanguage();
+
+  const REPORT_TYPES = [
+    { value: 'finansial', label: t('reports.typeFinancial', 'Laporan Finansial') },
+    { value: 'operasional', label: t('reports.typeOperational', 'Laporan Operasional & Okupansi') },
+    { value: 'lingkungan', label: t('reports.typeEnvironmental', 'Laporan Lingkungan (Eco-Metric)') },
+    { value: 'komprehensif', label: t('reports.typeComprehensive', 'Laporan Komprehensif (Master)') },
+  ];
   const [reportType, setReportType] = useState('finansial');
   const [startDate, setStartDate] = useState(() => {
     const now = new Date();
@@ -188,14 +190,14 @@ export default function ReportsPage() {
   };
 
   return (
-    <AppLayout breadcrumb="Operational Reports">
+    <AppLayout breadcrumb={t('topbar.reports', 'Operational Reports')}>
       <div className="p-6 bg-background min-h-full flex flex-col gap-6">
 
         {/* Header Halaman */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-on-surface tracking-tight">Operational Reports</h1>
-            <p className="text-text-muted font-mono text-sm mt-1">MANAJEMEN // DATA HISTORIS & ANALITIK RESMI (PK-UC010)</p>
+            <h1 className="text-4xl font-bold text-on-surface tracking-tight">{t('reports.title', 'Operational Reports')}</h1>
+            <p className="text-text-muted font-mono text-sm mt-1">{t('reports.subtitle', 'MANAJEMEN // DATA HISTORIS & ANALITIK RESMI (PK-UC010)')}</p>
           </div>
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-medium bg-primary/10 text-primary border border-primary/20">
@@ -235,7 +237,7 @@ export default function ReportsPage() {
           <form onSubmit={handleGenerate} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             {/* Pilihan Jenis Laporan */}
             <div className="flex flex-col gap-2 md:col-span-2">
-              <label className="font-mono text-xs text-on-surface-variant uppercase tracking-wider">Jenis Laporan</label>
+              <label className="font-mono text-xs text-on-surface-variant uppercase tracking-wider">{t('reports.type', 'Jenis Laporan')}</label>
               <div className="relative">
                 <select
                   value={reportType}
@@ -256,7 +258,7 @@ export default function ReportsPage() {
 
             {/* Tanggal Mulai */}
             <div className="flex flex-col gap-2">
-              <label className="font-mono text-xs text-on-surface-variant uppercase tracking-wider">Tanggal Mulai</label>
+              <label className="font-mono text-xs text-on-surface-variant uppercase tracking-wider">{t('reports.startDate', 'Tanggal Mulai')}</label>
               <input
                 type="date"
                 value={startDate}
@@ -267,7 +269,7 @@ export default function ReportsPage() {
 
             {/* Tanggal Akhir */}
             <div className="flex flex-col gap-2">
-              <label className="font-mono text-xs text-on-surface-variant uppercase tracking-wider">Tanggal Akhir</label>
+              <label className="font-mono text-xs text-on-surface-variant uppercase tracking-wider">{t('reports.endDate', 'Tanggal Akhir')}</label>
               <input
                 type="date"
                 value={endDate}
@@ -285,12 +287,12 @@ export default function ReportsPage() {
               {loading ? (
                 <>
                   <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
-                  Menarik Data dari Database...
+                  {t('common.loading', 'Menarik Data dari Database...')}
                 </>
               ) : (
                 <>
                   <span className="material-symbols-outlined text-[20px]">play_arrow</span>
-                  Generate Report
+                  {t('reports.btnPreview', 'Generate Report')}
                 </>
               )}
             </button>

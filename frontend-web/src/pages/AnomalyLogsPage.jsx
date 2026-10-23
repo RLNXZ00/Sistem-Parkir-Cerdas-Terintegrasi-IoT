@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '../components/AppLayout';
+import { useLanguage } from '../context/LanguageContext';
 
 const API_BASE = 'http://localhost:8081';
 
@@ -10,6 +11,7 @@ const SEVERITY_CONFIG = {
 };
 
 export default function AnomalyLogsPage() {
+  const { t } = useLanguage();
   const [anomalies, setAnomalies] = useState([]);
   const [filter, setFilter] = useState('ALL');
   const [selectedAnomaly, setSelectedAnomaly] = useState(null);
@@ -98,14 +100,14 @@ export default function AnomalyLogsPage() {
   const criticalCount = anomalies.filter(a => a.severity === 'CRITICAL' && a.status === 'BELUM_DITANGANI').length;
 
   return (
-    <AppLayout breadcrumb="Anomaly Logs">
+    <AppLayout breadcrumb={t('topbar.anomalyLogs', 'Anomaly Logs')}>
       <div className="p-6 bg-background min-h-full flex flex-col gap-6">
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-on-surface tracking-tight">Anomaly Logs</h1>
-            <p className="text-text-muted font-mono text-sm mt-1">IOT_SENSOR_NETWORK // OPERATIONAL CONTROL</p>
+            <h1 className="text-4xl font-bold text-on-surface tracking-tight">{t('anomaly.title', 'Anomaly Logs')}</h1>
+            <p className="text-text-muted font-mono text-sm mt-1">{t('anomaly.subtitle', 'IOT_SENSOR_NETWORK // OPERATIONAL CONTROL')}</p>
           </div>
           <div className="flex items-center gap-2">
             {criticalCount > 0 && (
@@ -124,13 +126,13 @@ export default function AnomalyLogsPage() {
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-lg font-mono text-sm font-semibold transition-colors ${
+              className={`px-4 py-2 rounded-lg font-mono text-sm font-semibold transition-colors cursor-pointer ${
                 filter === f
                   ? 'bg-primary-container text-on-primary-container'
                   : 'text-on-surface-variant hover:bg-surface-variant hover:text-on-surface'
               }`}
             >
-              {f === 'ALL' ? 'Semua Log' : f === 'BELUM_DITANGANI' ? 'Belum Ditangani' : 'Selesai Divalidasi'}
+              {f === 'ALL' ? t('common.all', 'Semua Log') : f === 'BELUM_DITANGANI' ? t('anomaly.tabUnresolved', 'Belum Ditangani') : t('anomaly.tabResolved', 'Selesai Divalidasi')}
             </button>
           ))}
         </div>

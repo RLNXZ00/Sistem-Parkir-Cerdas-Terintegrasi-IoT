@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '../components/AppLayout';
+import { useLanguage } from '../context/LanguageContext';
 
 const API_BASE = 'http://localhost:8081';
 
@@ -100,6 +101,7 @@ function CameraCard({ kamera, deteksiTerbaru }) {
 }
 
 export default function GateLivePage() {
+  const { t, lang } = useLanguage();
   const [kameraList, setKameraList] = useState([]);
   const [logDeteksi, setLogDeteksi] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -161,7 +163,7 @@ export default function GateLivePage() {
   const totalOffline = kameraList.filter(k => k.statusKamera === 'OFF').length;
 
   return (
-    <AppLayout breadcrumb="Gate OCR Feed">
+    <AppLayout breadcrumb={t('topbar.gateOps', 'Gate OCR Feed')}>
       <style>{`
         @keyframes scan {
           0%   { top: -2px; }
@@ -173,9 +175,9 @@ export default function GateLivePage() {
         {/* Header */}
         <div className="flex justify-between items-end border-b border-surface-container-highest pb-4">
           <div>
-            <h1 className="text-4xl font-bold text-on-surface tracking-tight">Live OCR Feed</h1>
+            <h1 className="text-4xl font-bold text-on-surface tracking-tight">{t('gate.title', 'Live OCR Feed')}</h1>
             <p className="text-text-muted font-mono text-sm mt-1">
-              GATE_CLUSTER // {totalOnline} KAMERA AKTIF {totalOffline > 0 && `• ${totalOffline} OFFLINE`}
+              GATE_CLUSTER // {totalOnline} {lang === 'en' ? 'ACTIVE CAMERAS' : 'KAMERA AKTIF'} {totalOffline > 0 && `• ${totalOffline} OFFLINE`}
               {lastRefresh && <span className="ml-3 text-[#5d8099]">Last update: {lastRefresh}</span>}
             </p>
           </div>
