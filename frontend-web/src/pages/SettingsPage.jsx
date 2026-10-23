@@ -38,6 +38,10 @@ export default function SettingsPage() {
   const [sopSearch, setSopSearch] = useState('');
   const [expandedSopId, setExpandedSopId] = useState('PK-UC001');
 
+  // State visibilitas input password akun
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   // Sinkronisasi tema ke class HTML saat komponen dimuat / berubah
   const handleThemeChange = (newTheme) => {
     setTheme(newTheme);
@@ -482,6 +486,13 @@ export default function SettingsPage() {
     ...(isManager ? managementTabs : fieldOperatorTabs),
     ...commonBottomTabs
   ];
+
+  // Validasi dinamis kata sandi akun
+  const pwdLengthValid = (settings.passwordBaru || '').length >= 8;
+  const pwdNumberValid = /\d/.test(settings.passwordBaru || '');
+  const pwdSpecialValid = /[^A-Za-z0-9]/.test(settings.passwordBaru || '');
+  const pwdAllValid = pwdLengthValid && pwdNumberValid && pwdSpecialValid;
+  const pwdMatch = Boolean(settings.passwordBaru && settings.konfirmasiPassword && settings.passwordBaru === settings.konfirmasiPassword);
 
   return (
     <AppLayout breadcrumb={lang === 'id' ? 'Pengaturan Sistem' : 'System Settings'} status="IoT Operational">
@@ -1304,10 +1315,14 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
-                <div className="p-4 rounded-xl bg-surface-container border border-surface-variant grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 rounded-xl bg-surface-container border border-surface-variant grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <span className="text-[11px] font-mono text-text-muted uppercase">Username</span>
                     <p className="text-sm font-bold font-mono text-on-surface mt-0.5">{currentUser.username || 'petugas01'}</p>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-mono text-text-muted uppercase">NIP</span>
+                    <p className="text-sm font-bold font-mono text-primary mt-0.5">{currentUser.nip || '-'}</p>
                   </div>
                   <div>
                     <span className="text-[11px] font-mono text-text-muted uppercase">{lang === 'id' ? 'Nama Lengkap' : 'Full Name'}</span>
@@ -1322,38 +1337,111 @@ export default function SettingsPage() {
                 </div>
 
                 <form onSubmit={handleGantiPassword} className="p-4 rounded-xl bg-surface-container border border-surface-variant space-y-4">
-                  <p className="text-xs font-bold font-mono text-on-surface uppercase tracking-wider">
-                    {lang === 'id' ? 'Perbarui Kata Sandi Akun:' : 'Change Account Password:'}
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold font-mono text-on-surface uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[16px] text-primary">lock_reset</span>
+                      {lang === 'id' ? 'Perbarui Kata Sandi Akun:' : 'Change Account Password:'}
+                    </p>
+                    {pwdAllValid && (
+                      <span className="text-[10px] font-mono text-eco-success flex items-center gap-1 bg-eco-success/10 border border-eco-success/30 px-2 py-0.5 rounded-full">
+                        <span className="material-symbols-outlined text-[12px]">verified</span>
+                        {lang === 'id' ? 'Ketentuan Terpenuhi' : 'Requirements Met'}
+                      </span>
+                    )}
+                  </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Password Baru */}
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-mono text-on-surface-variant">{lang === 'id' ? 'Password Baru' : 'New Password'}</label>
-                      <input
-                        type="password"
-                        placeholder={lang === 'id' ? 'Minimal 6 karakter' : 'Min. 6 characters'}
-                        value={settings.passwordBaru}
-                        onChange={(e) => handleInputChange('passwordBaru', e.target.value)}
-                        className="bg-surface-container-lowest border border-outline px-3 py-2 rounded-lg text-sm text-on-surface font-mono outline-none focus:border-primary"
-                      />
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-mono text-on-surface-variant">{lang === 'id' ? 'Password Baru' : 'New Password'}</label>
+                        <span className="text-[10px] font-mono text-primary font-semibold">{lang === 'id' ? 'Min. 8 Karakter' : 'Min. 8 Chars'}</span>
+                      </div>
+                      <div className="relative flex items-center">
+                        <input
+                          type={showNewPassword ? 'text' : 'password'}
+                          placeholder={lang === 'id' ? 'Minimal 8 karakter' : 'Min. 8 characters'}
+                          value={settings.passwordBaru}
+                          onChange={(e) => handleInputChange('passwordBaru', e.target.value)}
+                          className="w-full bg-surface-container-lowest border border-outline px-3 pr-10 py-2 rounded-lg text-sm text-on-surface font-mono outline-none focus:border-primary transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-2.5 text-text-muted hover:text-on-surface p-1 focus:outline-none cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">
+                            {showNewPassword ? 'visibility_off' : 'visibility'}
+                          </span>
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Konfirmasi Password */}
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-mono text-on-surface-variant">{lang === 'id' ? 'Konfirmasi Password' : 'Confirm Password'}</label>
-                      <input
-                        type="password"
-                        placeholder={lang === 'id' ? 'Ulangi password baru' : 'Repeat new password'}
-                        value={settings.konfirmasiPassword}
-                        onChange={(e) => handleInputChange('konfirmasiPassword', e.target.value)}
-                        className="bg-surface-container-lowest border border-outline px-3 py-2 rounded-lg text-sm text-on-surface font-mono outline-none focus:border-primary"
-                      />
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-mono text-on-surface-variant">{lang === 'id' ? 'Konfirmasi Password' : 'Confirm Password'}</label>
+                        {settings.konfirmasiPassword && (
+                          <span className={`text-[10px] font-mono font-semibold ${pwdMatch ? 'text-eco-success' : 'text-rose-400'}`}>
+                            {pwdMatch ? (lang === 'id' ? '✓ Cocok' : '✓ Match') : (lang === 'id' ? '✗ Belum cocok' : '✗ Mismatch')}
+                          </span>
+                        )}
+                      </div>
+                      <div className="relative flex items-center">
+                        <input
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          placeholder={lang === 'id' ? 'Ulangi password baru' : 'Repeat new password'}
+                          value={settings.konfirmasiPassword}
+                          onChange={(e) => handleInputChange('konfirmasiPassword', e.target.value)}
+                          className="w-full bg-surface-container-lowest border border-outline px-3 pr-10 py-2 rounded-lg text-sm text-on-surface font-mono outline-none focus:border-primary transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-2.5 text-text-muted hover:text-on-surface p-1 focus:outline-none cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">
+                            {showConfirmPassword ? 'visibility_off' : 'visibility'}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ketentuan Kata Sandi (Dinamis Sesuai Register) */}
+                  <div className="p-3 rounded-lg bg-surface-container-lowest border border-surface-variant flex flex-col gap-2">
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-text-muted font-semibold flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[14px] text-primary">shield_lock</span>
+                      {lang === 'id' ? 'Ketentuan Kata Sandi' : 'Password Requirements'}
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-mono">
+                      <span className={`flex items-center gap-1.5 transition-colors ${pwdLengthValid ? 'text-eco-success' : 'text-text-muted'}`}>
+                        <span className="material-symbols-outlined text-[15px]">
+                          {pwdLengthValid ? 'check_circle' : 'radio_button_unchecked'}
+                        </span>
+                        {lang === 'id' ? 'Min. 8 karakter' : 'Min. 8 characters'}
+                      </span>
+                      <span className={`flex items-center gap-1.5 transition-colors ${pwdNumberValid ? 'text-eco-success' : 'text-text-muted'}`}>
+                        <span className="material-symbols-outlined text-[15px]">
+                          {pwdNumberValid ? 'check_circle' : 'radio_button_unchecked'}
+                        </span>
+                        {lang === 'id' ? 'Kombinasi angka' : 'Include numbers'}
+                      </span>
+                      <span className={`flex items-center gap-1.5 transition-colors ${pwdSpecialValid ? 'text-eco-success' : 'text-text-muted'}`}>
+                        <span className="material-symbols-outlined text-[15px]">
+                          {pwdSpecialValid ? 'check_circle' : 'radio_button_unchecked'}
+                        </span>
+                        {lang === 'id' ? 'Karakter khusus' : 'Special character'}
+                      </span>
                     </div>
                   </div>
 
                   <div className="flex justify-end">
                     <button
                       type="submit"
-                      className="px-4 py-2 bg-primary text-on-primary text-xs font-mono font-bold rounded-lg hover:bg-primary/90 transition-colors"
+                      className="px-4 py-2 bg-primary text-on-primary text-xs font-mono font-bold rounded-lg hover:bg-primary/90 transition-colors cursor-pointer flex items-center gap-1.5"
                     >
+                      <span className="material-symbols-outlined text-[15px]">check</span>
                       {lang === 'id' ? 'Perbarui Password' : 'Save New Password'}
                     </button>
                   </div>
