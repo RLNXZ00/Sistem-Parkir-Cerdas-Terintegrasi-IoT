@@ -1,8 +1,10 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useLanguage();
 
   // 1. Ambil data user dari sessionStorage
   const userData = JSON.parse(sessionStorage.getItem('spct_user') || '{}');
@@ -18,13 +20,13 @@ export default function Sidebar() {
   //    - Petugas Lapangan: HANYA 3 MENU (Live Dashboard, Gate OCR Feed, Anomaly Logs)
   const navItems = isManager 
     ? [
-        { to: '/dashboard-management', icon: 'dashboard', label: 'Live Dashboard' },
-        { to: '/reports', icon: 'bar_chart', label: 'Reports' }
+        { to: '/dashboard-management', icon: 'dashboard', label: t('nav.fieldDashboard', 'Live Dashboard') },
+        { to: '/reports', icon: 'bar_chart', label: t('nav.reports', 'Reports') }
       ]
     : [
-        { to: '/dashboard', icon: 'dashboard', label: 'Live Dashboard' },
-        { to: '/gate-live', icon: 'videocam', label: 'Gate OCR Feed' },
-        { to: '/anomaly-logs', icon: 'report_problem', label: 'Anomaly Logs' }
+        { to: '/dashboard', icon: 'dashboard', label: t('nav.fieldDashboard', 'Live Dashboard') },
+        { to: '/gate-live', icon: 'videocam', label: t('nav.gateLive', 'Gate OCR Feed') },
+        { to: '/anomaly-logs', icon: 'report_problem', label: t('nav.anomalyLogs', 'Anomaly Logs') }
       ];
 
   return (
@@ -75,16 +77,16 @@ export default function Sidebar() {
             }
           >
             <span className="material-symbols-outlined transition-colors duration-200">settings</span>
-            <span className="hidden lg:block whitespace-nowrap">Settings</span>
+            <span className="hidden lg:block whitespace-nowrap">{t('nav.settings', 'Settings')}</span>
           </NavLink>
         </li>
         <li>
           <button
             onClick={() => navigate('/')}
-            className="w-full flex items-center gap-4 px-3 py-3 rounded-xl text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-all duration-200 ease-in-out font-medium"
+            className="w-full flex items-center gap-4 px-3 py-3 rounded-xl text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-all duration-200 ease-in-out font-medium cursor-pointer"
           >
             <span className="material-symbols-outlined transition-colors duration-200">logout</span>
-            <span className="hidden lg:block whitespace-nowrap">Logout</span>
+            <span className="hidden lg:block whitespace-nowrap">{t('nav.logout', 'Logout')}</span>
           </button>
         </li>
       </ul>

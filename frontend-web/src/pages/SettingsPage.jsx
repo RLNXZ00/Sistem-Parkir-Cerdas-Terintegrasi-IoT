@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import AppLayout from '../components/AppLayout';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function SettingsPage() {
   // 1. Ambil preferensi tema dan bahasa yang tersimpan
   const [theme, setTheme] = useState(() => localStorage.getItem('spct_theme') || 'dark');
-  const [lang, setLang] = useState(() => localStorage.getItem('spct_language') || 'id');
+  const { lang, setLanguage, t } = useLanguage();
   const [activeTab, setActiveTab] = useState('account'); // Akun & Keamanan di paling atas
   const [toast, setToast] = useState(null);
 
@@ -59,8 +60,7 @@ export default function SettingsPage() {
   };
 
   const handleLanguageChange = (newLang) => {
-    setLang(newLang);
-    localStorage.setItem('spct_language', newLang);
+    setLanguage(newLang);
     showToast(
       newLang === 'id' ? 'Bahasa berhasil diubah ke Bahasa Indonesia' : 'Language changed to English'
     );
