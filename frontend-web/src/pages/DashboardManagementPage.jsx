@@ -589,29 +589,29 @@ export default function DashboardManagementPage() {
         {/* ========================================================================= */}
         {isListModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
-            <div className="bg-[#0B1526] border border-slate-700/80 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            <div className={`${isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#0B1526] border-slate-700/80 text-white'} border rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl transition-colors`}>
               
               {/* Modal Header */}
-              <div className="flex items-center justify-between p-6 border-b border-slate-700/60 bg-[#08101E]">
+              <div className={`flex items-center justify-between p-6 border-b ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#08101E] border-slate-700/60'}`}>
                 <div className="flex items-center gap-3">
                   <span className="material-symbols-outlined text-alert-anomaly text-2xl">warning</span>
                   <div>
-                    <h2 className="text-xl font-bold text-white font-['Space_Grotesk']">10 Log Anomali & Operasional IoT Terakhir</h2>
-                    <p className="text-xs text-slate-400">Data riil kronologis langsung dari tabel <code className="text-sky-300">log_operasional_iot</code> database.</p>
+                    <h2 className={`text-xl font-bold font-['Space_Grotesk'] ${isLight ? 'text-slate-900' : 'text-white'}`}>10 Log Anomali & Operasional IoT Terakhir</h2>
+                    <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Data riil kronologis langsung dari tabel <code className={isLight ? 'text-sky-600 font-semibold' : 'text-sky-300'}>log_operasional_iot</code> database.</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setIsListModalOpen(false)}
-                  className="text-slate-400 hover:text-white p-2 rounded-lg bg-slate-800/60 hover:bg-slate-700 transition-colors cursor-pointer"
+                  className={`p-2 rounded-lg transition-colors cursor-pointer ${isLight ? 'text-slate-500 hover:text-slate-900 bg-slate-200/70 hover:bg-slate-300' : 'text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-700'}`}
                 >
                   <span className="material-symbols-outlined">close</span>
                 </button>
               </div>
 
               {/* Modal Body */}
-              <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-3">
+              <div className={`p-6 overflow-y-auto flex-1 flex flex-col gap-3 ${isLight ? 'bg-white' : ''}`}>
                 {isLoadingAnomali ? (
-                  <div className="flex items-center justify-center py-12 text-slate-400 font-mono animate-pulse">
+                  <div className={`flex items-center justify-center py-12 font-mono animate-pulse ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                     Mengambil data log anomali dari server...
                   </div>
                 ) : anomaliList.length === 0 ? (
@@ -634,39 +634,41 @@ export default function DashboardManagementPage() {
                           key={log.idLog} 
                           className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-3 ${
                             isCritical 
-                              ? 'bg-red-950/20 border-red-500/40' 
-                              : 'bg-slate-900/60 border-slate-700/50'
+                              ? (isLight ? 'bg-red-50/80 border-red-200' : 'bg-red-950/20 border-red-500/40') 
+                              : (isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/60 border-slate-700/50')
                           }`}
                         >
                           <div className="flex items-start gap-3">
-                            <span className={`material-symbols-outlined text-xl mt-0.5 ${isCritical ? 'text-red-400' : 'text-sky-400'}`}>
+                            <span className={`material-symbols-outlined text-xl mt-0.5 ${isCritical ? 'text-red-500' : (isLight ? 'text-sky-600' : 'text-sky-400')}`}>
                               {isCritical ? 'report' : 'info'}
                             </span>
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className="font-mono font-bold text-white text-sm">
+                                <span className={`font-mono font-bold text-sm ${isLight ? 'text-slate-900' : 'text-white'}`}>
                                   {slotId ? `Slot ${slotId}` : 'Hardware Node'}
                                 </span>
                                 <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
-                                  isCritical ? 'bg-red-900/40 text-red-300 border border-red-700/40' : 'bg-slate-800 text-slate-300'
+                                  isCritical 
+                                    ? (isLight ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-red-900/40 text-red-300 border border-red-700/40')
+                                    : (isLight ? 'bg-slate-200 text-slate-700 border border-slate-300' : 'bg-slate-800 text-slate-300')
                                 }`}>
                                   {log.jenisKejadian}
                                 </span>
                               </div>
-                              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                              <p className={`text-xs mt-1 leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
                                 {log.catatanDetail || 'Tidak ada catatan tambahan.'}
                               </p>
                             </div>
                           </div>
 
                           <div className="flex md:flex-col items-end justify-between md:justify-center gap-1 shrink-0 text-right">
-                            <span className="text-[11px] font-mono text-slate-400">
+                            <span className={`text-[11px] font-mono ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                               {tanggal}
                             </span>
                             <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
                               log.statusResolusi === 'SELESAI_DIVALIDASI' 
-                                ? 'bg-emerald-900/30 text-emerald-300 border border-emerald-700/40' 
-                                : 'bg-amber-900/30 text-amber-300 border border-amber-700/40'
+                                ? (isLight ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-emerald-900/30 text-emerald-300 border border-emerald-700/40')
+                                : (isLight ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-amber-900/30 text-amber-300 border border-amber-700/40')
                             }`}>
                               {log.statusResolusi || 'BELUM_DITANGANI'}
                             </span>
@@ -679,10 +681,14 @@ export default function DashboardManagementPage() {
               </div>
 
               {/* Modal Footer */}
-              <div className="p-4 border-t border-slate-700/60 bg-[#08101E] flex justify-end">
+              <div className={`p-4 border-t flex justify-end ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#08101E] border-slate-700/60'}`}>
                 <button
                   onClick={() => setIsListModalOpen(false)}
-                  className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold transition-colors cursor-pointer"
+                  className={`px-5 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
+                    isLight 
+                      ? 'bg-slate-200 hover:bg-slate-300 text-slate-800' 
+                      : 'bg-slate-800 hover:bg-slate-700 text-white'
+                  }`}
                 >
                   Tutup
                 </button>
@@ -697,19 +703,19 @@ export default function DashboardManagementPage() {
         {/* ========================================================================= */}
         {isNodeMapModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in">
-            <div className="bg-[#0B1526] border border-slate-700/80 rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+            <div className={`${isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#0B1526] border-slate-700/80 text-white'} border rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl transition-colors`}>
               
               {/* Modal Header */}
-              <div className="flex items-center justify-between p-6 border-b border-slate-700/60 bg-[#08101E]">
+              <div className={`flex items-center justify-between p-6 border-b ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#08101E] border-slate-700/60'}`}>
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-sky-950/80 border border-sky-500/40 text-sky-400 flex items-center justify-center">
+                  <div className={`p-2 rounded-lg flex items-center justify-center ${isLight ? 'bg-sky-100 border border-sky-300 text-sky-700' : 'bg-sky-950/80 border border-sky-500/40 text-sky-400'}`}>
                     <span className="material-symbols-outlined text-2xl">grid_view</span>
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-white font-['Space_Grotesk'] flex items-center gap-2">
+                    <h2 className={`text-xl font-bold font-['Space_Grotesk'] flex items-center gap-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>
                       Peta Denah Spasial Node Sensor & Kesalahan Parkir
                     </h2>
-                    <p className="text-xs text-slate-400">
+                    <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                       Visualisasi indikasi slot yang teridentifikasi mengalami anomali atau salah parkir dari 10 log IoT terbaru.
                     </p>
                   </div>
@@ -718,19 +724,19 @@ export default function DashboardManagementPage() {
                 <div className="flex items-center gap-4">
                   {/* Legend Mini */}
                   <div className="hidden md:flex items-center gap-3 text-xs font-mono">
-                    <div className="flex items-center gap-1.5 text-red-400">
+                    <div className="flex items-center gap-1.5 text-red-500">
                       <div className="w-3 h-3 bg-red-600/30 border border-red-500 rounded-sm animate-pulse"></div>
                       <span>Anomali Terindikasi</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-slate-400">
-                      <div className="w-3 h-3 border border-dashed border-slate-600 rounded-sm"></div>
+                    <div className={`flex items-center gap-1.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                      <div className={`w-3 h-3 border border-dashed rounded-sm ${isLight ? 'border-slate-400' : 'border-slate-600'}`}></div>
                       <span>Node Normal</span>
                     </div>
                   </div>
 
                   <button 
                     onClick={() => setIsNodeMapModalOpen(false)}
-                    className="text-slate-400 hover:text-white p-2 rounded-lg bg-slate-800/60 hover:bg-slate-700 transition-colors cursor-pointer"
+                    className={`p-2 rounded-lg transition-colors cursor-pointer ${isLight ? 'text-slate-500 hover:text-slate-900 bg-slate-200/70 hover:bg-slate-300' : 'text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-700'}`}
                   >
                     <span className="material-symbols-outlined">close</span>
                   </button>
@@ -738,22 +744,22 @@ export default function DashboardManagementPage() {
               </div>
 
               {/* Modal Body: Denah Lantai 1 */}
-              <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-6">
+              <div className={`p-6 overflow-y-auto flex-1 flex flex-col gap-6 ${isLight ? 'bg-white' : ''}`}>
                 
                 {isLoadingNodeMap ? (
-                  <div className="flex items-center justify-center py-20 text-slate-400 font-mono animate-pulse">
+                  <div className={`flex items-center justify-center py-20 font-mono animate-pulse ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                     Memuat pemetaan denah node sensor...
                   </div>
                 ) : (
                   <>
                     {/* DENAH GRID SESUAI GAMBAR 2 (LANTAI 1) */}
-                    <div className="bg-[#050B14] rounded-xl border border-slate-800 p-6 relative overflow-hidden shadow-inner">
+                    <div className={`rounded-xl border p-6 relative overflow-hidden shadow-inner transition-colors ${isLight ? 'bg-slate-100 border-slate-200' : 'bg-[#050B14] border-slate-800'}`}>
                       
                       {/* Grid background styling */}
-                      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-40"></div>
+                      <div className={`absolute inset-0 pointer-events-none opacity-40 bg-[size:24px_24px] ${isLight ? 'bg-[linear-gradient(rgba(0,0,0,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.04)_1px,transparent_1px)]' : 'bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)]'}`}></div>
 
                       {/* Header Lantai 1 */}
-                      <div className="text-xs font-mono text-slate-400 text-center border-y border-slate-800 py-1.5 mb-6 uppercase tracking-widest relative z-10 font-semibold">
+                      <div className={`text-xs font-mono text-center border-y py-1.5 mb-6 uppercase tracking-widest relative z-10 font-semibold ${isLight ? 'text-slate-600 border-slate-300' : 'text-slate-400 border-slate-800'}`}>
                         LANTAI 1
                       </div>
 
@@ -771,8 +777,10 @@ export default function DashboardManagementPage() {
                               className={`h-14 rounded-lg flex flex-col items-center justify-center font-mono text-xs cursor-pointer transition-all relative ${
                                 hasAnomaly
                                   ? 'bg-alert-anomaly/20 border-2 border-alert-anomaly text-alert-anomaly pulse-anomaly hover:bg-alert-anomaly/30 shadow-[0_0_15px_rgba(255,69,0,0.4)]'
-                                  : 'border border-slate-700/80 border-dashed text-slate-400 hover:border-sky-400 hover:text-slate-200 bg-[#08101E]/40'
-                              } ${isSelected ? 'ring-2 ring-sky-400 scale-105 z-20' : ''}`}
+                                  : isLight 
+                                    ? 'border border-slate-300 border-dashed text-slate-600 hover:border-sky-500 hover:text-slate-900 bg-white shadow-sm'
+                                    : 'border border-slate-700/80 border-dashed text-slate-400 hover:border-sky-400 hover:text-slate-200 bg-[#08101E]/40'
+                              } ${isSelected ? 'ring-2 ring-sky-500 scale-105 z-20' : ''}`}
                             >
                               <span className="font-bold tracking-wider">{slotId}</span>
                               {hasAnomaly && (
@@ -799,8 +807,10 @@ export default function DashboardManagementPage() {
                               className={`h-14 rounded-lg flex flex-col items-center justify-center font-mono text-xs cursor-pointer transition-all relative ${
                                 hasAnomaly
                                   ? 'bg-alert-anomaly/20 border-2 border-alert-anomaly text-alert-anomaly pulse-anomaly hover:bg-alert-anomaly/30 shadow-[0_0_15px_rgba(255,69,0,0.4)]'
-                                  : 'border border-slate-700/80 border-dashed text-slate-400 hover:border-sky-400 hover:text-slate-200 bg-[#08101E]/40'
-                              } ${isSelected ? 'ring-2 ring-sky-400 scale-105 z-20' : ''}`}
+                                  : isLight 
+                                    ? 'border border-slate-300 border-dashed text-slate-600 hover:border-sky-500 hover:text-slate-900 bg-white shadow-sm'
+                                    : 'border border-slate-700/80 border-dashed text-slate-400 hover:border-sky-400 hover:text-slate-200 bg-[#08101E]/40'
+                              } ${isSelected ? 'ring-2 ring-sky-500 scale-105 z-20' : ''}`}
                             >
                               <span className="font-bold tracking-wider">{slotId}</span>
                               {hasAnomaly && (
@@ -816,19 +826,19 @@ export default function DashboardManagementPage() {
                     </div>
 
                     {/* DETAIL PANEL UNTUK SLOT YANG DIPILIH */}
-                    <div className="bg-[#08101E] border border-slate-800 rounded-xl p-5">
-                      <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                    <div className={`border rounded-xl p-5 transition-colors ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#08101E] border-slate-800'}`}>
+                      <div className={`flex items-center justify-between border-b pb-3 mb-4 ${isLight ? 'border-slate-200' : 'border-slate-800'}`}>
                         <div className="flex items-center gap-2">
-                          <span className="material-symbols-outlined text-sky-400">info</span>
-                          <h3 className="font-mono text-base text-white font-bold">
-                            Detail Insiden Node: <span className="text-sky-300">{selectedSlotNode || 'Pilih Slot'}</span>
+                          <span className={`material-symbols-outlined ${isLight ? 'text-sky-600' : 'text-sky-400'}`}>info</span>
+                          <h3 className={`font-mono text-base font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                            Detail Insiden Node: <span className={isLight ? 'text-sky-600' : 'text-sky-300'}>{selectedSlotNode || 'Pilih Slot'}</span>
                           </h3>
                         </div>
                         {selectedSlotNode && (
                           <span className={`text-xs font-mono font-bold px-3 py-1 rounded-full ${
                             nodeAnomaliMap[selectedSlotNode]
-                              ? 'bg-red-950/50 text-red-300 border border-red-700/50'
-                              : 'bg-emerald-950/50 text-emerald-300 border border-emerald-700/50'
+                              ? (isLight ? 'bg-red-100 text-red-800 border border-red-300' : 'bg-red-950/50 text-red-300 border border-red-700/50')
+                              : (isLight ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-emerald-950/50 text-emerald-300 border border-emerald-700/50')
                           }`}>
                             {nodeAnomaliMap[selectedSlotNode] 
                               ? `${nodeAnomaliMap[selectedSlotNode].length} Insiden Anomali Terdeteksi` 
@@ -840,27 +850,27 @@ export default function DashboardManagementPage() {
                       {selectedSlotNode && nodeAnomaliMap[selectedSlotNode] ? (
                         <div className="flex flex-col gap-3">
                           {nodeAnomaliMap[selectedSlotNode].map((item, idx) => (
-                            <div key={idx} className="bg-red-950/20 border border-red-800/40 rounded-lg p-3.5 flex flex-col gap-1">
+                            <div key={idx} className={`border rounded-lg p-3.5 flex flex-col gap-1 ${isLight ? 'bg-red-50/80 border-red-200' : 'bg-red-950/20 border-red-800/40'}`}>
                               <div className="flex items-center justify-between text-xs font-mono">
-                                <span className="text-red-400 font-bold">{item.jenisKejadian}</span>
-                                <span className="text-slate-400">
+                                <span className={`font-bold ${isLight ? 'text-red-600' : 'text-red-400'}`}>{item.jenisKejadian}</span>
+                                <span className={isLight ? 'text-slate-500' : 'text-slate-400'}>
                                   {item.waktuKejadian ? new Date(item.waktuKejadian).toLocaleString('id-ID') : '-'}
                                 </span>
                               </div>
-                              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                              <p className={`text-xs mt-1 leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
                                 {item.catatanDetail}
                               </p>
-                              <div className="mt-2 flex items-center gap-2 text-[11px] font-mono text-slate-400">
-                                <span>Resolusi: <strong className="text-amber-300">{item.statusResolusi || 'BELUM_DITANGANI'}</strong></span>
+                              <div className={`mt-2 flex items-center gap-2 text-[11px] font-mono ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                                <span>Resolusi: <strong className={isLight ? 'text-amber-700' : 'text-amber-300'}>{item.statusResolusi || 'BELUM_DITANGANI'}</strong></span>
                                 <span>•</span>
-                                <span>Keparahan: <strong className="text-red-400">{item.tingkatKeparahan}</strong></span>
+                                <span>Keparahan: <strong className={isLight ? 'text-red-600' : 'text-red-400'}>{item.tingkatKeparahan}</strong></span>
                               </div>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <div className="text-slate-400 text-xs py-4 text-center font-mono flex items-center justify-center gap-2">
-                          <span className="material-symbols-outlined text-emerald-400 text-lg">verified</span>
+                        <div className={`text-xs py-4 text-center font-mono flex items-center justify-center gap-2 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                          <span className={`material-symbols-outlined text-lg ${isLight ? 'text-emerald-600' : 'text-emerald-400'}`}>verified</span>
                           <span>Slot {selectedSlotNode} tidak memiliki catatan kesalahan atau anomali pada 10 log IoT terbaru.</span>
                         </div>
                       )}
@@ -872,13 +882,17 @@ export default function DashboardManagementPage() {
               </div>
 
               {/* Modal Footer */}
-              <div className="p-4 border-t border-slate-700/60 bg-[#08101E] flex justify-between items-center">
-                <span className="text-xs text-slate-500 font-mono">
+              <div className={`p-4 border-t flex justify-between items-center ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#08101E] border-slate-700/60'}`}>
+                <span className={`text-xs font-mono ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>
                   *Klik pada kotak slot mana saja di peta untuk melihat riwayat insiden node terkait.
                 </span>
                 <button
                   onClick={() => setIsNodeMapModalOpen(false)}
-                  className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold transition-colors cursor-pointer"
+                  className={`px-5 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
+                    isLight 
+                      ? 'bg-slate-200 hover:bg-slate-300 text-slate-800' 
+                      : 'bg-slate-800 hover:bg-slate-700 text-white'
+                  }`}
                 >
                   Tutup
                 </button>
