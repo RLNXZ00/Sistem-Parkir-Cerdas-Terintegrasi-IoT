@@ -121,6 +121,18 @@ export default function SettingsPage() {
       showToast(lang === 'id' ? 'Password baru dan konfirmasi wajib diisi!' : 'New password and confirmation are required!', 'error');
       return;
     }
+    if (settings.passwordBaru.length < 8) {
+      showToast(lang === 'id' ? 'Kata sandi minimal 8 karakter!' : 'Password must be at least 8 characters!', 'error');
+      return;
+    }
+    if (!/\d/.test(settings.passwordBaru)) {
+      showToast(lang === 'id' ? 'Kata sandi harus mengandung kombinasi angka!' : 'Password must contain a number combination!', 'error');
+      return;
+    }
+    if (!/[^A-Za-z0-9]/.test(settings.passwordBaru)) {
+      showToast(lang === 'id' ? 'Kata sandi harus mengandung kombinasi karakter khusus!' : 'Password must contain special characters!', 'error');
+      return;
+    }
     if (settings.passwordBaru !== settings.konfirmasiPassword) {
       showToast(lang === 'id' ? 'Konfirmasi password tidak cocok!' : 'Password confirmation does not match!', 'error');
       return;
@@ -136,11 +148,13 @@ export default function SettingsPage() {
         })
       });
 
+      const data = await res.json().catch(() => null);
+
       if (res.ok) {
-        showToast(lang === 'id' ? 'Kata sandi berhasil diperbarui!' : 'Password updated successfully!', 'success');
+        showToast(data?.pesan || (lang === 'id' ? 'Kata sandi berhasil diperbarui!' : 'Password updated successfully!'), 'success');
         setSettings(prev => ({ ...prev, passwordLama: '', passwordBaru: '', konfirmasiPassword: '' }));
       } else {
-        showToast(lang === 'id' ? 'Gagal mengubah password di server.' : 'Failed to update password on server.', 'error');
+        showToast(data?.pesan || (lang === 'id' ? 'Gagal mengubah password di server.' : 'Failed to update password on server.'), 'error');
       }
     } catch {
       showToast(lang === 'id' ? 'Server backend offline, perubahan belum tersinkronisasi.' : 'Backend offline, changes pending.', 'error');
