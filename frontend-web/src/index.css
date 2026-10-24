@@ -98,3 +98,71 @@ html.light-theme .text-tertiary { color: #d97706 !important; }
 html.light-theme .text-tertiary-container { color: #d97706 !important; }
 html.light-theme .text-system-info { color: #0284c7 !important; }
 
+/* ===================================================================
+   HALAMAN AUTENTIKASI (LOGIN, REGISTRASI, RESET PASSWORD) TEMA CERAH
+   =================================================================== */
+html.light-theme .auth-page-wrapper {
+  background-color: #f1f5f9 !important;
+  color: #1e293b !important;
+}
+
+html.light-theme .auth-card {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.07), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+}
+
+html.light-theme .auth-card-header {
+  border-color: #e2e8f0 !important;
+}
+
+html.light-theme .auth-title {
+  color: #0f172a !important;
+}
+
+html.light-theme .auth-subtitle {
+  color: #64748b !important;
+}
+
+html.light-theme .auth-label {
+  color: #334155 !important;
+}
+
+html.light-theme .auth-input {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html.light-theme .auth-input:focus {
+  border-color: #0284c7 !important;
+  background-color: #ffffff !important;
+}
+
+html.light-theme .auth-input::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.light-theme .auth-subcard {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light-theme .auth-subcard-text {
+  color: #64748b !important;
+}
+
+html.light-theme .auth-footer-border {
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+html.light-theme .auth-brand-badge {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light-theme .auth-brand-text {
+  color: #0f172a !important;
+}
+
