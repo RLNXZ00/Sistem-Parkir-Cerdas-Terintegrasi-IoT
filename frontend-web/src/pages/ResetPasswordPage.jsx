@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthBrand from '../components/AuthBrand';
 import AuthFooter from '../components/AuthFooter';
+import AuthThemeToggle from '../components/AuthThemeToggle';
 
 const API_BASE = 'http://localhost:8081';
 
@@ -93,25 +94,27 @@ export default function ResetPasswordPage() {
   };
 
   const PillReq = ({ met, children }) => (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[11px] font-mono transition-colors ${met ? 'bg-[#122820] border-[#23583c] text-[#7ed99e]' : 'bg-[#11171d] border-[#2d3a46] text-[#9bb0c1]'}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[11px] font-mono transition-colors ${met ? 'bg-[#122820] border-[#23583c] text-[#7ed99e]' : 'bg-[#11171d] border-[#2d3a46] text-[#9bb0c1] auth-subcard auth-subtitle'}`}>
       <span className="material-symbols-outlined text-[13px]">{met ? 'check_circle' : 'radio_button_unchecked'}</span>
       {children}
     </span>
   );
 
   return (
-    <div className="min-h-screen bg-[#0c1014] text-[#dee3e8] flex flex-col justify-between">
+    <div className="min-h-screen bg-[#0c1014] text-[#dee3e8] auth-page-wrapper flex flex-col justify-between transition-colors duration-200 relative">
+      <AuthThemeToggle />
+
       <div className="flex-1 flex flex-col items-center justify-center p-6">
         <AuthBrand />
 
-        <main className="w-full max-w-md bg-[#182026] border border-[#2c3742] rounded-xl shadow-lg p-6 sm:p-8">
+        <main className="w-full max-w-md bg-[#182026] border border-[#2c3742] auth-card rounded-xl shadow-lg p-6 sm:p-8 transition-colors duration-200">
 
           {/* Header Row */}
           <div className="flex items-center justify-between mb-6">
-            <div className="w-12 h-12 rounded-lg bg-[#11171d] border border-[#2c3742] flex items-center justify-center">
+            <div className="w-12 h-12 rounded-lg bg-[#11171d] border border-[#2c3742] auth-subcard flex items-center justify-center">
               <span className="material-symbols-outlined text-[#38bdf8] text-[26px]">lock_reset</span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#11171d] border border-[#273540]">
+            <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#11171d] border border-[#273540] auth-subcard">
               <span className="w-2 h-2 rounded-full bg-[#34d399]"></span>
               <span className="font-mono text-xs font-semibold uppercase tracking-wider text-[#34d399]">SSL ENCRYPTED</span>
             </div>
@@ -119,8 +122,8 @@ export default function ResetPasswordPage() {
 
           {/* Title */}
           <div className="mb-6">
-            <h1 className="text-2xl font-bold tracking-tight text-white mb-1">Atur Ulang Kata Sandi</h1>
-            <p className="text-sm text-[#bcc8d1] leading-relaxed">
+            <h1 className="text-2xl font-bold tracking-tight text-white auth-title mb-1">Atur Ulang Kata Sandi</h1>
+            <p className="text-sm text-[#bcc8d1] auth-subtitle leading-relaxed">
               Silakan masukkan 8 digit NIP Anda dan buat kata sandi baru untuk mengamankan akun SPCT Anda.
             </p>
           </div>
@@ -138,7 +141,7 @@ export default function ResetPasswordPage() {
 
             {/* NIP (Nomor Induk Pegawai) */}
             <div className="flex flex-col gap-1.5">
-              <label className="font-mono text-xs font-medium text-slate-200 uppercase tracking-wider flex items-center justify-between" htmlFor="nip">
+              <label className="font-mono text-xs font-medium text-slate-200 auth-label uppercase tracking-wider flex items-center justify-between" htmlFor="nip">
                 <span>Nomor Induk Pegawai (NIP)</span>
                 <span className="text-[#38bdf8] text-[11px] font-normal tracking-normal font-mono">8 digit angka</span>
               </label>
@@ -153,14 +156,14 @@ export default function ResetPasswordPage() {
                   required
                   value={nip}
                   onChange={(e) => setNip(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                  className="w-full h-12 pl-12 pr-4 bg-[#11171d] border border-[#323d47] text-white font-mono text-sm rounded-lg outline-none placeholder:text-slate-500 focus:border-[#38bdf8] transition-colors"
+                  className="w-full h-12 pl-12 pr-4 bg-[#11171d] border border-[#323d47] auth-input text-white font-mono text-sm rounded-lg outline-none placeholder:text-slate-500 focus:border-[#38bdf8] transition-colors"
                 />
               </div>
             </div>
 
             {/* New Password */}
             <div className="flex flex-col gap-1.5">
-              <label className="font-mono text-xs font-medium text-slate-200 uppercase tracking-wider flex items-center justify-between" htmlFor="new-password">
+              <label className="font-mono text-xs font-medium text-slate-200 auth-label uppercase tracking-wider flex items-center justify-between" htmlFor="new-password">
                 <span>Kata Sandi Baru</span>
                 <span className="font-mono text-[11px] font-semibold text-amber-400">Minimal 8 karakter</span>
               </label>
@@ -174,7 +177,7 @@ export default function ResetPasswordPage() {
                   required
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full h-12 pl-12 pr-12 bg-[#11171d] border border-[#323d47] text-white text-sm rounded-lg outline-none placeholder:text-slate-500 focus:border-[#38bdf8] transition-colors"
+                  className="w-full h-12 pl-12 pr-12 bg-[#11171d] border border-[#323d47] auth-input text-white text-sm rounded-lg outline-none placeholder:text-slate-500 focus:border-[#38bdf8] transition-colors"
                 />
                 <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-4 text-slate-400 hover:text-white transition-colors p-1 cursor-pointer">
                   <span className="material-symbols-outlined text-[20px]">{showNew ? 'visibility' : 'visibility_off'}</span>
@@ -191,7 +194,7 @@ export default function ResetPasswordPage() {
 
             {/* Confirm Password */}
             <div className="flex flex-col gap-1.5">
-              <label className="font-mono text-xs font-medium text-slate-200 uppercase tracking-wider flex items-center justify-between" htmlFor="confirm-password">
+              <label className="font-mono text-xs font-medium text-slate-200 auth-label uppercase tracking-wider flex items-center justify-between" htmlFor="confirm-password">
                 <span>Konfirmasi Kata Sandi</span>
                 <span className={`font-mono text-[11px] ${match.cls}`}>{match.text}</span>
               </label>
@@ -204,7 +207,7 @@ export default function ResetPasswordPage() {
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full h-12 pl-12 pr-12 bg-[#11171d] border border-[#323d47] text-white text-sm rounded-lg outline-none placeholder:text-slate-500 focus:border-[#38bdf8] transition-colors"
+                  className="w-full h-12 pl-12 pr-12 bg-[#11171d] border border-[#323d47] auth-input text-white text-sm rounded-lg outline-none placeholder:text-slate-500 focus:border-[#38bdf8] transition-colors"
                 />
                 <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-4 text-slate-400 hover:text-white transition-colors p-1 cursor-pointer">
                   <span className="material-symbols-outlined text-[20px]">{showConfirm ? 'visibility' : 'visibility_off'}</span>
@@ -247,12 +250,12 @@ export default function ResetPasswordPage() {
           </form>
 
           {/* Security Footer Badge */}
-          <div className="mt-6 flex items-center justify-between bg-[#11171d] border border-[#26313b] px-4 py-2 rounded-lg">
+          <div className="mt-6 flex items-center justify-between bg-[#11171d] border border-[#26313b] auth-subcard px-4 py-2 rounded-lg">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#34d399]"></span>
-              <span className="font-mono text-[11px] font-medium text-slate-300">Node Security active</span>
+              <span className="font-mono text-[11px] font-medium text-slate-300 auth-subcard-text">Node Security active</span>
             </div>
-            <div className="flex items-center gap-1 font-mono text-[11px] font-medium text-slate-300">
+            <div className="flex items-center gap-1 font-mono text-[11px] font-medium text-slate-300 auth-subcard-text">
               <span className="material-symbols-outlined text-[15px] text-[#34d399]">shield</span>
               <span>AES-256 GCM</span>
             </div>
