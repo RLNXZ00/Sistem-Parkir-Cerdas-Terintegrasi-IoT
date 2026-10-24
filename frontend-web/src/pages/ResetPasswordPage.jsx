@@ -94,7 +94,7 @@ export default function ResetPasswordPage() {
   };
 
   const PillReq = ({ met, children }) => (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[11px] font-mono transition-colors ${met ? 'bg-[#122820] border-[#23583c] text-[#7ed99e]' : 'bg-[#11171d] border-[#2d3a46] text-[#9bb0c1] auth-subcard auth-subtitle'}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[11px] font-mono transition-colors ${met ? 'bg-[#122820] border-[#23583c] text-[#7ed99e] auth-verified-badge' : 'bg-[#11171d] border-[#2d3a46] text-[#9bb0c1] auth-meta-badge'}`}>
       <span className="material-symbols-outlined text-[13px]">{met ? 'check_circle' : 'radio_button_unchecked'}</span>
       {children}
     </span>
@@ -111,12 +111,12 @@ export default function ResetPasswordPage() {
 
           {/* Header Row */}
           <div className="flex items-center justify-between mb-6">
-            <div className="w-12 h-12 rounded-lg bg-[#11171d] border border-[#2c3742] auth-subcard flex items-center justify-center">
+            <div className="w-12 h-12 rounded-lg bg-[#11171d] border border-[#2c3742] auth-header-icon flex items-center justify-center">
               <span className="material-symbols-outlined text-[#38bdf8] text-[26px]">lock_reset</span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#11171d] border border-[#273540] auth-subcard">
-              <span className="w-2 h-2 rounded-full bg-[#34d399]"></span>
-              <span className="font-mono text-xs font-semibold uppercase tracking-wider text-[#34d399]">SSL ENCRYPTED</span>
+            <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#11171d] border border-[#273540] auth-ssl-badge">
+              <span className="w-2 h-2 rounded-full bg-[#34d399] auth-ssl-dot"></span>
+              <span className="font-mono text-xs font-semibold uppercase tracking-wider text-[#34d399] auth-ssl-text">SSL ENCRYPTED</span>
             </div>
           </div>
 
@@ -179,7 +179,7 @@ export default function ResetPasswordPage() {
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="w-full h-12 pl-12 pr-12 bg-[#11171d] border border-[#323d47] auth-input text-white text-sm rounded-lg outline-none placeholder:text-slate-500 focus:border-[#38bdf8] transition-colors"
                 />
-                <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-4 text-slate-400 hover:text-white transition-colors p-1 cursor-pointer">
+                <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-4 text-slate-400 auth-icon-btn hover:text-white transition-colors p-1 cursor-pointer">
                   <span className="material-symbols-outlined text-[20px]">{showNew ? 'visibility' : 'visibility_off'}</span>
                 </button>
               </div>
@@ -199,7 +199,7 @@ export default function ResetPasswordPage() {
                 <span className={`font-mono text-[11px] ${match.cls}`}>{match.text}</span>
               </label>
               <div className="relative flex items-center">
-                <span className="material-symbols-outlined absolute left-4 text-slate-400 text-[20px] pointer-events-none">lock_clock</span>
+                <span className="material-symbols-outlined absolute left-4 text-slate-400 auth-subtitle text-[20px] pointer-events-none">lock_clock</span>
                 <input
                   id="confirm-password"
                   type={showConfirm ? 'text' : 'password'}
@@ -209,7 +209,7 @@ export default function ResetPasswordPage() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full h-12 pl-12 pr-12 bg-[#11171d] border border-[#323d47] auth-input text-white text-sm rounded-lg outline-none placeholder:text-slate-500 focus:border-[#38bdf8] transition-colors"
                 />
-                <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-4 text-slate-400 hover:text-white transition-colors p-1 cursor-pointer">
+                <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-4 text-slate-400 auth-icon-btn hover:text-white transition-colors p-1 cursor-pointer">
                   <span className="material-symbols-outlined text-[20px]">{showConfirm ? 'visibility' : 'visibility_off'}</span>
                 </button>
               </div>
@@ -250,7 +250,7 @@ export default function ResetPasswordPage() {
           </form>
 
           {/* Security Footer Badge */}
-          <div className="mt-6 flex items-center justify-between bg-[#11171d] border border-[#26313b] auth-subcard px-4 py-2 rounded-lg">
+          <div className="mt-6 flex items-center justify-between bg-[#11171d] border border-[#26313b] auth-meta-badge px-4 py-2 rounded-lg">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#34d399]"></span>
               <span className="font-mono text-[11px] font-medium text-slate-300 auth-subcard-text">Node Security active</span>
