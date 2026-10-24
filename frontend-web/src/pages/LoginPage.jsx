@@ -195,9 +195,9 @@ export default function LoginPage() {
               <span className="text-[#8fa0b0] auth-subtitle">Belum memiliki akun?</span>
               <button
                 onClick={() => navigate('/registrasi')}
-                className="text-[#7ad0ff] font-semibold hover:text-white flex items-center gap-1 transition-colors"
+                className="auth-link font-semibold flex items-center gap-1 cursor-pointer"
               >
-                Daftar di sini
+                <span>Daftar di sini</span>
                 <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
               </button>
             </div>
