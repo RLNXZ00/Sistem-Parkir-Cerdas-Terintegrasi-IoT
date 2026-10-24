@@ -223,3 +223,32 @@ html.light-theme .auth-icon-btn:hover {
   color: #0f172a !important;
 }
 
+/* Tautan Navigasi Autentikasi (Daftar di sini, Masuk di sini, Kembali ke Masuk) */
+.auth-link {
+  color: #7ad0ff;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.auth-link:hover {
+  color: #ffffff;
+}
+
+/* Pada tema cerah, teks tautan saat hover berubah menjadi biru tua kontras dan tidak menjadi putih */
+html.light-theme .auth-link {
+  color: #0284c7 !important;
+}
+
+html.light-theme .auth-link:hover {
+  color: #0369a1 !important;
+}
+
+/* Hover teks persetujuan syarat & ketentuan di halaman registrasi */
+html.light-theme .auth-terms-text {
+  color: #64748b !important;
+}
+
+html.light-theme .auth-terms-text:hover,
+html.light-theme label:hover .auth-terms-text {
+  color: #1e293b !important;
+}
+
