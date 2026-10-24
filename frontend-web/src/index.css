@@ -166,3 +166,60 @@ html.light-theme .auth-brand-text {
   color: #0f172a !important;
 }
 
+/* Box Ikon Header Kartu Autentikasi */
+html.light-theme .auth-header-icon {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Badge SSL Encrypted */
+html.light-theme .auth-ssl-badge {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+  color: #047857 !important;
+}
+
+html.light-theme .auth-ssl-badge .auth-ssl-dot {
+  background-color: #10b981 !important;
+}
+
+html.light-theme .auth-ssl-badge .auth-ssl-text {
+  color: #047857 !important;
+}
+
+/* Badge Hak Akses (Role Selector) di Registrasi */
+html.light-theme .auth-role-badge-rs {
+  background-color: #e0f2fe !important;
+  border-color: #bae6fd !important;
+  color: #0284c7 !important;
+}
+
+html.light-theme .auth-role-badge-field {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+  color: #059669 !important;
+}
+
+/* Badge & Pill Terverifikasi */
+html.light-theme .auth-verified-badge {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+  color: #059669 !important;
+}
+
+/* Badge Metadata & Node Ping */
+html.light-theme .auth-meta-badge {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+/* Tombol Ikon Interaktif (Tampil/Sembunyikan Password) */
+html.light-theme .auth-icon-btn {
+  color: #64748b !important;
+}
+
+html.light-theme .auth-icon-btn:hover {
+  color: #0f172a !important;
+}
+
