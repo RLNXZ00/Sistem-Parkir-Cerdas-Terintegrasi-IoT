@@ -30,6 +30,16 @@ export const translations = {
     'topbar.live': 'LIVE',
     'topbar.systemHealthy': 'Sistem Normal',
 
+    // ─── Notification Popover ────────────────────────────────────────────────
+    'notification.title': 'Notifikasi Sistem',
+    'notification.new': 'Baru',
+    'notification.markAll': 'Tandai Dibaca',
+    'notification.markAllRead': 'Tandai semua telah dibaca',
+    'notification.all': 'Semua',
+    'notification.entry': 'Kendaraan Masuk',
+    'notification.anomaly': 'Anomali',
+    'notification.empty': 'Tidak ada notifikasi',
+
     // ─── Field Dashboard (DashboardPage) ────────────────────────────────────
     'dash.totalSlots': 'Total Slot',
     'dash.occupied': 'Terisi',
@@ -160,6 +170,16 @@ export const translations = {
     'topbar.settings': 'System Settings',
     'topbar.live': 'LIVE',
     'topbar.systemHealthy': 'System Healthy',
+
+    // ─── Notification Popover ────────────────────────────────────────────────
+    'notification.title': 'System Notifications',
+    'notification.new': 'New',
+    'notification.markAll': 'Mark All Read',
+    'notification.markAllRead': 'Mark all as read',
+    'notification.all': 'All',
+    'notification.entry': 'Vehicle Entry',
+    'notification.anomaly': 'Anomalies',
+    'notification.empty': 'No notifications',
 
     // ─── Field Dashboard (DashboardPage) ────────────────────────────────────
     'dash.totalSlots': 'Total Slots',
