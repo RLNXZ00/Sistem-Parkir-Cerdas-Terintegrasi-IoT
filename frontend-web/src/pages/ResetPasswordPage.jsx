@@ -242,7 +242,7 @@ export default function ResetPasswordPage() {
                   </>
                 )}
               </button>
-              <button type="button" onClick={() => navigate('/')} className="flex items-center justify-center gap-2 text-[#38bdf8] hover:text-[#7dd3fc] font-medium transition-colors text-sm py-2">
+              <button type="button" onClick={() => navigate('/')} className="flex items-center justify-center gap-2 auth-link font-medium text-sm py-2 cursor-pointer">
                 <span className="material-symbols-outlined text-[18px]">arrow_back</span>
                 <span>Kembali ke Masuk</span>
               </button>
