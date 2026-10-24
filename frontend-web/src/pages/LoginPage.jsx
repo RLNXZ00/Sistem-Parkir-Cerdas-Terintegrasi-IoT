@@ -66,7 +66,7 @@ export default function LoginPage() {
             {/* Card Header */}
             <div className="flex items-center justify-between pb-5 border-b border-[#242e38] auth-card-header">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#1e2730] border border-[#323f4d] flex items-center justify-center text-[#7ad0ff]">
+                <div className="w-10 h-10 rounded-xl bg-[#1e2730] border border-[#323f4d] auth-header-icon flex items-center justify-center text-[#7ad0ff]">
                   <span className="material-symbols-outlined text-[22px]">lock</span>
                 </div>
                 <div>
@@ -74,12 +74,12 @@ export default function LoginPage() {
                     <span className="w-1.5 h-1.5 rounded-full bg-[#00bfff]"></span>
                     AUTH-GATEWAY // SIGN IN
                   </div>
-                  <div className="text-[10px] text-[#8fa0b0] font-mono tracking-wide">GATE NODE: PG-000A</div>
+                  <div className="text-[10px] text-[#8fa0b0] auth-subtitle font-mono tracking-wide">GATE NODE: PG-000A</div>
                 </div>
               </div>
-              <span className="px-2.5 py-1 rounded-full bg-[#122820] border border-[#23583c] text-[#7ed99e] font-mono text-[11px] font-medium flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#2e8b57]"></span>
-                SSL ENCRYPTED
+              <span className="px-2.5 py-1 rounded-full bg-[#122820] border border-[#23583c] auth-ssl-badge text-[#7ed99e] font-mono text-[11px] font-medium flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#2e8b57] auth-ssl-dot"></span>
+                <span className="auth-ssl-text">SSL ENCRYPTED</span>
               </span>
             </div>
 
@@ -112,7 +112,7 @@ export default function LoginPage() {
                   <span className="text-[11px] font-mono text-[#7ad0ff]">Username atau 8 digit NIP</span>
                 </div>
                 <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8fa0b0] text-[20px]">badge</span>
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8fa0b0] auth-subtitle text-[20px]">badge</span>
                   <input
                     id="username"
                     type="text"
@@ -141,7 +141,7 @@ export default function LoginPage() {
                   </button>
                 </div>
                 <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8fa0b0] text-[20px]">lock</span>
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8fa0b0] auth-subtitle text-[20px]">lock</span>
                   <input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
@@ -154,7 +154,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8fa0b0] hover:text-white transition-colors focus:outline-none"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8fa0b0] auth-icon-btn hover:text-white transition-colors focus:outline-none"
                   >
                     <span className="material-symbols-outlined text-[20px]">
                       {showPassword ? 'visibility_off' : 'visibility'}
