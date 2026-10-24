@@ -335,8 +335,8 @@ export default function RegistrasiPage() {
                 required
                 className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-[#2e8b57]"
               />
-              <span className="text-xs text-[#9bb0c1] auth-subtitle leading-snug group-hover:text-white transition-colors">
-                Saya menyetujui <a href="#" className="text-[#7ad0ff] hover:underline font-semibold">Ketentuan Layanan</a> dan <a href="#" className="text-[#7ad0ff] hover:underline font-semibold">Kebijakan Privasi</a> SPCT.
+              <span className="text-xs text-[#9bb0c1] auth-subtitle auth-terms-text leading-snug transition-colors">
+                Saya menyetujui <a href="#" className="auth-link hover:underline font-semibold">Ketentuan Layanan</a> dan <a href="#" className="auth-link hover:underline font-semibold">Kebijakan Privasi</a> SPCT.
               </span>
             </label>
 
@@ -372,7 +372,7 @@ export default function RegistrasiPage() {
           <div className="flex flex-col items-center gap-4 pt-5 mt-5 border-t border-[#242e38] auth-card-header">
             <div className="flex items-center justify-between w-full text-xs">
               <span className="text-[#8fa0b0] auth-subtitle">Sudah memiliki akun aktif?</span>
-              <button onClick={() => navigate('/')} className="text-[#7ad0ff] font-semibold hover:text-white flex items-center gap-1 transition-colors">
+              <button onClick={() => navigate('/')} className="auth-link font-semibold flex items-center gap-1 cursor-pointer">
                 <span>Masuk di sini</span>
                 <span className="material-symbols-outlined text-[14px]">login</span>
               </button>
