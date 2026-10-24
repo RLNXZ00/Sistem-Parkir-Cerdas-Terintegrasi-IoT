@@ -7,8 +7,8 @@ import AuthThemeToggle from '../components/AuthThemeToggle';
 const API_BASE = 'http://localhost:8081';
 
 const ROLE_CONFIG = {
-  rs: { label: 'Level 2 - Pengawas', className: 'bg-[#102438] border-[#1b4363] text-[#7ad0ff]' },
-  field: { label: 'Level 1 - Barrier Ctrl', className: 'bg-[#122820] border-[#23583c] text-[#7ed99e]' }
+  rs: { label: 'Level 2 - Pengawas', className: 'bg-[#102438] border-[#1b4363] text-[#7ad0ff] auth-role-badge-rs' },
+  field: { label: 'Level 1 - Barrier Ctrl', className: 'bg-[#122820] border-[#23583c] text-[#7ed99e] auth-role-badge-field' }
 };
 
 export default function RegistrasiPage() {
@@ -115,7 +115,7 @@ export default function RegistrasiPage() {
           {/* Card Header */}
           <div className="flex items-center justify-between pb-5 border-b border-[#242e38] auth-card-header mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#1e2730] border border-[#323f4d] flex items-center justify-center text-[#7ed99e]">
+              <div className="w-10 h-10 rounded-xl bg-[#1e2730] border border-[#323f4d] auth-header-icon flex items-center justify-center text-[#7ed99e]">
                 <span className="material-symbols-outlined text-[22px]">person_add</span>
               </div>
               <div>
@@ -123,12 +123,12 @@ export default function RegistrasiPage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-[#00bfff]"></span>
                   AUTH-GATEWAY // REG
                 </div>
-                <div className="text-[10px] text-[#8fa0b0] font-mono tracking-wide">GATE NODE: PG-000B</div>
+                <div className="text-[10px] text-[#8fa0b0] auth-subtitle font-mono tracking-wide">GATE NODE: PG-000B</div>
               </div>
             </div>
-            <span className="px-2.5 py-1 rounded-full bg-[#122820] border border-[#23583c] text-[#7ed99e] font-mono text-[11px] font-medium flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#2e8b57]"></span>
-              SSL ENCRYPTED
+            <span className="px-2.5 py-1 rounded-full bg-[#122820] border border-[#23583c] auth-ssl-badge text-[#7ed99e] font-mono text-[11px] font-medium flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#2e8b57] auth-ssl-dot"></span>
+              <span className="auth-ssl-text">SSL ENCRYPTED</span>
             </span>
           </div>
 
@@ -256,7 +256,7 @@ export default function RegistrasiPage() {
                     required
                     className="w-full bg-[#0f1419] border border-[#2c3743] hover:border-[#3d4c5c] focus:border-[#7ad0ff] auth-input text-white font-mono text-sm pl-3 pr-9 py-2.5 rounded-lg focus:outline-none placeholder:text-[#5d6f80] transition-colors"
                   />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 text-[#7d90a1] hover:text-white p-1 focus:outline-none cursor-pointer">
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 text-[#7d90a1] auth-icon-btn hover:text-white p-1 focus:outline-none cursor-pointer">
                     <span className="material-symbols-outlined text-[16px]">{showPassword ? 'visibility_off' : 'visibility'}</span>
                   </button>
                 </div>
@@ -283,7 +283,7 @@ export default function RegistrasiPage() {
                     required
                     className="w-full bg-[#0f1419] border border-[#2c3743] hover:border-[#3d4c5c] focus:border-[#7ad0ff] auth-input text-white font-mono text-sm pl-3 pr-9 py-2.5 rounded-lg focus:outline-none placeholder:text-[#5d6f80] transition-colors"
                   />
-                  <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-2 text-[#7d90a1] hover:text-white p-1 focus:outline-none cursor-pointer">
+                  <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-2 text-[#7d90a1] auth-icon-btn hover:text-white p-1 focus:outline-none cursor-pointer">
                     <span className="material-symbols-outlined text-[16px]">{showConfirm ? 'visibility_off' : 'visibility'}</span>
                   </button>
                 </div>
@@ -298,7 +298,7 @@ export default function RegistrasiPage() {
                   Ketentuan Kata Sandi
                 </span>
                 {hasLength && hasNumber && hasSpecial && (
-                  <span className="text-[10px] font-mono text-[#7ed99e] flex items-center gap-1 bg-[#122820] border border-[#23583c] px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-mono text-[#7ed99e] auth-verified-badge flex items-center gap-1 bg-[#122820] border border-[#23583c] px-2 py-0.5 rounded-full">
                     <span className="material-symbols-outlined text-[12px]">verified</span>
                     Terverifikasi
                   </span>
@@ -377,7 +377,7 @@ export default function RegistrasiPage() {
                 <span className="material-symbols-outlined text-[14px]">login</span>
               </button>
             </div>
-            <div className="inline-flex items-center gap-2.5 px-3 py-1 rounded-full bg-[#10151a] border border-[#252f3a] auth-subcard text-[11px] font-mono text-[#8fa0b0]">
+            <div className="inline-flex items-center gap-2.5 px-3 py-1 rounded-full bg-[#10151a] border border-[#252f3a] auth-meta-badge text-[11px] font-mono text-[#8fa0b0]">
               <span className="w-2 h-2 rounded-full bg-[#2e8b57] animate-pulse"></span>
               <span className="text-[#7ed99e] font-semibold">● System Online</span>
               <span className="text-[#384654]">|</span>
