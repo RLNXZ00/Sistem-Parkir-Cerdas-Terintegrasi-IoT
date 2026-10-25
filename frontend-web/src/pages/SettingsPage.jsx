@@ -1,57 +1,72 @@
+// Import hook useState dan useEffect dari React untuk manajemen state reaktif dan efek samping komponen
 import { useState, useEffect } from 'react';
+// Import komponen tata letak AppLayout dari '../components/AppLayout' sebagai wadah antarmuka utama halaman pengaturan
 import AppLayout from '../components/AppLayout';
+// Import hook useLanguage dari '../context/LanguageContext' untuk internasionalisasi multi-bahasa (ID/EN)
 import { useLanguage } from '../context/LanguageContext';
 
+// Deklarasi fungsi komponen publik SettingsPage untuk mengelola preferensi sistem, akun, tema, dan parameter IoT
 export default function SettingsPage() {
-  // 1. Ambil preferensi tema dan bahasa yang tersimpan
+  // Inisialisasi state theme bertipe string dengan nilai awal dari localStorage 'spct_theme' atau fallback 'dark'
   const [theme, setTheme] = useState(() => localStorage.getItem('spct_theme') || 'dark');
+  // Destrukturisasi kode bahasa aktif lang, fungsi setLanguage, dan fungsi translasi t dari LanguageContext
   const { lang, setLanguage, t } = useLanguage();
-  const [activeTab, setActiveTab] = useState('account'); // Akun & Keamanan di paling atas
+  // Inisialisasi state activeTab bertipe string bernilai awal 'account' untuk menandai tab aktif yang sedang dibuka
+  const [activeTab, setActiveTab] = useState('account');
+  // Inisialisasi state toast bertipe objek/null dengan nilai awal null untuk menampilkan pesan notifikasi mengambang
   const [toast, setToast] = useState(null);
 
-  // Ambil info akun yang sedang login
+  // Mengambil dan mem-parsing data akun operator yang sedang login dari sessionStorage atau fallback default
   const currentUser = JSON.parse(
     sessionStorage.getItem('spct_user') ||
     '{"username":"petugas01","namaLengkap":"Petugas Lapangan","role":"PETUGAS_LAPANGAN"}'
   );
 
-  // State untuk parameter teknis SPCT IoT
+  // Inisialisasi state settings bertipe objek berisi parameter teknis konfigurasi SPCT IoT dan formulir kata sandi
   const [settings, setSettings] = useState({
-    emisiMobilPerDetik: 2.3,
-    emisiMotorPerDetik: 0.9,
-    baselineWaktuMencari: 12,
-    targetReduksiPersen: 65,
-    debounceWaktuDetik: 4,
-    sensorTimeoutDetik: 15,
-    autoAlertAnomali: true,
-    confidenceThreshold: 80,
-    fallbackManualEntry: true,
-    kameraStreamFps: 25,
-    retensiHari: 90,
-    audioAlarmAnomali: true,
-    passwordLama: '',
-    passwordBaru: '',
-    konfirmasiPassword: ''
+    emisiMobilPerDetik: 2.3, // Standar emisi mobil (gram CO2 per detik)
+    emisiMotorPerDetik: 0.9, // Standar emisi motor (gram CO2 per detik)
+    baselineWaktuMencari: 12, // Waktu dasar pencarian slot parkir konvensional (menit)
+    targetReduksiPersen: 65, // Target persentase reduksi emisi karbon (%)
+    debounceWaktuDetik: 4, // Durasi debounce filter sensor ultrasonik (detik)
+    sensorTimeoutDetik: 15, // Batas waktu timeout heartbeat koneksi sensor (detik)
+    autoAlertAnomali: true, // Sakelar otomatisasi pembuatan tiket peringatan anomali
+    confidenceThreshold: 80, // Ambang batas minimum keyakinan pembacaan plat nomor OCR (%)
+    fallbackManualEntry: true, // Opsi pengaktifan input plat manual jika OCR gagal
+    kameraStreamFps: 25, // Kecepatan frame video streaming kamera gerbang (FPS)
+    retensiHari: 90, // Kebijakan masa simpan log telemetri di database (hari)
+    audioAlarmAnomali: true, // Opsi membunyikan alarm suara saat anomali terdeteksi
+    passwordLama: '', // Kolom input kata sandi lama
+    passwordBaru: '', // Kolom input kata sandi baru
+    konfirmasiPassword: '' // Kolom input konfirmasi kata sandi baru
   });
 
-  // State pencarian & filter untuk Panduan Sistem (SOP)
+  // Inisialisasi state sopCategory bertipe string bernilai 'ALL' untuk filter kategori dokumen SOP
   const [sopCategory, setSopCategory] = useState('ALL');
+  // Inisialisasi state sopSearch bertipe string bernilai '' untuk kata kunci pencarian dokumen use case SOP
   const [sopSearch, setSopSearch] = useState('');
+  // Inisialisasi state expandedSopId bertipe string bernilai 'PK-UC001' untuk akordion kartu SOP yang sedang terbuka
   const [expandedSopId, setExpandedSopId] = useState('PK-UC001');
 
-  // State visibilitas input password akun
+  // Inisialisasi state showNewPassword bertipe boolean bernilai awal false untuk sakelar intip kata sandi baru
   const [showNewPassword, setShowNewPassword] = useState(false);
+  // Inisialisasi state showConfirmPassword bertipe boolean bernilai awal false untuk sakelar intip konfirmasi kata sandi
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Sinkronisasi tema ke class HTML saat komponen dimuat / berubah
+  // Deklarasi fungsi handleThemeChange untuk mengubah tema tampilan dan menyinkronkannya ke DOM dan localStorage
   const handleThemeChange = (newTheme) => {
+    // Perbarui nilai state theme
     setTheme(newTheme);
+    // Simpan pilihan tema ke penyimpanan lokal peramban (localStorage)
     localStorage.setItem('spct_theme', newTheme);
+    // Jika tema yang dipilih adalah tema terang, tambahkan kelas 'light-theme' pada elemen root HTML
     if (newTheme === 'light') {
       document.documentElement.classList.add('light-theme');
     } else {
+      // Jika tema gelap, hapus kelas 'light-theme' dari elemen root HTML
       document.documentElement.classList.remove('light-theme');
     }
+    // Tampilkan notifikasi toast umpan balik perubahan tema dalam bahasa yang sesuai
     showToast(
       lang === 'id'
         ? `Tema berhasil diubah ke ${newTheme === 'light' ? 'Cerah (Light Mode)' : 'Gelap (Dark Mode)'}`
@@ -59,36 +74,51 @@ export default function SettingsPage() {
     );
   };
 
+  // Deklarasi fungsi handleLanguageChange untuk memperbarui bahasa operasional sistem
   const handleLanguageChange = (newLang) => {
+    // Panggil fungsi setLanguage dari LanguageContext
     setLanguage(newLang);
+    // Tampilkan notifikasi toast konfirmasi perubahan bahasa antarmuka
     showToast(
       newLang === 'id' ? 'Bahasa berhasil diubah ke Bahasa Indonesia' : 'Language changed to English'
     );
   };
 
+  // Hook useEffect untuk memuat preferensi parameter teknis tersimpan dari localStorage saat halaman pertama kali dibuka
   useEffect(() => {
+    // Ambil string JSON konfigurasi dari localStorage
     const saved = localStorage.getItem('spct_system_settings');
+    // Jika data konfigurasi ditemukan, parsing dan gabungkan ke dalam state settings
     if (saved) {
       try {
         setSettings(prev => ({ ...prev, ...JSON.parse(saved) }));
       } catch (err) {
+        // Cetak pesan kesalahan ke konsol jika format JSON rusak
         console.error('Gagal parsing settings lokal:', err);
       }
     }
-  }, []);
+  }, []); // Array dependensi kosong menandakan efek hanya berjalan sekali pada saat inisialisasi
 
+  // Deklarasi fungsi showToast untuk menampilkan pesan banner pop-up selama 3.5 detik
   const showToast = (message, type = 'success') => {
+    // Simpan pesan dan jenis notifikasi (success, error, info) ke state toast
     setToast({ message, type });
+    // Atur timer untuk menghilangkan pesan toast secara otomatis setelah 3500 milidetik
     setTimeout(() => setToast(null), 3500);
   };
 
+  // Deklarasi fungsi handleInputChange untuk memperbarui nilai properti tertentu pada state settings
   const handleInputChange = (field, val) => {
     setSettings(prev => ({ ...prev, [field]: val }));
   };
 
+  // Deklarasi fungsi handleSaveSettings untuk menyimpan seluruh konfigurasi parameter teknis ke localStorage
   const handleSaveSettings = (e) => {
+    // Mencegah perilaku reload bawaan formulir HTML jika dipicu oleh event submit
     e?.preventDefault();
+    // Simpan objek settings ke localStorage dalam format string JSON
     localStorage.setItem('spct_system_settings', JSON.stringify(settings));
+    // Tampilkan toast konfirmasi keberhasilan penyimpanan
     showToast(
       lang === 'id'
         ? 'Konfigurasi pengaturan berhasil disimpan ke sistem!'
@@ -96,13 +126,18 @@ export default function SettingsPage() {
     );
   };
 
+  // Deklarasi fungsi handleResetDefault untuk mengembalikan seluruh parameter teknis ke setelan standar pabrik
   const handleResetDefault = () => {
+    // Siapkan teks dialog konfirmasi bilingual
     const confirmMsg = lang === 'id'
       ? 'Kembalikan seluruh parameter teknis ke setelan standar pabrik (default)?'
       : 'Reset all technical parameters to factory defaults?';
 
+    // Tampilkan jendela konfirmasi peramban
     if (window.confirm(confirmMsg)) {
+      // Hapus data kustom pengaturan dari localStorage
       localStorage.removeItem('spct_system_settings');
+      // Kembalikan nilai state settings ke default pabrik
       setSettings(prev => ({
         ...prev,
         emisiMobilPerDetik: 2.3,
@@ -115,33 +150,42 @@ export default function SettingsPage() {
         retensiHari: 90,
         audioAlarmAnomali: true
       }));
+      // Tampilkan toast informasi bahwa pengaturan telah di-reset
       showToast(lang === 'id' ? 'Pengaturan telah di-reset ke nilai default.' : 'Settings restored to default.', 'info');
     }
   };
 
+  // Deklarasi fungsi asinkron handleGantiPassword untuk validasi dan pengiriman pembaruan kata sandi akun ke backend
   const handleGantiPassword = async (e) => {
+    // Mencegah reload halaman bawaan formulir
     e.preventDefault();
+    // Validasi apakah kata sandi baru dan konfirmasinya telah diisi
     if (!settings.passwordBaru || !settings.konfirmasiPassword) {
       showToast(lang === 'id' ? 'Password baru dan konfirmasi wajib diisi!' : 'New password and confirmation are required!', 'error');
       return;
     }
+    // Validasi panjang minimum kata sandi minimal 8 karakter
     if (settings.passwordBaru.length < 8) {
       showToast(lang === 'id' ? 'Kata sandi minimal 8 karakter!' : 'Password must be at least 8 characters!', 'error');
       return;
     }
+    // Validasi keberadaan kombinasi angka pada kata sandi baru menggunakan regex
     if (!/\d/.test(settings.passwordBaru)) {
       showToast(lang === 'id' ? 'Kata sandi harus mengandung kombinasi angka!' : 'Password must contain a number combination!', 'error');
       return;
     }
+    // Validasi keberadaan simbol atau karakter khusus pada kata sandi baru menggunakan regex
     if (!/[^A-Za-z0-9]/.test(settings.passwordBaru)) {
       showToast(lang === 'id' ? 'Kata sandi harus mengandung kombinasi karakter khusus!' : 'Password must contain special characters!', 'error');
       return;
     }
+    // Validasi kecocokan antara kata sandi baru dan konfirmasinya
     if (settings.passwordBaru !== settings.konfirmasiPassword) {
       showToast(lang === 'id' ? 'Konfirmasi password tidak cocok!' : 'Password confirmation does not match!', 'error');
       return;
     }
 
+    // Blok try-catch untuk mengirim permintaan HTTP POST pembaruan kata sandi ke backend
     try {
       const res = await fetch('http://localhost:8081/api/auth/reset-password', {
         method: 'POST',
@@ -152,20 +196,25 @@ export default function SettingsPage() {
         })
       });
 
+      // Parsing respon JSON dari backend
       const data = await res.json().catch(() => null);
 
+      // Jika server mengembalikan status sukses (200 OK)
       if (res.ok) {
         showToast(data?.pesan || (lang === 'id' ? 'Kata sandi berhasil diperbarui!' : 'Password updated successfully!'), 'success');
+        // Kosongkan kembali kolom isian kata sandi pada state
         setSettings(prev => ({ ...prev, passwordLama: '', passwordBaru: '', konfirmasiPassword: '' }));
       } else {
+        // Tampilkan pesan error dari server jika gagal
         showToast(data?.pesan || (lang === 'id' ? 'Gagal mengubah password di server.' : 'Failed to update password on server.'), 'error');
       }
     } catch {
+      // Tangani kondisi server backend tidak dapat dihubungi
       showToast(lang === 'id' ? 'Server backend offline, perubahan belum tersinkronisasi.' : 'Backend offline, changes pending.', 'error');
     }
   };
 
-  // Kamus terjemahan Narasi Use Case (PK-UC001 s.d. PK-UC010)
+  // Deklarasi array dokumen SOP terintegrasi berisi 10 narasi Use Case resmi (PK-UC001 sampai PK-UC010)
   const panduanList = [
     {
       id: 'PK-UC001',
@@ -401,8 +450,9 @@ export default function SettingsPage() {
     }
   ];
 
-  // Filter use case untuk tab SOP
+  // Logika pemfilteran use case berdasarkan kategori yang dipilih dan kata kunci pencarian teks
   const filteredSop = panduanList.filter((item) => {
+    // Evaluasi kecocokan kategori use case
     const matchesCategory =
       sopCategory === 'ALL' ? true :
       sopCategory === 'ENTRY' ? item.category === 'ENTRY' :
@@ -410,19 +460,21 @@ export default function SettingsPage() {
       sopCategory === 'OPS' ? (item.category === 'OPS' || item.category === 'IOT' || item.category === 'NAVIGATION') :
       sopCategory === 'MGMT' ? item.category === 'MGMT' : true;
 
+    // Evaluasi pencarian string pada ID, judul, ringkasan, atau aktor yang terlibat
     const matchesSearch =
       item.id.toLowerCase().includes(sopSearch.toLowerCase()) ||
       item.title.toLowerCase().includes(sopSearch.toLowerCase()) ||
       item.summary.toLowerCase().includes(sopSearch.toLowerCase()) ||
       item.actors.toLowerCase().includes(sopSearch.toLowerCase());
 
+    // Kembalikan true jika kedua kriteria terpenuhi
     return matchesCategory && matchesSearch;
   });
 
-  // Deteksi konteks peran pengguna (RBAC)
+  // Evaluasi peran akun yang sedang login apakah berkategori Manajer / Admin (Role-Based Access Control)
   const isManager = currentUser.role === 'ADMIN' || currentUser.role === 'Manajemen RS';
 
-  // 1. Tab Bersama (Paling Atas untuk Kedua User)
+  // Deklarasi tab umum (bagian atas) yang dapat diakses oleh seluruh peran pengguna
   const commonTopTabs = [
     {
       id: 'account',
@@ -438,7 +490,7 @@ export default function SettingsPage() {
     },
   ];
 
-  // 2. Tab Khusus Petugas Lapangan (Fokus Fitur Pemantauan Lapangan & Gerbang)
+  // Deklarasi tab khusus untuk peran Petugas Lapangan (fokus sensor IoT dan kamera gerbang)
   const fieldOperatorTabs = [
     {
       id: 'iot',
@@ -454,7 +506,7 @@ export default function SettingsPage() {
     },
   ];
 
-  // 3. Tab Khusus Manajer (Fokus Manajemen Data & Analitik Kebijakan)
+  // Deklarasi tab khusus untuk peran Manajemen RS / Admin (fokus formula emisi karbon dan retensi data)
   const managementTabs = [
     {
       id: 'eco',
@@ -470,7 +522,7 @@ export default function SettingsPage() {
     },
   ];
 
-  // 4. Tab Bersama (Paling Bawah untuk Kedua User)
+  // Deklarasi tab referensi (bagian bawah) berupa panduan SOP yang dapat diakses seluruh pengguna
   const commonBottomTabs = [
     {
       id: 'sop',
@@ -480,35 +532,41 @@ export default function SettingsPage() {
     },
   ];
 
-  // Susun tab aktif sesuai peran login
+  // Menggabungkan susunan tab menu secara dinamis sesuai peran login aktif (RBAC)
   const tabs = [
     ...commonTopTabs,
     ...(isManager ? managementTabs : fieldOperatorTabs),
     ...commonBottomTabs
   ];
 
-  // Validasi dinamis kata sandi akun
-  const pwdLengthValid = (settings.passwordBaru || '').length >= 8;
-  const pwdNumberValid = /\d/.test(settings.passwordBaru || '');
-  const pwdSpecialValid = /[^A-Za-z0-9]/.test(settings.passwordBaru || '');
-  const pwdAllValid = pwdLengthValid && pwdNumberValid && pwdSpecialValid;
-  const pwdMatch = Boolean(settings.passwordBaru && settings.konfirmasiPassword && settings.passwordBaru === settings.konfirmasiPassword);
+  // Evaluasi dinamis validasi ketentuan kata sandi akun
+  const pwdLengthValid = (settings.passwordBaru || '').length >= 8; // Panjang minimal 8 karakter
+  const pwdNumberValid = /\d/.test(settings.passwordBaru || ''); // Mengandung angka
+  const pwdSpecialValid = /[^A-Za-z0-9]/.test(settings.passwordBaru || ''); // Mengandung karakter khusus
+  const pwdAllValid = pwdLengthValid && pwdNumberValid && pwdSpecialValid; // Seluruh kriteria terpenuhi
+  const pwdMatch = Boolean(settings.passwordBaru && settings.konfirmasiPassword && settings.passwordBaru === settings.konfirmasiPassword); // Kecocokan konfirmasi
 
+  // Mengembalikan elemen antarmuka JSX halaman pengaturan sistem
   return (
+    // Membungkus seluruh antarmuka dengan komponen AppLayout
     <AppLayout breadcrumb={lang === 'id' ? 'Pengaturan Sistem' : 'System Settings'} status="IoT Operational">
+      {/* Kontainer utama halaman pengaturan dengan lebar maksimum 7xl */}
       <div className="p-6 max-w-7xl mx-auto flex flex-col gap-6">
 
-        {/* Header Pengaturan */}
+        {/* Seksi Header Halaman Pengaturan (Judul, Deskripsi, dan Tombol Tindakan Cepat) */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-surface-container-low p-6 rounded-2xl border border-surface-container shadow-sm">
           <div>
             <div className="flex items-center gap-3 mb-1">
+              {/* Ikon penanda modul pengaturan sistem */}
               <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
                 <span className="material-symbols-outlined text-[24px]">tune</span>
               </div>
+              {/* Judul utama halaman pengaturan */}
               <h1 className="text-2xl font-bold text-on-surface">
                 {lang === 'id' ? 'Pengaturan Sistem (SPCT IoT)' : 'System Settings (SPCT IoT)'}
               </h1>
             </div>
+            {/* Deskripsi ringkas cakupan modul konfigurasi */}
             <p className="text-sm text-on-surface-variant font-mono">
               {lang === 'id'
                 ? 'Konfigurasi tema, bahasa, panduan operasional SOP, dan parameter teknis terintegrasi.'
@@ -516,7 +574,9 @@ export default function SettingsPage() {
             </p>
           </div>
 
+          {/* Tombol aksi header: Reset Default dan Simpan Perubahan */}
           <div className="flex items-center gap-3">
+            {/* Tombol untuk mengembalikan pengaturan ke standar pabrik */}
             <button
               onClick={handleResetDefault}
               className="px-4 py-2 rounded-xl text-xs font-mono font-semibold border border-outline-variant hover:bg-surface-variant text-on-surface-variant transition-colors flex items-center gap-1.5"
@@ -524,6 +584,7 @@ export default function SettingsPage() {
               <span className="material-symbols-outlined text-[16px]">restart_alt</span>
               {lang === 'id' ? 'Reset Default' : 'Reset Defaults'}
             </button>
+            {/* Tombol untuk menyimpan perubahan parameter ke localStorage */}
             <button
               onClick={handleSaveSettings}
               className="px-5 py-2 rounded-xl text-xs font-mono font-bold bg-primary text-on-primary hover:bg-primary/90 transition-all shadow-md flex items-center gap-1.5"
@@ -534,7 +595,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Toast Notifikasi */}
+        {/* Seksi Notifikasi Toast Pop-up Umpan Balik Pengguna */}
         {toast && (
           <div className={`p-4 rounded-xl font-mono text-xs flex items-center justify-between border ${
             toast.type === 'success' ? 'bg-eco-success/20 border-eco-success text-eco-success' :
@@ -547,17 +608,18 @@ export default function SettingsPage() {
               </span>
               <span>{toast.message}</span>
             </div>
+            {/* Tombol silang untuk menutup notifikasi secara manual */}
             <button onClick={() => setToast(null)} className="opacity-70 hover:opacity-100">✕</button>
           </div>
         )}
 
-        {/* Tab Navigation & Content */}
+        {/* Tata Letak Grid Navigasi Tab (Kolom Kiri) dan Isi Konten Aktif (Kolom Kanan) */}
         <div className="grid grid-cols-12 gap-6">
 
-          {/* Kolom Kiri: Tab Menu Pengaturan */}
+          {/* Kolom Kiri (4 Kolom pada Desktop): Bilah Navigasi Menu Tab Pengaturan */}
           <div className="col-span-12 lg:col-span-4 flex flex-col gap-3">
 
-            {/* === Role Context Badge === */}
+            {/* Lencana Konteks Peran Login Pengguna (Role Context Badge) */}
             <div className={`p-3 rounded-xl border flex items-center gap-3 ${
               isManager
                 ? 'bg-[#00BFFF]/10 border-[#00BFFF]/30'
@@ -588,7 +650,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* === Tab Group: Umum (Atas) === */}
+            {/* Kelompok Tab Umum (Atas): Akun & Keamanan dan Tampilan & Bahasa */}
             <div className="flex flex-col gap-1.5">
               <p className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-widest px-1">
                 {lang === 'id' ? 'Umum' : 'General'}
@@ -617,7 +679,7 @@ export default function SettingsPage() {
               })}
             </div>
 
-            {/* === Tab Group: Khusus Peran === */}
+            {/* Kelompok Tab Khusus Peran (Tengah): Sensor/ANPR untuk Operator, atau Eco/Retensi untuk Manajemen */}
             <div className="flex flex-col gap-1.5">
               <p className={`text-[10px] font-mono font-bold uppercase tracking-widest px-1 ${
                 isManager ? 'text-[#00BFFF]/70' : 'text-eco-success/70'
@@ -656,7 +718,7 @@ export default function SettingsPage() {
               })}
             </div>
 
-            {/* === Tab Group: Panduan Sistem (Bawah) === */}
+            {/* Kelompok Tab Referensi (Bawah): Panduan Sistem SOP */}
             <div className="flex flex-col gap-1.5">
               <p className="text-[10px] font-mono font-bold text-text-muted uppercase tracking-widest px-1">
                 {lang === 'id' ? 'Referensi' : 'Reference'}
@@ -687,12 +749,10 @@ export default function SettingsPage() {
 
           </div>
 
-          {/* Kolom Kanan: Isi Tab Aktif */}
+          {/* Kolom Kanan (8 Kolom pada Desktop): Konten Panel dari Tab yang Sedang Aktif */}
           <div className="col-span-12 lg:col-span-8 bg-surface-container-low p-6 rounded-2xl border border-surface-container shadow-sm min-h-[500px]">
 
-            {/* ============================================================== */}
-            {/* TAB 1: TAMPILAN & BAHASA (THEME & LANGUAGE)                    */}
-            {/* ============================================================== */}
+            {/* Panel Tab: Tampilan & Bahasa (Theme & Language) */}
             {activeTab === 'display' && (
               <div className="space-y-6">
                 <div>
@@ -707,13 +767,13 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
-                {/* 1. Pemilihan Tema Tampilan */}
+                {/* 1. Pemilihan Mode Tema Tampilan: Dark vs Light */}
                 <div className="space-y-3">
                   <p className="text-xs font-mono font-bold text-on-surface uppercase tracking-wider">
                     {lang === 'id' ? '1. Mode Tema Aplikasi:' : '1. Application Theme Mode:'}
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Kartu Tema Gelap */}
+                    {/* Kartu Pemilihan Tema Gelap (Dark Mode) */}
                     <div
                       onClick={() => handleThemeChange('dark')}
                       className={`p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col gap-3 ${
@@ -738,6 +798,7 @@ export default function SettingsPage() {
                           ? 'Nuansa latar hitam (#0e1418) dengan aksen Green-IoT. Mengurangi kelelahan mata operator di ruang kontrol.'
                           : 'Dark background (#0e1418) with Green-IoT semantic accents. Reduces eye strain in operator control rooms.'}
                       </p>
+                      {/* Palet warna tema gelap */}
                       <div className="h-4 rounded-full bg-[#121212] border border-[#333] flex items-center px-2 gap-1.5 mt-auto">
                         <div className="w-2 h-2 rounded-full bg-[#2E8B57]" />
                         <div className="w-2 h-2 rounded-full bg-[#00BFFF]" />
@@ -745,7 +806,7 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
-                    {/* Kartu Tema Cerah */}
+                    {/* Kartu Pemilihan Tema Cerah (Light Mode) */}
                     <div
                       onClick={() => handleThemeChange('light')}
                       className={`p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col gap-3 ${
@@ -770,6 +831,7 @@ export default function SettingsPage() {
                           ? 'Latar terang bersih (#f4f6f9) dengan teks kontras tinggi. Nyaman digunakan di area gerbang luar ruangan yang terang.'
                           : 'Clean light background (#f4f6f9) with high contrast text. Optimal for bright outdoor gate terminals.'}
                       </p>
+                      {/* Palet warna tema terang */}
                       <div className="h-4 rounded-full bg-[#f1f5f9] border border-[#cbd5e1] flex items-center px-2 gap-1.5 mt-auto">
                         <div className="w-2 h-2 rounded-full bg-[#00703f]" />
                         <div className="w-2 h-2 rounded-full bg-[#00668a]" />
@@ -779,13 +841,13 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* 2. Pemilihan Bahasa */}
+                {/* 2. Pemilihan Bahasa Operasional Antarmuka */}
                 <div className="space-y-3 pt-4 border-t border-surface-variant">
                   <p className="text-xs font-mono font-bold text-on-surface uppercase tracking-wider">
                     {lang === 'id' ? '2. Bahasa Antarmuka (Language):' : '2. System Interface Language:'}
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Bahasa Indonesia */}
+                    {/* Opsi Bahasa Indonesia */}
                     <div
                       onClick={() => handleLanguageChange('id')}
                       className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${
@@ -806,7 +868,7 @@ export default function SettingsPage() {
                       )}
                     </div>
 
-                    {/* English */}
+                    {/* Opsi English */}
                     <div
                       onClick={() => handleLanguageChange('en')}
                       className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${
@@ -829,6 +891,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
+                {/* Catatan informasi penyimpanan preferensi di peramban */}
                 <div className="p-4 rounded-xl bg-surface-container border border-surface-variant flex items-center gap-3">
                   <span className="material-symbols-outlined text-primary text-[20px]">info</span>
                   <p className="text-xs font-mono text-on-surface-variant">
@@ -840,9 +903,7 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* ============================================================== */}
-            {/* TAB: PANDUAN SISTEM (SOP TERINTEGRASI)                         */}
-            {/* ============================================================== */}
+            {/* Panel Tab: Panduan Sistem SOP (SOP Terintegrasi Blueprint RPL) */}
             {activeTab === 'sop' && (
               <div className="space-y-6">
                 <div>
@@ -857,8 +918,9 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
-                {/* Filter & Pencarian Use Case */}
+                {/* Bilah Filter Kategori dan Kolom Input Pencarian Dokumen SOP */}
                 <div className="flex flex-col md:flex-row justify-between items-center gap-3 bg-surface-container p-3 rounded-xl border border-surface-variant">
+                  {/* Deretan tombol pil filter kategori SOP */}
                   <div className="flex flex-wrap gap-1.5 w-full md:w-auto">
                     {[
                       { id: 'ALL', label: lang === 'id' ? 'Semua (10)' : 'All (10)' },
@@ -881,6 +943,7 @@ export default function SettingsPage() {
                     ))}
                   </div>
 
+                  {/* Input pencarian use case dengan ikon kaca pembesar */}
                   <div className="relative w-full md:w-60">
                     <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted text-[16px]">
                       search
@@ -895,9 +958,10 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* List Use Cases */}
+                {/* Daftar Akordion Kartu Use Case Hasil Filter */}
                 <div className="flex flex-col gap-3">
                   {filteredSop.map((item) => {
+                    // Evaluasi apakah kartu use case ini sedang dalam kondisi terbuka (expanded)
                     const isExpanded = expandedSopId === item.id;
                     return (
                       <div
@@ -908,7 +972,7 @@ export default function SettingsPage() {
                             : 'bg-surface-container-lowest border-surface-container hover:border-surface-variant'
                         }`}
                       >
-                        {/* Header Kartu */}
+                        {/* Header Kartu Akordion Use Case (Bisa diklik) */}
                         <div
                           onClick={() => setExpandedSopId(isExpanded ? null : item.id)}
                           className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 cursor-pointer select-none"
@@ -921,9 +985,11 @@ export default function SettingsPage() {
                           </div>
 
                           <div className="flex items-center gap-2 self-end sm:self-center">
+                            {/* Lencana kategori use case */}
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono border ${item.badgeColor}`}>
                               {item.badge}
                             </span>
+                            {/* Ikon panah rotasi penanda buka/tutup */}
                             <span className={`material-symbols-outlined text-[18px] transition-transform duration-200 ${
                               isExpanded ? 'rotate-180 text-primary' : 'text-on-surface-variant'
                             }`}>
@@ -932,17 +998,17 @@ export default function SettingsPage() {
                           </div>
                         </div>
 
-                        {/* Konten Terbuka */}
+                        {/* Konten Rincian Terbuka Saat Akordion Aktif */}
                         {isExpanded && (
                           <div className="px-4 pb-5 border-t border-surface-variant pt-4 space-y-4">
-                            {/* Aktor */}
+                            {/* Aktor yang Terlibat */}
                             <div className="p-2.5 rounded-lg bg-surface-container-lowest border border-surface-variant flex items-center gap-2 text-xs font-mono">
                               <span className="material-symbols-outlined text-primary text-[16px]">group</span>
                               <span className="text-on-surface-variant">{lang === 'id' ? 'Aktor Terlibat:' : 'Actors:'}</span>
                               <span className="text-on-surface font-semibold">{item.actors}</span>
                             </div>
 
-                            {/* Langkah-langkah */}
+                            {/* Daftar Alur Prosedur Kerja Standar (Typical Events) */}
                             <div>
                               <p className="text-xs font-bold font-mono text-on-surface uppercase tracking-wider mb-2 flex items-center gap-1.5">
                                 <span className="material-symbols-outlined text-eco-success text-[16px]">format_list_numbered</span>
@@ -963,8 +1029,9 @@ export default function SettingsPage() {
                               </div>
                             </div>
 
-                            {/* Troubleshooting & Business Rules */}
+                            {/* Grid Penanganan Kendala (Troubleshooting) dan Aturan Bisnis */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {/* Kotak Troubleshooting */}
                               <div className="p-3 rounded-lg bg-alert-anomaly/10 border border-alert-anomaly/30 space-y-1">
                                 <p className="text-xs font-bold font-mono text-alert-anomaly flex items-center gap-1">
                                   <span className="material-symbols-outlined text-[16px]">help_outline</span>
@@ -973,6 +1040,7 @@ export default function SettingsPage() {
                                 <p className="text-xs text-on-surface font-mono leading-relaxed">{item.troubleshooting}</p>
                               </div>
 
+                              {/* Kotak Aturan Bisnis */}
                               <div className="p-3 rounded-lg bg-surface-container-lowest border border-surface-variant space-y-1">
                                 <p className="text-xs font-bold font-mono text-system-info flex items-center gap-1">
                                   <span className="material-symbols-outlined text-[16px]">rule</span>
@@ -990,12 +1058,10 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* ============================================================== */}
-            {/* TAB 3: ECO-METRICS & EMISI                                      */}
-            {/* ============================================================== */}
+            {/* Panel Tab: Eco-Metrics & Emisi Karbon (Khusus Peran Manajemen RS / Admin) */}
             {activeTab === 'eco' && (
               <div className="space-y-6">
-                {/* Role Access Banner */}
+                {/* Lencana penanda hak akses peran */}
                 <div className="flex items-center gap-2.5 p-3 rounded-xl bg-[#00BFFF]/10 border border-[#00BFFF]/30">
                   <span className="material-symbols-outlined text-[18px] text-[#00BFFF] flex-shrink-0">admin_panel_settings</span>
                   <p className="text-[11px] font-mono text-[#00BFFF]">
@@ -1014,8 +1080,10 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
+                {/* Grid Input Parameter Emisi Gas Buang */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
+                  {/* Input Emisi Mobil */}
                   <div className="p-4 rounded-xl bg-surface-container border border-surface-variant flex flex-col gap-2">
                     <label className="text-xs font-mono text-on-surface-variant uppercase tracking-wider">
                       {lang === 'id' ? 'Emisi Mobil (Gram CO₂ / Detik)' : 'Car Emission (g CO₂ / sec)'}
@@ -1032,6 +1100,7 @@ export default function SettingsPage() {
                     </span>
                   </div>
 
+                  {/* Input Emisi Motor */}
                   <div className="p-4 rounded-xl bg-surface-container border border-surface-variant flex flex-col gap-2">
                     <label className="text-xs font-mono text-on-surface-variant uppercase tracking-wider">
                       {lang === 'id' ? 'Emisi Motor (Gram CO₂ / Detik)' : 'Motorcycle Emission (g CO₂ / sec)'}
@@ -1048,6 +1117,7 @@ export default function SettingsPage() {
                     </span>
                   </div>
 
+                  {/* Input Baseline Waktu Konvensional */}
                   <div className="p-4 rounded-xl bg-surface-container border border-surface-variant flex flex-col gap-2">
                     <label className="text-xs font-mono text-on-surface-variant uppercase tracking-wider">
                       {lang === 'id' ? 'Baseline Waktu Konvensional (Menit)' : 'Conventional Search Baseline (Mins)'}
@@ -1063,6 +1133,7 @@ export default function SettingsPage() {
                     </span>
                   </div>
 
+                  {/* Input Target Reduksi Efisiensi */}
                   <div className="p-4 rounded-xl bg-surface-container border border-surface-variant flex flex-col gap-2">
                     <label className="text-xs font-mono text-on-surface-variant uppercase tracking-wider">
                       {lang === 'id' ? 'Target Reduksi Efisiensi (%)' : 'Carbon Reduction Target (%)'}
@@ -1081,12 +1152,10 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* ============================================================== */}
-            {/* TAB 4: SENSOR IOT & BASEMENT                                   */}
-            {/* ============================================================== */}
+            {/* Panel Tab: Sensor IoT & Basement (Khusus Peran Petugas Lapangan) */}
             {activeTab === 'iot' && (
               <div className="space-y-6">
-                {/* Role Access Banner */}
+                {/* Lencana hak akses Petugas Lapangan */}
                 <div className="flex items-center gap-2.5 p-3 rounded-xl bg-eco-success/10 border border-eco-success/30">
                   <span className="material-symbols-outlined text-[18px] text-eco-success flex-shrink-0">engineering</span>
                   <p className="text-[11px] font-mono text-eco-success">
@@ -1107,7 +1176,9 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
+                {/* Grid Input Parameter Sensor */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Input Debounce Stabilisasi Objek */}
                   <div className="p-4 rounded-xl bg-surface-container border border-surface-variant flex flex-col gap-2">
                     <label className="text-xs font-mono text-on-surface-variant uppercase tracking-wider">
                       {lang === 'id' ? 'Debounce Stabilisasi Objek (Detik)' : 'Debounce Filter Duration (Secs)'}
@@ -1127,6 +1198,7 @@ export default function SettingsPage() {
                     </span>
                   </div>
 
+                  {/* Input Timeout Heartbeat MQTT */}
                   <div className="p-4 rounded-xl bg-surface-container border border-surface-variant flex flex-col gap-2">
                     <label className="text-xs font-mono text-on-surface-variant uppercase tracking-wider">
                       {lang === 'id' ? 'Timeout Heartbeat MQTT (Detik)' : 'MQTT Heartbeat Timeout (Secs)'}
@@ -1145,6 +1217,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
+                {/* Sakelar Checkbox Pembuatan Tiket Anomali Otomatis */}
                 <div className="p-4 rounded-xl bg-surface-container border border-surface-variant space-y-3">
                   <p className="text-xs font-bold font-mono text-on-surface uppercase tracking-wider">
                     {lang === 'id' ? 'Tindakan Otomatis Anomali Sensor:' : 'Automatic Anomaly Trigger:'}
@@ -1166,12 +1239,10 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* ============================================================== */}
-            {/* TAB 5: KAMERA ANPR & AI                                        */}
-            {/* ============================================================== */}
+            {/* Panel Tab: Kamera ANPR & Model AI (Khusus Peran Petugas Lapangan) */}
             {activeTab === 'anpr' && (
               <div className="space-y-6">
-                {/* Role Access Banner */}
+                {/* Lencana hak akses Petugas Lapangan */}
                 <div className="flex items-center gap-2.5 p-3 rounded-xl bg-eco-success/10 border border-eco-success/30">
                   <span className="material-symbols-outlined text-[18px] text-eco-success flex-shrink-0">engineering</span>
                   <p className="text-[11px] font-mono text-eco-success">
@@ -1192,7 +1263,9 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
+                {/* Grid Input Pengaturan Ambang Batas Keyakinan dan FPS */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Penggeser Slider Ambang Batas Keyakinan OCR */}
                   <div className="p-4 rounded-xl bg-surface-container border border-surface-variant flex flex-col gap-2">
                     <label className="text-xs font-mono text-on-surface-variant uppercase tracking-wider">
                       {lang === 'id' ? 'Confidence Threshold Minimum (%)' : 'Minimum Confidence Threshold (%)'}
@@ -1217,6 +1290,7 @@ export default function SettingsPage() {
                     </span>
                   </div>
 
+                  {/* Input Target FPS Streaming Video Kamera */}
                   <div className="p-4 rounded-xl bg-surface-container border border-surface-variant flex flex-col gap-2">
                     <label className="text-xs font-mono text-on-surface-variant uppercase tracking-wider">
                       {lang === 'id' ? 'Target Frame Rate (FPS) Stream' : 'Target Stream Frame Rate (FPS)'}
@@ -1235,12 +1309,10 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* ============================================================== */}
-            {/* TAB 6: RETENSI DATA                                            */}
-            {/* ============================================================== */}
+            {/* Panel Tab: Kebijakan Retensi Data (Khusus Peran Manajemen RS / Admin) */}
             {activeTab === 'retention' && (
               <div className="space-y-6">
-                {/* Role Access Banner */}
+                {/* Lencana hak akses Manajemen RS */}
                 <div className="flex items-center gap-2.5 p-3 rounded-xl bg-[#00BFFF]/10 border border-[#00BFFF]/30">
                   <span className="material-symbols-outlined text-[18px] text-[#00BFFF] flex-shrink-0">admin_panel_settings</span>
                   <p className="text-[11px] font-mono text-[#00BFFF]">
@@ -1261,6 +1333,7 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
+                {/* Kotak Pengaturan Masa Simpan Log Telemetri */}
                 <div className="p-4 rounded-xl bg-surface-container border border-surface-variant space-y-4">
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
@@ -1273,6 +1346,7 @@ export default function SettingsPage() {
                           : 'Normal telemetry logs older than this limit will be purged by daily cron.'}
                       </p>
                     </div>
+                    {/* Input numerik hari retensi */}
                     <div className="flex items-center gap-2">
                       <input
                         type="number"
@@ -1286,6 +1360,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
+                  {/* Keterangan jadwal pembersihan cron dan service backend */}
                   <div className="border-t border-surface-variant pt-4 flex flex-col gap-2">
                     <div className="flex items-center justify-between text-xs font-mono">
                       <span className="text-on-surface-variant">{lang === 'id' ? 'Jadwal Cron Pembersihan:' : 'Cron Purge Schedule:'}</span>
@@ -1300,9 +1375,7 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* ============================================================== */}
-            {/* TAB 7: AKUN & KEAMANAN                                         */}
-            {/* ============================================================== */}
+            {/* Panel Tab: Akun & Keamanan (Profil Pengguna dan Penggantian Kata Sandi) */}
             {activeTab === 'account' && (
               <div className="space-y-6">
                 <div>
@@ -1315,6 +1388,7 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
+                {/* Grid Rincian Identitas Pengguna Aktif (Username, NIP, Nama Lengkap, Peran Akses) */}
                 <div className="p-4 rounded-xl bg-surface-container border border-surface-variant grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <span className="text-[11px] font-mono text-text-muted uppercase">Username</span>
@@ -1336,12 +1410,14 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
+                {/* Formulir Pengubahan Kata Sandi Akun */}
                 <form onSubmit={handleGantiPassword} className="p-4 rounded-xl bg-surface-container border border-surface-variant space-y-4">
                   <div className="flex items-center justify-between">
                     <p className="text-xs font-bold font-mono text-on-surface uppercase tracking-wider flex items-center gap-1.5">
                       <span className="material-symbols-outlined text-[16px] text-primary">lock_reset</span>
                       {lang === 'id' ? 'Perbarui Kata Sandi Akun:' : 'Change Account Password:'}
                     </p>
+                    {/* Lencana konfirmasi jika seluruh ketentuan kata sandi terpenuhi */}
                     {pwdAllValid && (
                       <span className="text-[10px] font-mono text-eco-success flex items-center gap-1 bg-eco-success/10 border border-eco-success/30 px-2 py-0.5 rounded-full">
                         <span className="material-symbols-outlined text-[12px]">verified</span>
@@ -1350,8 +1426,9 @@ export default function SettingsPage() {
                     )}
                   </div>
                   
+                  {/* Grid Input Password Baru dan Konfirmasi Password */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Password Baru */}
+                    {/* Kolom Isian Password Baru */}
                     <div className="flex flex-col gap-1.5">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-mono text-on-surface-variant">{lang === 'id' ? 'Password Baru' : 'New Password'}</label>
@@ -1365,6 +1442,7 @@ export default function SettingsPage() {
                           onChange={(e) => handleInputChange('passwordBaru', e.target.value)}
                           className="w-full bg-surface-container-lowest border border-outline px-3 pr-10 py-2 rounded-lg text-sm text-on-surface font-mono outline-none focus:border-primary transition-colors"
                         />
+                        {/* Tombol intip sandi (toggle visibility) */}
                         <button
                           type="button"
                           onClick={() => setShowNewPassword(!showNewPassword)}
@@ -1377,10 +1455,11 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
-                    {/* Konfirmasi Password */}
+                    {/* Kolom Isian Konfirmasi Password */}
                     <div className="flex flex-col gap-1.5">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-mono text-on-surface-variant">{lang === 'id' ? 'Konfirmasi Password' : 'Confirm Password'}</label>
+                        {/* Indikator status kecocokan kata sandi */}
                         {settings.konfirmasiPassword && (
                           <span className={`text-[10px] font-mono font-semibold ${pwdMatch ? 'text-eco-success' : 'text-rose-400'}`}>
                             {pwdMatch ? (lang === 'id' ? '✓ Cocok' : '✓ Match') : (lang === 'id' ? '✗ Belum cocok' : '✗ Mismatch')}
@@ -1395,6 +1474,7 @@ export default function SettingsPage() {
                           onChange={(e) => handleInputChange('konfirmasiPassword', e.target.value)}
                           className="w-full bg-surface-container-lowest border border-outline px-3 pr-10 py-2 rounded-lg text-sm text-on-surface font-mono outline-none focus:border-primary transition-colors"
                         />
+                        {/* Tombol intip konfirmasi sandi */}
                         <button
                           type="button"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -1408,25 +1488,28 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  {/* Ketentuan Kata Sandi (Dinamis Sesuai Register) */}
+                  {/* Kotak Daftar Ketentuan Keamanan Kata Sandi Dinamis */}
                   <div className="p-3 rounded-lg bg-surface-container-lowest border border-surface-variant flex flex-col gap-2">
                     <span className="text-[11px] font-mono uppercase tracking-wider text-text-muted font-semibold flex items-center gap-1.5">
                       <span className="material-symbols-outlined text-[14px] text-primary">shield_lock</span>
                       {lang === 'id' ? 'Ketentuan Kata Sandi' : 'Password Requirements'}
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-mono">
+                      {/* Syarat 1: Minimal 8 karakter */}
                       <span className={`flex items-center gap-1.5 transition-colors ${pwdLengthValid ? 'text-eco-success' : 'text-text-muted'}`}>
                         <span className="material-symbols-outlined text-[15px]">
                           {pwdLengthValid ? 'check_circle' : 'radio_button_unchecked'}
                         </span>
                         {lang === 'id' ? 'Min. 8 karakter' : 'Min. 8 characters'}
                       </span>
+                      {/* Syarat 2: Mengandung kombinasi angka */}
                       <span className={`flex items-center gap-1.5 transition-colors ${pwdNumberValid ? 'text-eco-success' : 'text-text-muted'}`}>
                         <span className="material-symbols-outlined text-[15px]">
                           {pwdNumberValid ? 'check_circle' : 'radio_button_unchecked'}
                         </span>
                         {lang === 'id' ? 'Kombinasi angka' : 'Include numbers'}
                       </span>
+                      {/* Syarat 3: Mengandung simbol atau karakter khusus */}
                       <span className={`flex items-center gap-1.5 transition-colors ${pwdSpecialValid ? 'text-eco-success' : 'text-text-muted'}`}>
                         <span className="material-symbols-outlined text-[15px]">
                           {pwdSpecialValid ? 'check_circle' : 'radio_button_unchecked'}
@@ -1436,6 +1519,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
+                  {/* Tombol Simpan Pembaruan Password */}
                   <div className="flex justify-end">
                     <button
                       type="submit"
@@ -1447,6 +1531,7 @@ export default function SettingsPage() {
                   </div>
                 </form>
 
+                {/* Sakelar Checkbox Audio Alarm Anomali */}
                 <div className="p-4 rounded-xl bg-surface-container border border-surface-variant space-y-3">
                   <p className="text-xs font-bold font-mono text-on-surface uppercase tracking-wider">
                     {lang === 'id' ? 'Preferensi Audio Alarm:' : 'Audio Alert Settings:'}

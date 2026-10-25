@@ -1,78 +1,113 @@
+// Import hook useState dari pustaka react untuk penanganan state formulir pendaftaran
 import { useState } from 'react';
+// Import hook useNavigate dari react-router-dom untuk navigasi antar halaman
 import { useNavigate } from 'react-router-dom';
+// Import komponen AuthBrand untuk identitas visual logo SPCT Green-IoT
 import AuthBrand from '../components/AuthBrand';
+// Import komponen AuthFooter untuk catatan kaki halaman registrasi
 import AuthFooter from '../components/AuthFooter';
+// Import komponen AuthThemeToggle untuk tombol pengubah tema gelap dan terang
 import AuthThemeToggle from '../components/AuthThemeToggle';
 
+// Mendefinisikan konstanta alamat dasar server backend Spring Boot (port 8081)
 const API_BASE = 'http://localhost:8081';
 
+// Konfigurasi lencana tampilan untuk masing-masing tingkatan peran hak akses pengguna
 const ROLE_CONFIG = {
   rs: { label: 'Level 2 - Pengawas', className: 'bg-[#102438] border-[#1b4363] text-[#7ad0ff] auth-role-badge-rs' },
   field: { label: 'Level 1 - Barrier Ctrl', className: 'bg-[#122820] border-[#23583c] text-[#7ed99e] auth-role-badge-field' }
 };
 
+// Deklarasi fungsi komponen publik RegistrasiPage untuk antarmuka pendaftaran akun pengguna baru
 export default function RegistrasiPage() {
+  // Inisialisasi state fullName bertipe string untuk menyimpan nama lengkap pengguna
   const [fullName, setFullName] = useState('');
+  // Inisialisasi state nip bertipe string untuk nomor induk pegawai (wajib 8 digit)
   const [nip, setNip] = useState('');
+  // Inisialisasi state username bertipe string untuk nama pengguna akun
   const [username, setUsername] = useState('');
+  // Inisialisasi state password bertipe string untuk kata sandi utama
   const [password, setPassword] = useState('');
+  // Inisialisasi state confirmPassword bertipe string untuk konfirmasi kata sandi
   const [confirmPassword, setConfirmPassword] = useState('');
+  // Inisialisasi state showPassword bertipe boolean untuk visibilitas kata sandi utama
   const [showPassword, setShowPassword] = useState(false);
+  // Inisialisasi state showConfirm bertipe boolean untuk visibilitas konfirmasi kata sandi
   const [showConfirm, setShowConfirm] = useState(false);
+  // Inisialisasi state role bertipe string dengan nilai bawaan 'rs' (Manajemen RS)
   const [role, setRole] = useState('rs');
+  // Inisialisasi state agreeTerms bertipe boolean untuk persetujuan syarat dan ketentuan
   const [agreeTerms, setAgreeTerms] = useState(false);
+  // Inisialisasi state isLoading bertipe boolean untuk memantau status pengiriman data
   const [isLoading, setIsLoading] = useState(false);
+  // Inisialisasi state error bertipe string untuk menampilkan pesan kesalahan validasi
   const [error, setError] = useState('');
+  // Inisialisasi state success bertipe boolean untuk menampilkan banner sukses registrasi
   const [success, setSuccess] = useState(false);
+  // Inisialisasi fungsi navigate menggunakan hook useNavigate
   const navigate = useNavigate();
 
+  // Evaluasi kondisi boolean pemenuhan syarat kata sandi: panjang minimal 8 karakter
   const hasLength = password.length >= 8;
+  // Evaluasi kondisi boolean pemenuhan syarat kata sandi: memiliki digit angka
   const hasNumber = /\d/.test(password);
+  // Evaluasi kondisi boolean pemenuhan syarat kata sandi: memiliki karakter simbolik/khusus
   const hasSpecial = /[^A-Za-z0-9]/.test(password);
 
+  // Deklarasi fungsi asinkron handleSubmit untuk memvalidasi formulir dan mengirim data pendaftaran ke server
   const handleSubmit = async (e) => {
+    // Mencegah refresh halaman bawaan browser
     e.preventDefault();
+    // Mereset pesan galat menjadi string kosong
     setError('');
 
-    // Validasi input
+    // Validasi kelengkapan seluruh kolom formulir
     if (!fullName.trim() || !nip.trim() || !username.trim() || !password || !confirmPassword) {
       setError('Harap lengkapi semua kolom pendaftaran.');
       return;
     }
 
+    // Validasi format NIP agar tepat terdiri atas 8 digit angka numerik
     if (!/^\d{8}$/.test(nip.trim())) {
       setError('NIP harus terdiri dari tepat 8 digit angka.');
       return;
     }
 
+    // Validasi kesesuaian antara kata sandi dan konfirmasi kata sandi
     if (password !== confirmPassword) {
       setError('Konfirmasi kata sandi tidak cocok.');
       return;
     }
 
+    // Validasi panjang karakter kata sandi
     if (password.length < 8) {
       setError('Kata sandi minimal 8 karakter sesuai ketentuan sistem.');
       return;
     }
 
+    // Validasi kehadiran karakter angka pada kata sandi
     if (!/\d/.test(password)) {
       setError('Kata sandi harus mengandung kombinasi angka.');
       return;
     }
 
+    // Validasi kehadiran karakter simbol khusus pada kata sandi
     if (!/[^A-Za-z0-9]/.test(password)) {
       setError('Kata sandi harus mengandung kombinasi karakter khusus.');
       return;
     }
 
+    // Validasi kotak centang persetujuan ketentuan layanan
     if (!agreeTerms) {
       setError('Anda harus menyetujui Ketentuan Layanan dan Kebijakan Privasi.');
       return;
     }
 
+    // Mengaktifkan status pemrosesan loading
     setIsLoading(true);
 
     try {
+      // Mengirimkan permintaan HTTP POST ke endpoint backend /api/auth/register dengan body JSON
       const res = await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -85,34 +120,48 @@ export default function RegistrasiPage() {
         }),
       });
 
+      // Mengurai data JSON dari respons server
       const data = await res.json();
 
+      // Jika respons HTTP berstatus tidak berhasil (non-2xx)
       if (!res.ok) {
+        // Tampilkan pesan galat dari backend
         setError(data.pesan || 'Registrasi gagal. Silakan coba lagi.');
         return;
       }
 
+      // Mengubah status pendaftaran menjadi sukses
       setSuccess(true);
+      // Mengarahkan pengguna kembali ke halaman portal login setelah jeda 2000 milidetik (2 detik)
       setTimeout(() => navigate('/'), 2000);
     } catch {
+      // Menangkap kegagalan jaringan komunikasi server backend
       setError('Tidak dapat terhubung ke server. Pastikan backend berjalan di port 8081.');
     } finally {
+      // Mematikan status loading
       setIsLoading(false);
     }
   };
 
+  // Mengambil konfigurasi label dan styling peran terpilih dari ROLE_CONFIG
   const roleCfg = ROLE_CONFIG[role];
 
+  // Mengembalikan elemen antarmuka JSX formulir registrasi
   return (
+    // Wadah layar utama bertema gelap responsif
     <div className="min-h-screen bg-[#0b0f13] text-[#dee3e8] auth-page-wrapper flex flex-col justify-between transition-colors duration-200 relative">
+      {/* Komponen pemilih tema tampilan gelap dan terang */}
       <AuthThemeToggle />
 
+      {/* Area tengah pembungkus kartu registrasi */}
       <div className="flex-1 flex flex-col items-center justify-center p-6">
+        {/* Komponen identitas visual merek SPCT */}
         <AuthBrand />
 
+        {/* Kontainer kartu pendaftaran pengguna */}
         <main className="w-full max-w-[480px] bg-[#161c22] border border-[#2b3540] auth-card rounded-2xl shadow-2xl p-6 sm:p-8 transition-colors duration-200">
 
-          {/* Card Header */}
+          {/* Bagian header kartu dengan lencana SSL */}
           <div className="flex items-center justify-between pb-5 border-b border-[#242e38] auth-card-header mb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[#1e2730] border border-[#323f4d] auth-header-icon flex items-center justify-center text-[#7ed99e]">
@@ -126,13 +175,14 @@ export default function RegistrasiPage() {
                 <div className="text-[10px] text-[#8fa0b0] auth-subtitle font-mono tracking-wide">GATE NODE: PG-000B</div>
               </div>
             </div>
+            {/* Lencana keamanan koneksi SSL */}
             <span className="px-2.5 py-1 rounded-full bg-[#122820] border border-[#23583c] auth-ssl-badge text-[#7ed99e] font-mono text-[11px] font-medium flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[#2e8b57] auth-ssl-dot"></span>
               <span className="auth-ssl-text">SSL ENCRYPTED</span>
             </span>
           </div>
 
-          {/* Title */}
+          {/* Judul formulir registrasi */}
           <div className="flex flex-col gap-1.5 mb-6">
             <h1 className="text-2xl font-bold tracking-tight text-white auth-title">Registrasi Pengguna Baru</h1>
             <p className="text-xs text-[#9bb0c1] auth-subtitle leading-relaxed">
@@ -140,7 +190,7 @@ export default function RegistrasiPage() {
             </p>
           </div>
 
-          {/* Error Banner */}
+          {/* Banner notifikasi kesalahan jika validasi atau koneksi gagal */}
           {error && (
             <div className="flex items-center gap-2 bg-red-950/40 border border-red-700/50 rounded-lg px-4 py-3 text-sm text-red-400 font-mono mb-4">
               <span className="material-symbols-outlined text-[18px] shrink-0">error</span>
@@ -148,10 +198,10 @@ export default function RegistrasiPage() {
             </div>
           )}
 
-          {/* Form */}
+          {/* Formulir pendaftaran akun baru */}
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
 
-            {/* Full Name */}
+            {/* Kolom masukan Nama Lengkap */}
             <div className="flex flex-col gap-1.5">
               <label className="font-mono text-xs uppercase tracking-wider text-[#bcc8d1] auth-label font-semibold flex items-center gap-1.5" htmlFor="fullName">
                 <span className="material-symbols-outlined text-[16px] text-[#7ad0ff]">badge</span>
@@ -168,7 +218,7 @@ export default function RegistrasiPage() {
               />
             </div>
 
-            {/* NIP (Nomor Induk Pegawai - Wajib 8 Digit Angka) */}
+            {/* Kolom masukan NIP (Wajib 8 Digit Angka) */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
                 <label className="font-mono text-xs uppercase tracking-wider text-[#bcc8d1] auth-label font-semibold flex items-center gap-1.5" htmlFor="nip">
@@ -192,7 +242,7 @@ export default function RegistrasiPage() {
               </div>
             </div>
 
-            {/* Role Selector */}
+            {/* Kolom pemilihan Hak Akses (Role Selector) */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
                 <label className="font-mono text-xs uppercase tracking-wider text-[#bcc8d1] auth-label font-semibold flex items-center gap-1.5" htmlFor="roleSelector">
@@ -219,14 +269,13 @@ export default function RegistrasiPage() {
               </div>
             </div>
 
-            {/* Username */}
+            {/* Kolom masukan Nama Pengguna (Username) */}
             <div className="flex flex-col gap-1.5">
               <label className="font-mono text-xs uppercase tracking-wider text-[#bcc8d1] auth-label font-semibold flex items-center gap-1.5" htmlFor="username">
                 <span className="material-symbols-outlined text-[16px] text-[#7ed99e]">alternate_email</span>
                 Nama Pengguna (Username)
               </label>
               <div className="relative flex items-center">
-                {/* Input teks nama pengguna tanpa prefix tambahan */}
                 <input
                   id="username"
                   type="text"
@@ -239,8 +288,9 @@ export default function RegistrasiPage() {
               </div>
             </div>
 
-            {/* Password Grid */}
+            {/* Grid kolom masukan kata sandi dan konfirmasi */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Kolom Kata Sandi */}
               <div className="flex flex-col gap-1.5">
                 <label className="font-mono text-xs uppercase tracking-wider text-[#bcc8d1] auth-label font-semibold flex items-center gap-1.5" htmlFor="password">
                   <span className="material-symbols-outlined text-[16px] text-[#ffd700]">lock</span>
@@ -261,12 +311,14 @@ export default function RegistrasiPage() {
                   </button>
                 </div>
               </div>
+              {/* Kolom Konfirmasi Kata Sandi */}
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between">
                   <label className="font-mono text-xs uppercase tracking-wider text-[#bcc8d1] auth-label font-semibold flex items-center gap-1.5" htmlFor="confirmPassword">
                     <span className="material-symbols-outlined text-[16px] text-[#ffd700]">lock_reset</span>
                     Konfirmasi
                   </label>
+                  {/* Indikator kecocokan kata sandi */}
                   {confirmPassword && (
                     <span className={`font-mono text-[10px] ${password === confirmPassword ? 'text-[#7ed99e]' : 'text-rose-400'}`}>
                       {password === confirmPassword ? '✓ Cocok' : '✗ Belum cocok'}
@@ -290,13 +342,14 @@ export default function RegistrasiPage() {
               </div>
             </div>
 
-            {/* Password Requirements */}
+            {/* Kotak daftar indikator ketentuan keamanan kata sandi */}
             <div className="p-3 rounded-lg bg-[#0f1419] border border-[#232c36] auth-subcard flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-mono uppercase tracking-wider text-[#8fa0b0] auth-subtitle font-semibold flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-[14px] text-[#7ad0ff]">shield_lock</span>
                   Ketentuan Kata Sandi
                 </span>
+                {/* Lencana terverifikasi jika semua kriteria sandi terpenuhi */}
                 {hasLength && hasNumber && hasSpecial && (
                   <span className="text-[10px] font-mono text-[#7ed99e] auth-verified-badge flex items-center gap-1 bg-[#122820] border border-[#23583c] px-2 py-0.5 rounded-full">
                     <span className="material-symbols-outlined text-[12px]">verified</span>
@@ -304,6 +357,7 @@ export default function RegistrasiPage() {
                   </span>
                 )}
               </div>
+              {/* Tiga kriteria syarat kata sandi */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 text-[11px] font-mono">
                 <span className={`flex items-center gap-1.5 transition-colors ${hasLength ? 'text-[#7ed99e]' : 'text-[#7d90a1]'}`}>
                   <span className="material-symbols-outlined text-[15px]">
@@ -326,7 +380,7 @@ export default function RegistrasiPage() {
               </div>
             </div>
 
-            {/* Terms Checkbox */}
+            {/* Kotak centang persetujuan ketentuan layanan dan kebijakan privasi */}
             <label className="flex items-start gap-2.5 cursor-pointer mt-0.5 group">
               <input
                 type="checkbox"
@@ -340,7 +394,7 @@ export default function RegistrasiPage() {
               </span>
             </label>
 
-            {/* Success Message */}
+            {/* Kotak notifikasi sukses registrasi */}
             {success && (
               <div className="rounded-lg bg-[#122820] border border-[#23583c] p-3 text-[#7ed99e] flex items-center gap-2.5">
                 <span className="material-symbols-outlined text-[20px]">check_circle</span>
@@ -348,7 +402,7 @@ export default function RegistrasiPage() {
               </div>
             )}
 
-            {/* Submit Button */}
+            {/* Tombol aksi submit pendaftaran akun */}
             <button
               type="submit"
               disabled={isLoading || success}
@@ -368,7 +422,7 @@ export default function RegistrasiPage() {
             </button>
           </form>
 
-          {/* Bottom Links */}
+          {/* Tautan kembali ke halaman login */}
           <div className="flex flex-col items-center gap-4 pt-5 mt-5 border-t border-[#242e38] auth-card-header">
             <div className="flex items-center justify-between w-full text-xs">
               <span className="text-[#8fa0b0] auth-subtitle">Sudah memiliki akun aktif?</span>
@@ -377,6 +431,7 @@ export default function RegistrasiPage() {
                 <span className="material-symbols-outlined text-[14px]">login</span>
               </button>
             </div>
+            {/* Indikator status simpul online dan latensi */}
             <div className="inline-flex items-center gap-2.5 px-3 py-1 rounded-full bg-[#10151a] border border-[#252f3a] auth-meta-badge text-[11px] font-mono text-[#8fa0b0]">
               <span className="w-2 h-2 rounded-full bg-[#2e8b57] animate-pulse"></span>
               <span className="text-[#7ed99e] font-semibold">● System Online</span>
@@ -386,6 +441,7 @@ export default function RegistrasiPage() {
           </div>
         </main>
       </div>
+      {/* Catatan kaki halaman autentikasi */}
       <AuthFooter />
     </div>
   );
