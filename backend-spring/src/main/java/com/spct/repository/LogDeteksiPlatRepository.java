@@ -1,21 +1,25 @@
-package com.spct.repository;
+package com.spct.repository; // Nama package dari modul repositori akses data sistem
 
+// Import entitas LogDeteksiPlat dari package model
 import com.spct.model.LogDeteksiPlat;
+// Import antarmuka JpaRepository dari Spring Data JPA
 import org.springframework.data.jpa.repository.JpaRepository;
+// Import anotasi Repository dari komponen Spring Framework
 import org.springframework.stereotype.Repository;
+// Import koleksi List dari java util
 import java.util.List;
 
-// Repository untuk entitas LogDeteksiPlat
-// Menyediakan operasi CRUD ke tabel 'log_deteksi_plat' di database
-@Repository
+// Interface publik java LogDeteksiPlatRepository untuk operasi akses basis data tabel log_deteksi_plat
+// Menyediakan kueri riwayat pembacaan plat nomor oleh kamera ANPR
+@Repository // Menandai interface ini sebagai komponen Spring Repository
 public interface LogDeteksiPlatRepository extends JpaRepository<LogDeteksiPlat, Long>
 {
-    // Mengambil semua log deteksi dari satu kamera tertentu (untuk audit per kamera)
-    List<LogDeteksiPlat> findByKameraAsal_IdKameraOrderByWaktuDeteksiDesc(String idKamera);
+    // Method findByKameraAsal_IdKameraOrderByWaktuDeteksiDesc untuk mengambil log berdasarkan id kamera asal
+    List<LogDeteksiPlat> findByKameraAsal_IdKameraOrderByWaktuDeteksiDesc(String idKamera); // Mengembalikan daftar List log deteksi
 
-    // Mengambil semua log yang hasilnya GAGAL (untuk analitik akurasi ALPR)
-    List<LogDeteksiPlat> findByHasilDeteksiOrderByWaktuDeteksiDesc(String hasilDeteksi);
+    // Method findByHasilDeteksiOrderByWaktuDeteksiDesc untuk mengambil log berdasarkan status hasil (BERHASIL/GAGAL)
+    List<LogDeteksiPlat> findByHasilDeteksiOrderByWaktuDeteksiDesc(String hasilDeteksi); // Mengembalikan daftar List log deteksi
 
-    // Mengambil semua riwayat deteksi untuk satu kendaraan tertentu (audit trail)
-    List<LogDeteksiPlat> findByKendaraanTerdeteksi_IdKendaraanOrderByWaktuDeteksiDesc(Long idKendaraan);
+    // Method findByKendaraanTerdeteksi_IdKendaraanOrderByWaktuDeteksiDesc untuk mengambil log berdasarkan id kendaraan
+    List<LogDeteksiPlat> findByKendaraanTerdeteksi_IdKendaraanOrderByWaktuDeteksiDesc(Long idKendaraan); // Mengembalikan daftar log kendaraan
 }

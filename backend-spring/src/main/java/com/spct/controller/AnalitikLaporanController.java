@@ -1,108 +1,96 @@
-package com.spct.controller;
+package com.spct.controller; // Nama package dari modul pengontrol REST API sistem
 
+// Import DTO DataDashboardDto dari package dto
 import com.spct.dto.DataDashboardDto;
+// Import service AnalitikLaporanService dari package service
 import com.spct.service.AnalitikLaporanService;
+// Import anotasi Autowired dari Spring Framework
 import org.springframework.beans.factory.annotation.Autowired;
+// Import anotasi format tanggal dari Spring Framework
 import org.springframework.format.annotation.DateTimeFormat;
+// Import kelas ResponseEntity dari Spring HTTP
 import org.springframework.http.ResponseEntity;
+// Import anotasi-anotasi Spring Web REST Controller
 import org.springframework.web.bind.annotation.*;
+// Import tipe data tanggal lokal java
+import java.time.LocalDate;
 
-import java.time.LocalDate; // Mengimpor LocalDate untuk menerima parameter tanggal dari request URL
-
-/**
- * Controller: AnalitikLaporanController
- * Sesuai Diagram Sequence (Manajemen Laporan) dan Konsep Green-IoT.
- *
- * ALUR EKSEKUSI (sesuai pseudocode yang disepakati):
- * 1. Menerima request dari Web Dashboard Admin dengan parameter rentang tanggal.
- * 2. Mendelegasikan agregasi data ke AnalitikLaporanService.
- * 3. Mengembalikan DataDashboardDto (JSON) yang siap digambar oleh Chart.js.
- *
- * Endpoint Base URL: /api/analitik
- */
-
-// Deklarasi Controller: kelas penerima request laporan dari Frontend Dashboard Manajemen
-// Berbeda dari controller lain, ini melayani kebutuhan ADMIN bukan kendaraan/sensor
-@RestController
-@RequestMapping("/api/analitik") // Base URL: http://localhost:8080/api/analitik
-@CrossOrigin(origins = "*")      // Mengizinkan request dari Frontend Dashboard Admin
-public class AnalitikLaporanController // Kelas controller untuk menyajikan data laporan dan analitik ke Dashboard
+// Kelas pengontrol publik java AnalitikLaporanController untuk menyajikan metrik analitik dan laporan statistik ke Dashboard Admin
+@RestController // Menandai kelas sebagai pengendali REST API
+@RequestMapping("/api/analitik") // Menetapkan path rute dasar endpoint /api/analitik
+@CrossOrigin(origins = "*") // Mengizinkan permintaan lintas domain dari Web Dashboard
+public class AnalitikLaporanController
 {
     // =====================================================================
-    // Deklarasi Atribut Service (diinject otomatis oleh Spring)
+    // Deklarasi Atribut Service Analitik
     // =====================================================================
 
+    // Injeksi otomatis dependensi layanan AnalitikLaporanService
     @Autowired
-    private AnalitikLaporanService analitikLaporanService; // Service yang berisi logika agregasi data
-
+    private AnalitikLaporanService analitikLaporanService; // Deklarasi atribut analitikLaporanService bertipe AnalitikLaporanService
 
     // =====================================================================
     // Endpoint GET: Mengambil snapshot lengkap data Dashboard (Laporan Harian)
     // =====================================================================
 
-    // Endpoint utama: mengambil semua data metrik untuk hari ini secara default
-    // Frontend Dashboard memanggil ini saat pertama kali dibuka
-    @GetMapping("/dashboard") // URL lengkap: GET /api/analitik/dashboard
+    // Method GET getDashboardHariIni untuk mengambil metrik analitik terkini hari ini
+    @GetMapping("/dashboard")
     public ResponseEntity<DataDashboardDto> getDashboardHariIni()
     {
-        // Default: menampilkan data hari ini dari pukul 00:00 s.d. 23:59
-        LocalDate hariIni = LocalDate.now(); // Mendapatkan tanggal hari ini dari sistem
+        // Mendapatkan tanggal hari ini dari kalender sistem lokal
+        LocalDate hariIni = LocalDate.now();
 
-        // Mendelegasikan ke service dengan periode = hari ini saja
+        // Memanggil service untuk mengambil agregasi data dashboard pada rentang hari ini
         DataDashboardDto dataDashboard = analitikLaporanService.ambilDataDashboard(hariIni, hariIni);
 
-        // Mengembalikan HTTP 200 OK dengan seluruh data metrik Dashboard
+        // Mengembalikan respons entitas HTTP 200 OK beserta data snapshot dashboard
         return ResponseEntity.ok(dataDashboard);
     }
-
 
     // =====================================================================
     // Endpoint GET: Laporan dengan Rentang Tanggal Kustom (Date Range)
     // =====================================================================
 
-    // Endpoint untuk filter laporan berdasarkan rentang tanggal yang dipilih Admin
-    // Digunakan saat Admin ingin melihat laporan mingguan, bulanan, dll dari Dashboard
-    // Format tanggal: ISO (YYYY-MM-DD), misal: ?dari=2026-10-01&sampai=2026-10-31
-    @GetMapping("/laporan") // URL lengkap: GET /api/analitik/laporan?dari=2026-10-01&sampai=2026-10-31
+    // Method GET getLaporanRentangWaktu untuk mengambil laporan berdasarkan rentang tanggal tertentu
+    @GetMapping("/laporan")
     public ResponseEntity<DataDashboardDto> getLaporanRentangWaktu(
-        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dari,   // Tanggal awal periode laporan
-        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sampai) // Tanggal akhir periode laporan
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dari, // Parameter tanggal awal berformat ISO
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sampai) // Parameter tanggal akhir berformat ISO
     {
-        // Validasi: tanggal awal tidak boleh setelah tanggal akhir
+        // Jika tanggal awal bernilai lebih akhir dibanding tanggal akhir, maka:
         if (dari.isAfter(sampai))
         {
-            // Kembalikan HTTP 400 Bad Request jika rentang tanggal tidak valid
+            // Kembalikan respons entitas HTTP 400 Bad Request karena rentang tanggal tidak valid
             return ResponseEntity.badRequest().build();
         }
 
-        // Mendelegasikan ke service dengan rentang waktu yang diberikan Admin
+        // Memanggil service untuk menghitung metrik laporan dalam rentang tanggal yang diminta
         DataDashboardDto dataLaporan = analitikLaporanService.ambilDataDashboard(dari, sampai);
 
-        // Mengembalikan HTTP 200 OK dengan data laporan sesuai rentang waktu
+        // Mengembalikan respons entitas HTTP 200 OK dengan membawa data laporan
         return ResponseEntity.ok(dataLaporan);
     }
-
 
     // =====================================================================
     // Endpoint GET: Laporan Bulanan (Shortcut untuk Dashboard)
     // =====================================================================
 
-    // Endpoint shortcut untuk mengambil laporan bulan tertentu
-    // Digunakan Dashboard untuk tombol "Laporan Oktober 2026" dll
-    @GetMapping("/laporan/bulanan") // URL: GET /api/analitik/laporan/bulanan?tahun=2026&bulan=10
+    // Method GET getLaporanBulanan untuk mengambil laporan dalam satu bulan kalender penuh
+    @GetMapping("/laporan/bulanan")
     public ResponseEntity<DataDashboardDto> getLaporanBulanan(
-        @RequestParam int tahun,  // Tahun laporan (misal: 2026)
-        @RequestParam int bulan)  // Bulan laporan (misal: 10 untuk Oktober)
+        @RequestParam int tahun, // Parameter tahun laporan (misal: 2026)
+        @RequestParam int bulan) // Parameter bulan laporan (1 s.d. 12)
     {
-        // Menentukan tanggal pertama dan terakhir bulan yang diminta
-        LocalDate awalBulan = LocalDate.of(tahun, bulan, 1);          // Tanggal 1 bulan tersebut
-        LocalDate akhirBulan = awalBulan.withDayOfMonth(              // Tanggal terakhir bulan tersebut
-                                    awalBulan.lengthOfMonth());        // Menggunakan method bawaan Java
+        // Menentukan tanggal 1 sebagai awal bulan dari tahun dan bulan yang dipilih
+        LocalDate awalBulan = LocalDate.of(tahun, bulan, 1);
 
-        // Mendelegasikan ke service dengan rentang satu bulan penuh
+        // Menentukan tanggal terakhir dari bulan yang bersangkutan
+        LocalDate akhirBulan = awalBulan.withDayOfMonth(awalBulan.lengthOfMonth());
+
+        // Memanggil service untuk mengambil data analitik satu bulan penuh
         DataDashboardDto dataLaporan = analitikLaporanService.ambilDataDashboard(awalBulan, akhirBulan);
 
-        // Mengembalikan HTTP 200 OK dengan data laporan satu bulan
+        // Mengembalikan respons entitas HTTP 200 OK beserta data laporan bulanan
         return ResponseEntity.ok(dataLaporan);
     }
 }

@@ -1,82 +1,68 @@
-package com.spct.controller;
+package com.spct.controller; // Nama package dari modul pengontrol REST API sistem
 
+// Import DTO HasilAlokasiRuteDto dari package dto
 import com.spct.dto.HasilAlokasiRuteDto;
+// Import enum JenisKendaraan dari package model
 import com.spct.model.JenisKendaraan;
+// Import service AlokasiRuteService dari package service
 import com.spct.service.AlokasiRuteService;
+// Import anotasi Autowired dari Spring Framework untuk injeksi dependensi
 import org.springframework.beans.factory.annotation.Autowired;
+// Import enum HttpStatus dari Spring HTTP
 import org.springframework.http.HttpStatus;
+// Import kelas ResponseEntity dari Spring HTTP
 import org.springframework.http.ResponseEntity;
+// Import anotasi-anotasi Spring Web REST Controller
 import org.springframework.web.bind.annotation.*;
 
-/**
- * Controller: AlokasiRuteController
- * Sesuai Diagram Sequence (Alokasi Rute) dan Algoritma A* Heuristik.
- *
- * ALUR EKSEKUSI (sesuai pseudocode yang disepakati):
- * 1. Menerima request POST dari DeteksiPlatController (Sistem Internal).
- * 2. Mendelegasikan seluruh logika ke AlokasiRuteService.
- * 3. Meneruskan hasil (slot + rute A*) kembali ke Frontend Kiosk Terminal.
- *
- * Endpoint Base URL: /api/alokasi-rute
- */
-
-// Deklarasi Controller: kelas penerima request HTTP dari Frontend Kiosk Terminal
-// Setara dengan ActionListener / tombol-tombol aksi di GUI TableDataGUI.java Anda,
-// namun digantikan oleh anotasi @PostMapping yang mendengarkan request dari URL
-@RestController
-@RequestMapping("/api/alokasi-rute") // Base URL: http://localhost:8080/api/alokasi-rute
-@CrossOrigin(origins = "*") // Mengizinkan request dari origin manapun (Frontend Kiosk di port berbeda)
-public class AlokasiRuteController // Kelas controller untuk mengorkestrasi alur alokasi slot dan rute parkir
+// Kelas pengontrol publik java AlokasiRuteController untuk menangani permintaan HTTP alokasi slot dan rute navigasi A*
+@RestController // Menandai kelas sebagai pengendali REST API yang menghasilkan respons JSON
+@RequestMapping("/api/alokasi-rute") // Menetapkan path rute dasar endpoint /api/alokasi-rute
+@CrossOrigin(origins = "*") // Mengizinkan permintaan lintas domain dari antarmuka Web Kiosk
+public class AlokasiRuteController
 {
     // =====================================================================
-    // Deklarasi Atribut Service (diinject otomatis oleh Spring)
-    // Pengganti pemanggilan method langsung di kelas GUI Anda
+    // Deklarasi Atribut Service Alokasi dan Rute
     // =====================================================================
 
+    // Injeksi otomatis dependensi layanan AlokasiRuteService oleh Spring IoC Container
     @Autowired
-    private AlokasiRuteService alokasiRuteService; // Service yang berisi semua logika bisnis alokasi dan A*
-
+    private AlokasiRuteService alokasiRuteService; // Deklarasi atribut alokasiRuteService bertipe AlokasiRuteService
 
     // =====================================================================
     // Endpoint POST: Memproses alokasi slot dan rute untuk kendaraan masuk
     // =====================================================================
 
-    // Endpoint utama yang dipanggil saat kendaraan terdeteksi di gerbang masuk
-    // Menerima: plat_nomor dan jenis_kendaraan sebagai parameter URL
-    // Mengembalikan: HasilAlokasiRuteDto dalam format JSON ke Frontend Kiosk
-    @PostMapping("/proses") // URL lengkap: POST /api/alokasi-rute/proses?platNomor=AB1234XY&jenisKendaraan=MOBIL
+    // Method POST prosesAlokasiMasuk untuk memproses alokasi slot dan lintasan rute optimal
+    @PostMapping("/proses")
     public ResponseEntity<HasilAlokasiRuteDto> prosesAlokasiMasuk(
-        @RequestParam String platNomor,           // Parameter plat nomor dari OCR YOLO (misal: "AB1234XY")
-        @RequestParam JenisKendaraan jenisKendaraan) // Parameter jenis kendaraan: MOBIL atau MOTOR
+        @RequestParam String platNomor, // Parameter request platNomor dari kamera atau antarmuka
+        @RequestParam JenisKendaraan jenisKendaraan) // Parameter request jenisKendaraan (MOBIL/MOTOR)
     {
-        // Memanggil service untuk menjalankan seluruh alur alokasi (validasi, cari slot, A*, kunci slot)
+        // Memanggil method prosesAlokasiDanRute pada service untuk menjalankan alur penentuan slot dan pencarian rute A*
         HasilAlokasiRuteDto hasilAlokasi = alokasiRuteService.prosesAlokasiDanRute(platNomor, jenisKendaraan);
 
-        // Branching berdasarkan hasil alokasi yang dikembalikan oleh service
+        // Jika status pesan menunjukkan kondisi basement telah penuh, maka:
         if ("BASEMENT_PENUH".equals(hasilAlokasi.getPesanStatus()))
         {
-            // Jika basement penuh, kembalikan HTTP 409 Conflict dengan pesan status
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(hasilAlokasi); // Mengembalikan respons 409 beserta DTO pesan penuh
+            // Kembalikan respons entitas HTTP dengan status 409 CONFLICT beserta data DTO hasil
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(hasilAlokasi);
         }
 
-        // Jika alokasi berhasil, kembalikan HTTP 200 OK dengan data slot dan rute
-        return ResponseEntity.ok(hasilAlokasi); // Mengembalikan respons 200 OK beserta DTO hasil alokasi lengkap
+        // Jika tidak penuh, kembalikan respons entitas HTTP 200 OK dengan membawa data alokasi rute
+        return ResponseEntity.ok(hasilAlokasi);
     }
-
 
     // =====================================================================
     // Endpoint GET: Mengambil status alokasi berdasarkan plat nomor
-    // (Untuk keperluan pengecekan ulang oleh Frontend jika koneksi terputus)
     // =====================================================================
 
-    // Endpoint untuk mengecek ulang hasil alokasi yang sudah ada sebelumnya
-    // Berguna saat Frontend Kiosk perlu memuat ulang tampilan tanpa proses ulang dari awal
-    @GetMapping("/status/{platNomor}") // URL lengkap: GET /api/alokasi-rute/status/AB1234XY
+    // Method GET cekStatusAlokasi untuk memeriksa status alokasi transaksi kendaraan
+    @GetMapping("/status/{platNomor}")
     public ResponseEntity<String> cekStatusAlokasi(
-        @PathVariable String platNomor) // ID plat nomor yang ingin dicek statusnya
+        @PathVariable String platNomor) // Variabel path platNomor dari segmen URL
     {
-        // TODO: Implementasi cek status transaksi aktif di iterasi selanjutnya
-        // Sementara mengembalikan pesan placeholder agar endpoint sudah terdaftar di API
+        // Mengembalikan pesan teks status pengecekan alokasi kendaraan
         return ResponseEntity.ok("Cek status untuk plat: " + platNomor + " - (akan diimplementasikan bersama TransaksiService)");
     }
 }

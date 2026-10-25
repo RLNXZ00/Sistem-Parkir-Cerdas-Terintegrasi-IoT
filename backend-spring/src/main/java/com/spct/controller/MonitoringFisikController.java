@@ -1,125 +1,127 @@
-package com.spct.controller;
+package com.spct.controller; // Nama package dari modul pengontrol REST API sistem
 
+// Import DTO ResolusiAnomaliRequestDto dari package dto
 import com.spct.dto.ResolusiAnomaliRequestDto;
+// Import entitas LogOperasionalIoT dari package model
+import com.spct.model.LogOperasionalIoT;
+// Import enum StatusResolusi dari package model
 import com.spct.model.StatusResolusi;
+// Import repositori LogOperasionalIoTRepository dari package repository
 import com.spct.repository.LogOperasionalIoTRepository;
+// Import repositori SlotParkirRepository dari package repository
 import com.spct.repository.SlotParkirRepository;
+// Import service MonitoringFisikService dari package service
 import com.spct.service.MonitoringFisikService;
+// Import anotasi Autowired dari Spring Framework
 import org.springframework.beans.factory.annotation.Autowired;
+// Import kelas ResponseEntity dari Spring HTTP
 import org.springframework.http.ResponseEntity;
+// Import anotasi-anotasi Spring Web REST Controller
 import org.springframework.web.bind.annotation.*;
 
-/**
- * Controller: MonitoringFisikController
- * Sesuai Diagram Sequence (IoT Sensor & Log Anomali) dan UC003.
- *
- * ALUR EKSEKUSI (sesuai pseudocode yang disepakati):
- * 1. Menerima telemetri dari IoT Gateway (HTTP Webhook dari Raspberry Pi / MQTT Bridge).
- * 2. Mendelegasikan logika verifikasi & deteksi anomali ke MonitoringFisikService.
- * 3. Service mengirim update real-time ke Dashboard via WebSocket secara otomatis.
- *
- * Endpoint Base URL: /api/iot
- */
+// Import pembanding Comparator dari java util
+import java.util.Comparator;
+// Import kolektor Collectors dari java util stream
+import java.util.stream.Collectors;
 
-// Deklarasi Controller: kelas penerima telemetri dari IoT Gateway (Raspberry Pi / MQTT Bridge)
-// Menjadi jembatan antara perangkat keras (sensor ultrasonik/kamera) dan logika bisnis sistem
-@RestController
-@RequestMapping("/api/monitoring") // Base URL: http://localhost:8081/api/monitoring
-@CrossOrigin(origins = "*")  // Mengizinkan request dari IoT Gateway dan Frontend Dashboard
-public class MonitoringFisikController // Kelas controller untuk menerima dan memproses data sensor IoT
+// Kelas pengontrol publik java MonitoringFisikController untuk menangani webhook sensor IoT, konfirmasi anomali, dan status slot
+@RestController // Menandai kelas sebagai pengendali REST API
+@RequestMapping("/api/monitoring") // Menetapkan path rute dasar endpoint /api/monitoring
+@CrossOrigin(origins = "*") // Mengizinkan permintaan lintas domain dari IoT Gateway dan Web Dashboard
+public class MonitoringFisikController
 {
-    // =====================================================================
-    // Deklarasi Atribut (diinject otomatis oleh Spring)
-    // =====================================================================
-
+    // Injeksi otomatis dependensi layanan MonitoringFisikService oleh Spring
     @Autowired
-    private MonitoringFisikService monitoringFisikService; // Service yang berisi logika verifikasi dan deteksi anomali
+    private MonitoringFisikService monitoringFisikService; // Deklarasi atribut monitoringFisikService
 
+    // Injeksi otomatis dependensi repositori LogOperasionalIoTRepository
     @Autowired
-    private LogOperasionalIoTRepository logOperasionalIoTRepository; // Repository untuk endpoint manajemen log anomali
+    private LogOperasionalIoTRepository logOperasionalIoTRepository; // Deklarasi atribut logOperasionalIoTRepository
 
+    // Injeksi otomatis dependensi repositori SlotParkirRepository
     @Autowired
-    private SlotParkirRepository slotParkirRepository; // Repository untuk endpoint data slot real-time
-
+    private SlotParkirRepository slotParkirRepository; // Deklarasi atribut slotParkirRepository
 
     // =====================================================================
     // Endpoint POST: Menerima telemetri perubahan status dari IoT Gateway
     // =====================================================================
 
-    // Endpoint utama yang dipanggil oleh IoT Gateway (Raspberry Pi) setiap sensor berubah status
-    // Payload: { "idSlot": "B1-12", "statusSensor": "TERISI" }
-    @PostMapping("/webhook") // URL lengkap: POST /api/iot/webhook
+    // Method POST terimaTelemetriSensor untuk memproses webhook deteksi sensor ultrasonik
+    @PostMapping("/webhook")
     public ResponseEntity<String> terimaTelemetriSensor(
-        @RequestParam String idSlot,          // ID slot yang dilaporkan sensor (misal: "B1-12")
-        @RequestParam String statusSensor)    // Status dari sensor hardware: "TERISI" atau "KOSONG"
+        @RequestParam String idSlot, // Parameter nomor slot parkir
+        @RequestParam String statusSensor) // Parameter status deteksi sensor (TERISI/KOSONG)
     {
-        // Mendelegasikan seluruh pemrosesan (verifikasi, anomali, WebSocket) ke service
+        // Memanggil service untuk memverifikasi kesesuaian status slot, mendeteksi penyerobotan, dan broadcast WebSocket
         monitoringFisikService.prosesTelemetriSensor(idSlot, statusSensor);
 
-        // Mengembalikan HTTP 200 OK sebagai konfirmasi bahwa webhook berhasil diterima oleh server
+        // Mengembalikan respons HTTP 200 OK beserta pesan konfirmasi pemrosesan
         return ResponseEntity.ok("Telemetri sensor untuk slot [" + idSlot + "] diterima dan sedang diproses.");
     }
 
-
     // =====================================================================
-    // Endpoint GET: Mengambil daftar log anomali (untuk halaman Anomaly Logs di Dashboard)
+    // Endpoint GET: Mengambil daftar log anomali yang belum ditangani
     // =====================================================================
 
-    // Endpoint untuk Dashboard Admin mengambil semua log yang belum ditangani
-    // Frontend akan memanggil ini saat pertama kali membuka halaman Anomaly Logs
-    @GetMapping("/anomali/belum-ditangani") // URL: GET /api/iot/anomali/belum-ditangani
+    // Method GET getDaftarAnomaliAktif untuk menyajikan daftar anomali yang memerlukan penanganan petugas
+    @GetMapping("/anomali/belum-ditangani")
     public ResponseEntity<?> getDaftarAnomaliAktif()
     {
-        // Mengambil semua log dengan status BELUM_DITANGANI dari database, diurutkan terbaru di atas
+        // Mengambil daftar anomali berstatus BELUM_DITANGANI dari database terurut waktu menurun
         return ResponseEntity.ok(
             logOperasionalIoTRepository.findByStatusResolusiOrderByWaktuKejadianDesc(StatusResolusi.BELUM_DITANGANI)
         );
     }
 
-    // Endpoint untuk menghitung jumlah anomali aktif (untuk badge notifikasi di header Dashboard)
-    @GetMapping("/anomali/hitung") // URL: GET /api/iot/anomali/hitung
+    // =====================================================================
+    // Endpoint GET: Menghitung kuantitas anomali aktif
+    // =====================================================================
+
+    // Method GET hitungAnomaliAktif untuk menghitung jumlah anomali yang belum divalidasi
+    @GetMapping("/anomali/hitung")
     public ResponseEntity<Long> hitungAnomaliAktif()
     {
-        // Menghitung jumlah log yang masih berstatus BELUM_DITANGANI
+        // Menghitung jumlah log dengan status resolusi BELUM_DITANGANI
         Long jumlah = logOperasionalIoTRepository.countByStatusResolusi(StatusResolusi.BELUM_DITANGANI);
-        return ResponseEntity.ok(jumlah); // Mengembalikan angka (misal: 3) ke Frontend untuk badge notifikasi
+
+        // Mengembalikan kuantitas total anomali bertipe Long
+        return ResponseEntity.ok(jumlah);
     }
 
-
     // =====================================================================
-    // Endpoint PUT: Menandai anomali sudah ditangani oleh petugas lapangan
+    // Endpoint PUT: Menandai anomali telah selesai divalidasi oleh petugas
     // =====================================================================
 
-    // Endpoint yang dipanggil Dashboard Petugas saat mengonfirmasi sudah menangani anomali
-    @PutMapping("/anomali/{idLog}/selesai") // URL: PUT /api/monitoring/anomali/{idLog}/selesai
+    // Method PUT tandaiAnomalySelesai untuk mengonfirmasi penanganan anomali lapangan
+    @PutMapping("/anomali/{idLog}/selesai")
     public ResponseEntity<String> tandaiAnomalySelesai(
-        @PathVariable Long idLog, // ID log anomali yang ingin ditandai selesai
-        @RequestBody(required = false) ResolusiAnomaliRequestDto request) // Payload request berisi pilihan jenis anomali dan catatan tambahan
+        @PathVariable Long idLog, // Parameter path ID log kejadian yang ditangani
+        @RequestBody(required = false) ResolusiAnomaliRequestDto request) // Payload body konfirmasi penanganan
     {
-        // Mencari objek log operasional IoT berdasarkan idLog dari database
+        // Mencari entitas log di basis data berdasarkan nilai idLog
         return logOperasionalIoTRepository.findById(idLog)
             .map(log ->
             {
-                // Mengubah status resolusi log menjadi SELESAI_DIVALIDASI
-                log.setStatusResolusi(StatusResolusi.SELESAI_DIVALIDASI); // Mengonfirmasi bahwa anomali telah selesai divalidasi petugas
+                // Mengubah status resolusi entitas menjadi SELESAI_DIVALIDASI
+                log.setStatusResolusi(StatusResolusi.SELESAI_DIVALIDASI);
 
                 // Jika objek request dikirim dan atribut jenisAnomali tidak kosong, maka:
                 if (request != null && request.getJenisAnomali() != null && !request.getJenisAnomali().trim().isEmpty())
                 {
-                    // Inisialisasi atribut jenisAnomali pada entity log sesuai pilihan jenis anomali dari modal
+                    // Inisialisasi atribut jenisAnomali pada entity log sesuai opsi pilihan dari modal
                     log.setJenisAnomali(request.getJenisAnomali().trim());
                 }
                 else // Jika tidak ada input jenis anomali dalam request body, maka:
                 {
-                    // Jika atribut jenisAnomali sebelumnya masih kosong atau default strip, maka:
+                    // Jika atribut jenisAnomali sebelumnya masih kosong atau tanda strip, maka:
                     if (log.getJenisAnomali() == null || "-".equals(log.getJenisAnomali()))
                     {
-                        // Set nilai default jenis anomali menjadi "Salah Parkir"
+                        // Inisialisasi jenis anomali default bernilai "Salah Parkir"
                         log.setJenisAnomali("Salah Parkir");
                     }
                 }
 
-                // Jika objek request menyertakan catatan tambahan dari petugas, maka:
+                // Jika request menyertakan catatan tambahan keterangan, maka:
                 if (request != null && request.getCatatanTambahan() != null && !request.getCatatanTambahan().trim().isEmpty())
                 {
                     // Mengambil catatan detail lama jika ada
@@ -128,39 +130,41 @@ public class MonitoringFisikController // Kelas controller untuk menerima dan me
                     log.setCatatanDetail(catatanLama + " [Petugas: " + request.getCatatanTambahan().trim() + "]");
                 }
 
-                // Menyimpan seluruh pembaruan entitas log operasional IoT ke database
+                // Menyimpan pembaruan entitas log operasional ke database
                 logOperasionalIoTRepository.save(log);
 
-                // Mengembalikan response entity dengan status HTTP 200 OK beserta pesan sukses
+                // Mengembalikan pesan konfirmasi keberhasilan penanganan anomali
                 return ResponseEntity.ok("Log anomali [" + idLog + "] berhasil ditandai selesai divalidasi dengan jenis: " + log.getJenisAnomali());
             })
-            .orElse(ResponseEntity.notFound().build()); // Jika ID log tidak ditemukan di database, kembalikan HTTP 404 Not Found
+            // Jika ID log tidak ditemukan di database, kembalikan HTTP 404 Not Found
+            .orElse(ResponseEntity.notFound().build());
     }
-
 
     // =====================================================================
     // Endpoint GET: Data real-time untuk Dashboard Frontend
     // =====================================================================
 
-    // GET /api/monitoring/slots - Semua slot parkir (status real-time untuk Peta Slot di Dashboard)
+    // Method GET getAllSlots untuk menyajikan daftar seluruh unit denah slot parkir
     @GetMapping("/slots")
     public ResponseEntity<?> getAllSlots()
     {
+        // Mengembalikan seluruh slot parkir beserta status ketersediaannya
         return ResponseEntity.ok(slotParkirRepository.findAll());
     }
 
-    // GET /api/monitoring/log-iot - Semua log IoT (untuk Alert Panel di Dashboard)
+    // Method GET getAllLogIoT untuk menyajikan riwayat seluruh pembacaan sensor IoT
     @GetMapping("/log-iot")
     public ResponseEntity<?> getAllLogIoT()
     {
+        // Mengambil semua log kejadian sensor terurut dari waktu terbaru
         return ResponseEntity.ok(
             logOperasionalIoTRepository.findAll()
                 .stream()
-                .sorted(java.util.Comparator.comparing(
-                    com.spct.model.LogOperasionalIoT::getWaktuKejadian,
-                    java.util.Comparator.reverseOrder()
+                .sorted(Comparator.comparing(
+                    LogOperasionalIoT::getWaktuKejadian,
+                    Comparator.reverseOrder()
                 ))
-                .collect(java.util.stream.Collectors.toList())
+                .collect(Collectors.toList())
         );
     }
 }

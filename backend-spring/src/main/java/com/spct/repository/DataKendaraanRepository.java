@@ -1,25 +1,26 @@
-package com.spct.repository;
+package com.spct.repository; // Nama package dari modul repositori akses data sistem
 
+// Import entitas DataKendaraan dari package model
 import com.spct.model.DataKendaraan;
+// Import antarmuka JpaRepository dari Spring Data JPA
 import org.springframework.data.jpa.repository.JpaRepository;
+// Import anotasi Repository dari komponen Spring Framework
 import org.springframework.stereotype.Repository;
+// Import kelas utilitas Optional dari java util untuk membungkus objek null-safe
 import java.util.Optional;
 
-// Deklarasi Repository: pengganti PreparedStatement manual untuk tabel data_kendaraan
-// JpaRepository<DataKendaraan, Long> otomatis menyediakan CRUD dasar
-@Repository
+// Interface publik java DataKendaraanRepository untuk operasi akses basis data tabel data_kendaraan
+// Turunan dari JpaRepository<DataKendaraan, Long> yang menyediakan operasi CRUD bawaan secara otomatis
+@Repository // Menandai interface ini sebagai komponen Spring Repository (Data Access Object)
 public interface DataKendaraanRepository extends JpaRepository<DataKendaraan, Long>
 {
     // =====================================================================
     // Method Kueri Kustom untuk DataKendaraan
     // =====================================================================
 
-    // Mencari kendaraan berdasarkan plat nomor (digunakan saat OCR mendeteksi plat di gerbang)
-    // Setara: SELECT * FROM data_kendaraan WHERE plat_nomor = ?
-    // Mengembalikan Optional untuk menangani kemungkinan plat tidak ditemukan (kendaraan baru)
-    Optional<DataKendaraan> findByPlatNomor(String platNomor);
+    // Method findByPlatNomor untuk mencari data kendaraan berdasarkan string plat nomor
+    Optional<DataKendaraan> findByPlatNomor(String platNomor); // Mengembalikan objek Optional pembungkus DataKendaraan
 
-    // Mengecek apakah suatu plat nomor sudah terdaftar di database
-    // Setara: SELECT COUNT(*) > 0 FROM data_kendaraan WHERE plat_nomor = ?
-    boolean existsByPlatNomor(String platNomor);
+    // Method existsByPlatNomor untuk memeriksa apakah plat nomor telah terdaftar di database
+    boolean existsByPlatNomor(String platNomor); // Mengembalikan nilai boolean true jika ada, false jika tidak ada
 }

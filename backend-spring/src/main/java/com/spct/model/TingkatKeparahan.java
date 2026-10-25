@@ -1,9 +1,14 @@
-package com.spct.model;
+package com.spct.model; // Nama package dari modul model entitas sistem
 
-// Deklarasi Enum TingkatKeparahan: menentukan warna indikator di Dashboard Frontend Petugas
+// Enum publik java dari TingkatKeparahan: merepresentasikan derajat keparahan insiden/anomali
 public enum TingkatKeparahan
 {
-    INFO,     // Hijau: kejadian normal, tidak perlu tindakan khusus
-    WARNING,  // Kuning: perlu perhatian petugas
-    CRITICAL  // Merah: butuh tindakan segera dari petugas lapangan
+    // Derajat INFO: insiden operasional normal atau informasi umum
+    INFO,
+    
+    // Derajat WARNING: insiden yang membutuhkan perhatian dan pengawasan petugas
+    WARNING,
+    
+    // Derajat CRITICAL: anomali kritis yang memerlukan respons tindakan darurat segera
+    CRITICAL
 }

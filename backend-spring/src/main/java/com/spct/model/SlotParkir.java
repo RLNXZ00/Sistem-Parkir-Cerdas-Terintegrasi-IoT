@@ -1,165 +1,187 @@
-package com.spct.model;
+package com.spct.model; // Nama package dari modul model entitas sistem
 
+// Import penanganan anotasi properti serialisasi JSON Jackson
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+// Import pustaka persistensi database Jakarta JPA
 import jakarta.persistence.*;
+// Import tipe data waktu LocalDateTime java
 import java.time.LocalDateTime;
 
-
-
-// Deklarasi Entity: merepresentasikan tabel 'slot_parkir' di Database Relasional
-// Setara dengan kelas Proyek.java yang mengimplementasikan Serializable untuk persistensi
-@Entity
-@Table(name = "slot_parkir") // Mendefinisikan nama tabel di database
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // Cegah error Jackson saat serialisasi proxy Hibernate
-public class SlotParkir // Kelas model untuk setiap unit slot parkir dalam gedung
+// Kelas entitas publik java SlotParkir untuk memetakan tabel slot_parkir di database relasional
+// Kelas ini merepresentasikan data denah slot fisik parkir beserta status ketersediaan terkininya
+@Entity // Menandai kelas ini sebagai entitas JPA yang dipetakan ke tabel basis data
+@Table(name = "slot_parkir") // Mendefinisikan nama tabel basis data yaitu slot_parkir
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // Mengabaikan atribut lazy loading proxy Hibernate
+public class SlotParkir
 {
     // =====================================================================
-    // Deklarasi Atribut: Kolom-kolom tabel 'slot_parkir'
+    // Deklarasi Atribut Kolom Tabel slot_parkir
     // =====================================================================
 
-    @Id
-    @Column(name = "id_slot", nullable = false, unique = true) // Kode unik slot, bukan auto-increment karena ditentukan sendiri (misal: "B1-12")
-    private String idSlot; // Identitas utama slot: "B1-12", "B2-05" (setara kodeEvent di Reminder.java Anda)
+    @Id // Menandai atribut idSlot sebagai Primary Key entitas
+    @Column(name = "id_slot", nullable = false, unique = true) // Kode unik slot parkir (misal: "B1-12")
+    private String idSlot; // Deklarasi atribut idSlot bertipe String untuk identitas slot parkir
 
-    @Column(name = "lantai", nullable = false)
-    private Integer lantai; // Lantai tempat slot berada (1, 2, atau 3). Dasar pencarian berjenjang di A*
+    @Column(name = "lantai", nullable = false) // Pemetaan kolom nomor lantai parkir
+    private Integer lantai; // Deklarasi atribut lantai bertipe Integer (lantai 1, 2, atau 3)
 
-    @Column(name = "node_id", nullable = false)
-    private String nodeId; // ID node pada Graf Peta Basement untuk kalkulasi Algoritma A* (misal: "N-23")
+    @Column(name = "node_id", nullable = false) // Pemetaan kolom node graf pencarian rute A*
+    private String nodeId; // Deklarasi atribut nodeId bertipe String untuk simpul node pada peta graf
 
-    @Enumerated(EnumType.STRING) // Menyimpan nama Enum sebagai String di database (bukan angka index)
-    @Column(name = "status_slot", nullable = false)
-    private StatusSlot statusSlot; // State dari sensor IoT: KOSONG, DIPESAN, TERISI, atau MAINTENANCE
+    @Enumerated(EnumType.STRING) // Menyimpan nilai enum StatusSlot sebagai string teks
+    @Column(name = "status_slot", nullable = false) // Pemetaan kolom status ketersediaan slot
+    private StatusSlot statusSlot; // Deklarasi atribut statusSlot bertipe enum StatusSlot (KOSONG, DIPESAN, TERISI, MAINTENANCE)
 
-    @Column(name = "koordinat_x")
-    private Double koordinatX; // Koordinat X untuk merender posisi kotak di Peta Frontend (Dashboard React)
+    @Column(name = "koordinat_x") // Pemetaan kolom koordinat X untuk rendering visualisasi frontend
+    private Double koordinatX; // Deklarasi atribut koordinatX bertipe Double
 
-    @Column(name = "koordinat_y")
-    private Double koordinatY; // Koordinat Y untuk merender posisi kotak di Peta Frontend (Dashboard React)
+    @Column(name = "koordinat_y") // Pemetaan kolom koordinat Y untuk rendering visualisasi frontend
+    private Double koordinatY; // Deklarasi atribut koordinatY bertipe Double
 
-    @Column(name = "waktu_dipesan")
-    private LocalDateTime waktuDipesan; // Timestamp kapan slot ini mulai berstatus 'DIPESAN' (untuk deteksi timeout)
+    @Column(name = "waktu_dipesan") // Pemetaan kolom waktu mulai pemesanan alokasi slot
+    private LocalDateTime waktuDipesan; // Deklarasi atribut waktuDipesan bertipe LocalDateTime
 
-    @Enumerated(EnumType.STRING) // Menyimpan nama Enum sebagai String di database
-    @Column(name = "jenis_kendaraan") // Nullable agar data lama tetap valid; null dianggap MOBIL pada getter
-    private JenisKendaraan jenisKendaraan; // Peruntukan slot: MOBIL atau MOTOR (dasar tab pada Peta Slot Dashboard)
+    @Enumerated(EnumType.STRING) // Menyimpan nilai enum JenisKendaraan sebagai string teks
+    @Column(name = "jenis_kendaraan") // Pemetaan kolom peruntukan tipe kendaraan slot
+    private JenisKendaraan jenisKendaraan; // Deklarasi atribut jenisKendaraan bertipe enum JenisKendaraan (MOBIL/MOTOR)
 
-    // Relasi Foreign Key ke DataKendaraan (bisa NULL jika slot sedang kosong)
-    @ManyToOne(fetch = FetchType.EAGER) // EAGER: langsung load data kendaraan saat slot di-query
-    @JoinColumn(name = "kendaraan_aktif_id", referencedColumnName = "id_kendaraan")
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // Cegah circular JSON
-    private DataKendaraan kendaraanAktif; // Kendaraan yang saat ini dialokasikan di slot ini (NULL jika KOSONG)
-
+    @ManyToOne(fetch = FetchType.EAGER) // Relasi banyak-ke-satu ke data kendaraan secara eager
+    @JoinColumn(name = "kendaraan_aktif_id", referencedColumnName = "id_kendaraan") // Foreign key ke id_kendaraan
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // Menghindari sirkular referensi JSON
+    private DataKendaraan kendaraanAktif; // Deklarasi atribut kendaraanAktif bertipe objek DataKendaraan
 
     // =====================================================================
-    // Konstruktor LENGKAP untuk CRUD/Database (gaya penulisan Anda)
+    // Konstruktor Kelas SlotParkir
     // =====================================================================
+
+    // Konstruktor berparameter untuk registrasi slot parkir baru
     public SlotParkir(String idSlot, Integer lantai, String nodeId,
                       Double koordinatX, Double koordinatY)
     {
-        this.idSlot = idSlot;               // Menginisialisasi atribut idSlot
-        this.lantai = lantai;               // Menginisialisasi atribut lantai
-        this.nodeId = nodeId;               // Menginisialisasi atribut nodeId
-        this.koordinatX = koordinatX;       // Menginisialisasi atribut koordinatX
-        this.koordinatY = koordinatY;       // Menginisialisasi atribut koordinatY
-        this.statusSlot = StatusSlot.KOSONG; // Default status saat slot baru dibuat adalah KOSONG
+        this.idSlot = idSlot; // Inisialisasi atribut idSlot dengan parameter idSlot
+        this.lantai = lantai; // Inisialisasi atribut lantai dengan parameter lantai
+        this.nodeId = nodeId; // Inisialisasi atribut nodeId dengan parameter nodeId
+        this.koordinatX = koordinatX; // Inisialisasi atribut koordinatX dengan parameter koordinatX
+        this.koordinatY = koordinatY; // Inisialisasi atribut koordinatY dengan parameter koordinatY
+        this.statusSlot = StatusSlot.KOSONG; // Inisialisasi status awal slot bernilai KOSONG
     }
 
-    // Konstruktor kosong (wajib ada untuk JPA/Hibernate agar bisa membuat objek dari data database)
-    public SlotParkir() {}
-
+    // Konstruktor default tanpa parameter untuk JPA Hibernate
+    public SlotParkir() 
+    {
+        // Konstruktor kosong untuk instansiasi JPA Hibernate
+    }
 
     // =====================================================================
-    // Getter & Setter (gaya penulisan Anda)
+    // Method Setter & Getter Atribut
     // =====================================================================
 
-    public void setIdSlot(String idSlot) // Deklarasi method setter untuk idSlot
+    // Method setter setIdSlot untuk mengubah nilai atribut idSlot
+    public void setIdSlot(String idSlot)
     {
-        this.idSlot = idSlot; // Mengubah nilai atribut idSlot
+        this.idSlot = idSlot; // Inisialisasi atribut idSlot dengan parameter
     }
 
-    public String getIdSlot() // Deklarasi method getter untuk idSlot
+    // Method getter getIdSlot untuk mengambil nilai atribut idSlot
+    public String getIdSlot()
     {
-        return idSlot; // Mengembalikan nilai atribut idSlot
+        return idSlot; // Mengembalikan nilai dari atribut idSlot
     }
 
-    public void setLantai(Integer lantai) // Deklarasi method setter untuk lantai
+    // Method setter setLantai untuk mengubah nomor lantai slot
+    public void setLantai(Integer lantai)
     {
-        this.lantai = lantai; // Mengubah nilai atribut lantai
+        this.lantai = lantai; // Inisialisasi atribut lantai dengan parameter
     }
 
-    public Integer getLantai() // Deklarasi method getter untuk lantai
+    // Method getter getLantai untuk mengambil nomor lantai slot
+    public Integer getLantai()
     {
-        return lantai; // Mengembalikan nilai atribut lantai
+        return lantai; // Mengembalikan nilai dari atribut lantai
     }
 
-    public void setNodeId(String nodeId) // Deklarasi method setter untuk nodeId
+    // Method setter setNodeId untuk mengubah identitas node simpul graf
+    public void setNodeId(String nodeId)
     {
-        this.nodeId = nodeId; // Mengubah nilai atribut nodeId
+        this.nodeId = nodeId; // Inisialisasi atribut nodeId dengan parameter
     }
 
-    public String getNodeId() // Deklarasi method getter untuk nodeId
+    // Method getter getNodeId untuk mengambil identitas node simpul graf
+    public String getNodeId()
     {
-        return nodeId; // Mengembalikan nilai atribut nodeId
+        return nodeId; // Mengembalikan nilai dari atribut nodeId
     }
 
-    public void setStatusSlot(StatusSlot statusSlot) // Deklarasi method setter untuk statusSlot
+    // Method setter setStatusSlot untuk mengubah status keterisian slot
+    public void setStatusSlot(StatusSlot statusSlot)
     {
-        this.statusSlot = statusSlot; // Mengubah nilai atribut statusSlot
+        this.statusSlot = statusSlot; // Inisialisasi atribut statusSlot dengan parameter
     }
 
-    public StatusSlot getStatusSlot() // Deklarasi method getter untuk statusSlot
+    // Method getter getStatusSlot untuk mengambil status keterisian slot
+    public StatusSlot getStatusSlot()
     {
-        return statusSlot; // Mengembalikan nilai atribut statusSlot
+        return statusSlot; // Mengembalikan nilai dari atribut statusSlot
     }
 
-    public void setKoordinatX(Double koordinatX) // Deklarasi method setter untuk koordinatX
+    // Method setter setKoordinatX untuk mengubah titik koordinat X
+    public void setKoordinatX(Double koordinatX)
     {
-        this.koordinatX = koordinatX; // Mengubah nilai atribut koordinatX
+        this.koordinatX = koordinatX; // Inisialisasi atribut koordinatX dengan parameter
     }
 
-    public Double getKoordinatX() // Deklarasi method getter untuk koordinatX
+    // Method getter getKoordinatX untuk mengambil titik koordinat X
+    public Double getKoordinatX()
     {
-        return koordinatX; // Mengembalikan nilai atribut koordinatX
+        return koordinatX; // Mengembalikan nilai dari atribut koordinatX
     }
 
-    public void setKoordinatY(Double koordinatY) // Deklarasi method setter untuk koordinatY
+    // Method setter setKoordinatY untuk mengubah titik koordinat Y
+    public void setKoordinatY(Double koordinatY)
     {
-        this.koordinatY = koordinatY; // Mengubah nilai atribut koordinatY
+        this.koordinatY = koordinatY; // Inisialisasi atribut koordinatY dengan parameter
     }
 
-    public Double getKoordinatY() // Deklarasi method getter untuk koordinatY
+    // Method getter getKoordinatY untuk mengambil titik koordinat Y
+    public Double getKoordinatY()
     {
-        return koordinatY; // Mengembalikan nilai atribut koordinatY
+        return koordinatY; // Mengembalikan nilai dari atribut koordinatY
     }
 
-    public void setWaktuDipesan(LocalDateTime waktuDipesan) // Deklarasi method setter untuk waktuDipesan
+    // Method setter setWaktuDipesan untuk mengubah timestamp waktu pemesanan slot
+    public void setWaktuDipesan(LocalDateTime waktuDipesan)
     {
-        this.waktuDipesan = waktuDipesan; // Mengubah nilai atribut waktuDipesan
+        this.waktuDipesan = waktuDipesan; // Inisialisasi atribut waktuDipesan dengan parameter
     }
 
-    public LocalDateTime getWaktuDipesan() // Deklarasi method getter untuk waktuDipesan
+    // Method getter getWaktuDipesan untuk mengambil timestamp waktu pemesanan slot
+    public LocalDateTime getWaktuDipesan()
     {
-        return waktuDipesan; // Mengembalikan timestamp kapan slot ini berstatus DIPESAN
+        return waktuDipesan; // Mengembalikan nilai dari atribut waktuDipesan
     }
 
-    public void setJenisKendaraan(JenisKendaraan jenisKendaraan) // Deklarasi method setter untuk jenisKendaraan
+    // Method setter setJenisKendaraan untuk mengubah tipe kendaraan peruntukan slot
+    public void setJenisKendaraan(JenisKendaraan jenisKendaraan)
     {
-        this.jenisKendaraan = jenisKendaraan; // Mengubah peruntukan slot (MOBIL/MOTOR)
+        this.jenisKendaraan = jenisKendaraan; // Inisialisasi atribut jenisKendaraan dengan parameter
     }
 
-    public JenisKendaraan getJenisKendaraan() // Deklarasi method getter untuk jenisKendaraan
+    // Method getter getJenisKendaraan untuk mengambil tipe kendaraan peruntukan slot
+    public JenisKendaraan getJenisKendaraan()
     {
-        return (jenisKendaraan != null) ? jenisKendaraan : JenisKendaraan.MOBIL; // Data lama tanpa nilai dianggap slot MOBIL
+        // Jika atribut bernilai selain null, kembalikan atribut tersebut, jika null kembalikan nilai default MOBIL
+        return (jenisKendaraan != null) ? jenisKendaraan : JenisKendaraan.MOBIL;
     }
 
-    public void setKendaraanAktif(DataKendaraan kendaraanAktif) // Deklarasi method setter untuk kendaraanAktif
+    // Method setter setKendaraanAktif untuk mengubah objek kendaraan yang menempati slot
+    public void setKendaraanAktif(DataKendaraan kendaraanAktif)
     {
-        this.kendaraanAktif = kendaraanAktif; // Menghubungkan kendaraan ke slot ini
+        this.kendaraanAktif = kendaraanAktif; // Inisialisasi atribut kendaraanAktif dengan parameter
     }
 
-    public DataKendaraan getKendaraanAktif() // Deklarasi method getter untuk kendaraanAktif
+    // Method getter getKendaraanAktif untuk mengambil objek kendaraan yang menempati slot
+    public DataKendaraan getKendaraanAktif()
     {
-        return kendaraanAktif; // Mengembalikan objek DataKendaraan yang saat ini menempati slot ini
+        return kendaraanAktif; // Mengembalikan nilai dari atribut kendaraanAktif
     }
 }
