@@ -296,9 +296,18 @@ export default function DashboardPage() {
                 })}
               </div>
 
-              {/* Sub-header: panel lantai di kiri, legenda di kanan — antara tab dan konten slot */}
-              <div className="flex justify-between items-center gap-4 flex-wrap px-1 py-2 border-b border-surface-variant/50 mb-0">
-                {/* Panel pemilih lantai */}
+              {/* Sub-header baris 1: Legenda di kanan atas panel slot */}
+              <div className="flex justify-end items-center px-1 pt-2 pb-1">
+                <div className="flex gap-4 text-xs font-mono">
+                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-eco-success rounded-sm"></div>{t('dash.legendOccupied', 'Terisi')}</div>
+                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-warning-reserved rounded-sm"></div>{t('dash.legendReserved', 'Dipesan')}</div>
+                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 border border-dashed border-outline rounded-sm"></div>{t('dash.legendVacant', 'Kosong')}</div>
+                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-alert-anomaly rounded-sm"></div>{t('dash.legendAnomaly', 'Anomali / Periksa')}</div>
+                </div>
+              </div>
+
+              {/* Sub-header baris 2: Panel pemilih lantai — di bawah legenda, di atas grid slot */}
+              <div className="flex justify-start items-center px-1 py-2 border-b border-surface-variant/50 mb-0">
                 <div id="panel-lantai" className="floor-panel inline-flex items-center gap-1 p-1 rounded-lg border border-surface-variant bg-surface-container-lowest" role="tablist" aria-label="Pilih lantai">
                   <span className="material-symbols-outlined text-[18px] text-text-muted px-1.5">layers</span>
                   {lantaiTersedia.map(lt => {
@@ -317,18 +326,10 @@ export default function DashboardPage() {
                             : 'border-transparent text-text-muted hover:text-on-surface hover:bg-surface-variant/40'
                         }`}
                       >
-                        {jenisAktif === 'MOTOR' ? `B${lt}` : `${t('dash.floor', 'Lantai')} ${lt}`}
+                        {t('dash.floor', 'Lantai')} {lt}
                       </button>
                     );
                   })}
-                </div>
-
-                {/* Legenda */}
-                <div className="flex gap-4 text-xs font-mono">
-                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-eco-success rounded-sm"></div>{t('dash.legendOccupied', 'Terisi')}</div>
-                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-warning-reserved rounded-sm"></div>{t('dash.legendReserved', 'Dipesan')}</div>
-                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 border border-dashed border-outline rounded-sm"></div>{t('dash.legendVacant', 'Kosong')}</div>
-                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-alert-anomaly rounded-sm"></div>{t('dash.legendAnomaly', 'Anomali / Periksa')}</div>
                 </div>
               </div>
 
