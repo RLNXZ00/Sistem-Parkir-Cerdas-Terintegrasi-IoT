@@ -152,7 +152,7 @@ export default function TopBar({ breadcrumb, status }) {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <header className="bg-surface border-b border-surface-container flex justify-between items-center h-16 px-6 fixed top-0 right-0 z-10 left-20 lg:left-64">
+    <header className="bg-surface border-b border-surface-container flex justify-between items-center h-16 px-6 fixed top-0 right-0 z-40 left-20 lg:left-64">
       {/* Breadcrumb */}
       <nav className="flex text-on-surface-variant font-mono text-sm items-center gap-1">
         <span className="hover:text-primary transition-colors cursor-pointer">SPCT IoT</span>
@@ -183,7 +183,7 @@ export default function TopBar({ breadcrumb, status }) {
         {/* Icon Buttons */}
         <div className="flex items-center gap-2">
           {/* Tombol Lonceng Notifikasi */}
-          <div className="relative" ref={notificationRef}>
+          <div className="relative z-50" ref={notificationRef}>
             <button
               id="btn-topbar-notification"
               onClick={() => setIsNotificationOpen((prev) => !prev)}
