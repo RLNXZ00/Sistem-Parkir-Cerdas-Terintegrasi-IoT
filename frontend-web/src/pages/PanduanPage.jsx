@@ -1,21 +1,27 @@
+// Import hook useState dari pustaka react untuk penanganan state lokal antarmuka
 import { useState } from 'react';
+// Import komponen AppLayout sebagai kerangka tata letak halaman standar SPCT
 import AppLayout from '../components/AppLayout';
 
+// Deklarasi fungsi komponen publik PanduanPage untuk petunjuk operasional dan SOP sistem parkir
 export default function PanduanPage() {
+  // Inisialisasi state activeCategory bertipe string dengan nilai awal 'ALL' untuk tab filter SOP
   const [activeCategory, setActiveCategory] = useState('ALL');
+  // Inisialisasi state searchQuery bertipe string untuk kata kunci pencarian prosedur
   const [searchQuery, setSearchQuery] = useState('');
+  // Inisialisasi state expandedId bertipe string dengan nilai default 'PK-UC001' untuk akordion yang terbuka awal
   const [expandedId, setExpandedId] = useState('PK-UC001');
 
   // Basis data Narasi Use Case dari dokumen Blueprint RPL (Tahap_V_SistemParkirCerdas.pdf)
   const panduanList = [
     {
-      id: 'PK-UC001',
-      title: 'Mendeteksi Plat & Klasifikasi Kendaraan',
-      category: 'ENTRY',
-      badge: 'Alur Gerbang Masuk',
-      badgeColor: 'bg-eco-success/20 text-eco-success border-eco-success/40',
-      actors: 'Pengendara, Kamera ANPR Gerbang, AI Vision Engine',
-      summary: 'Proses identifikasi otomatis nomor polisi dan jenis kendaraan di gerbang masuk via YOLOv11 + OCR.',
+      id: 'PK-UC001', // Identitas Use Case
+      title: 'Mendeteksi Plat & Klasifikasi Kendaraan', // Judul prosedur
+      category: 'ENTRY', // Kategori gerbang masuk
+      badge: 'Alur Gerbang Masuk', // Label lencana
+      badgeColor: 'bg-eco-success/20 text-eco-success border-eco-success/40', // Warna lencana
+      actors: 'Pengendara, Kamera ANPR Gerbang, AI Vision Engine', // Aktor yang terlibat
+      summary: 'Proses identifikasi otomatis nomor polisi dan jenis kendaraan di gerbang masuk via YOLOv11 + OCR.', // Ringkasan alur
       steps: [
         { no: '1', actor: 'Pengendara', text: 'Menghentikan kendaraan tepat di depan garis henti terminal gerbang masuk.' },
         { no: '2', actor: 'Pengendara', text: 'Menekan tombol hijau pada terminal kios masuk.' },
@@ -182,8 +188,9 @@ export default function PanduanPage() {
     }
   ];
 
-  // Filter use cases berdasarkan kategori dan pencarian
+  // Memfilter daftar use case berdasarkan kategori yang aktif dan kata kunci pencarian
   const filteredList = panduanList.filter((item) => {
+    // Evaluasi kecocokan kategori tab
     const matchesCategory =
       activeCategory === 'ALL' ? true :
       activeCategory === 'ENTRY' ? item.category === 'ENTRY' :
@@ -191,20 +198,25 @@ export default function PanduanPage() {
       activeCategory === 'OPS' ? (item.category === 'OPS' || item.category === 'IOT' || item.category === 'NAVIGATION') :
       activeCategory === 'MGMT' ? item.category === 'MGMT' : true;
 
+    // Evaluasi kecocokan teks pencarian pada ID, judul, ringkasan, atau aktor
     const matchesSearch =
       item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.actors.toLowerCase().includes(searchQuery.toLowerCase());
 
+    // Mengembalikan true jika kedua kriteria terpenuhi
     return matchesCategory && matchesSearch;
   });
 
+  // Mengembalikan elemen JSX antarmuka pusat bantuan dan SOP
   return (
+    // Membungkus halaman dengan kerangka AppLayout
     <AppLayout breadcrumb="Pusat Bantuan & SOP" status="IoT Operational">
+      {/* Wadah isi utama halaman dengan batas lebar maksimum */}
       <div className="p-6 max-w-7xl mx-auto flex flex-col gap-6">
 
-        {/* Header Banner */}
+        {/* Banner header modul panduan SOP */}
         <div className="bg-gradient-to-r from-surface-container-low via-surface-container to-surface-container-low p-6 rounded-2xl border border-surface-container flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div className="flex items-center gap-3 mb-1">
@@ -218,6 +230,7 @@ export default function PanduanPage() {
             </p>
           </div>
 
+          {/* Lencana penanda standar dokumen Blueprint Tahap V */}
           <div className="flex items-center gap-2 bg-surface-container-highest/60 px-4 py-2 rounded-xl border border-outline-variant">
             <span className="material-symbols-outlined text-primary text-[20px]">verified_user</span>
             <div className="text-left font-mono">
@@ -227,9 +240,9 @@ export default function PanduanPage() {
           </div>
         </div>
 
-        {/* Filter Bar & Search */}
+        {/* Panel filter kategori dan kotak input pencarian */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-surface-container-low p-4 rounded-xl border border-surface-container">
-          {/* Category Tabs */}
+          {/* Tab penyaring kelompok alur */}
           <div className="flex flex-wrap gap-2 w-full md:w-auto">
             {[
               { id: 'ALL', label: 'Semua Use Case (10)', icon: 'list_alt' },
@@ -253,7 +266,7 @@ export default function PanduanPage() {
             ))}
           </div>
 
-          {/* Search Box */}
+          {/* Kotak pencarian interaktif */}
           <div className="relative w-full md:w-72">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-[18px]">
               search
@@ -268,8 +281,9 @@ export default function PanduanPage() {
           </div>
         </div>
 
-        {/* Daftar Kartu Narasi Use Case (Accordion Style) */}
+        {/* Daftar kartu narasi use case dengan mode akordion */}
         <div className="flex flex-col gap-4">
+          {/* Looping untuk menampilkan setiap use case */}
           {filteredList.map((item) => {
             const isExpanded = expandedId === item.id;
             return (
@@ -281,7 +295,7 @@ export default function PanduanPage() {
                     : 'bg-surface-container-lowest border-surface-container hover:border-surface-variant'
                 }`}
               >
-                {/* Header Kartu (Bisa di-klik untuk buka/tutup) */}
+                {/* Header kartu akordion (dapat diklik untuk toggle ekspansi) */}
                 <div
                   onClick={() => setExpandedId(isExpanded ? null : item.id)}
                   className="p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 cursor-pointer select-none"
@@ -296,6 +310,7 @@ export default function PanduanPage() {
                     </div>
                   </div>
 
+                  {/* Lencana status dan ikon panah dropdown */}
                   <div className="flex items-center gap-3 self-end md:self-center">
                     <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono border ${item.badgeColor}`}>
                       {item.badge}
@@ -308,18 +323,18 @@ export default function PanduanPage() {
                   </div>
                 </div>
 
-                {/* Konten Rinci Use Case saat Terbuka */}
+                {/* Konten detail langkah saat kartu akordion dibuka */}
                 {isExpanded && (
                   <div className="px-5 pb-6 border-t border-surface-container pt-5 space-y-6">
 
-                    {/* Metadata Aktor */}
+                    {/* Metadata aktor yang terlibat */}
                     <div className="p-3 rounded-xl bg-surface-container border border-surface-variant flex items-center gap-2 text-xs font-mono">
                       <span className="material-symbols-outlined text-primary text-[18px]">group</span>
                       <span className="text-on-surface-variant">Aktor yang Terlibat:</span>
                       <span className="text-on-surface font-semibold">{item.actors}</span>
                     </div>
 
-                    {/* Langkah Prosedur Kerja (Step by Step) */}
+                    {/* Daftar langkah alur kerja standar (Step-by-step) */}
                     <div>
                       <h3 className="text-xs font-bold font-mono text-on-surface uppercase tracking-wider mb-3 flex items-center gap-1.5">
                         <span className="material-symbols-outlined text-eco-success text-[18px]">format_list_numbered</span>
@@ -343,9 +358,9 @@ export default function PanduanPage() {
                       </div>
                     </div>
 
-                    {/* Dua Kolom: Penanganan Masalah & Aturan Bisnis */}
+                    {/* Informasi solusi troubleshooting dan kepatuhan aturan bisnis */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Troubleshooting */}
+                      {/* Kotak penanganan kendala (Troubleshooting) */}
                       <div className="p-4 rounded-xl bg-alert-anomaly/10 border border-alert-anomaly/30 space-y-1.5">
                         <div className="flex items-center gap-2 text-alert-anomaly font-bold text-xs font-mono">
                           <span className="material-symbols-outlined text-[18px]">help_outline</span>
@@ -356,7 +371,7 @@ export default function PanduanPage() {
                         </p>
                       </div>
 
-                      {/* Business Rules */}
+                      {/* Kotak aturan bisnis (Business Rules) */}
                       <div className="p-4 rounded-xl bg-surface-container border border-surface-variant space-y-1.5">
                         <div className="flex items-center gap-2 text-system-info font-bold text-xs font-mono">
                           <span className="material-symbols-outlined text-[18px]">rule</span>
@@ -374,6 +389,7 @@ export default function PanduanPage() {
             );
           })}
 
+          {/* Kondisi saat tidak ada use case yang cocok dengan pencarian */}
           {filteredList.length === 0 && (
             <div className="p-12 text-center bg-surface-container-low rounded-2xl border border-surface-container">
               <span className="material-symbols-outlined text-[48px] text-text-muted mb-2 block">search_off</span>

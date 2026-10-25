@@ -1,20 +1,25 @@
+// Import hook useState, useEffect, dan useCallback dari pustaka react untuk penanganan state lokal dan lifecycle
 import { useState, useEffect, useCallback } from 'react';
+// Import komponen AppLayout sebagai kerangka tata letak halaman standar SPCT
 import AppLayout from '../components/AppLayout';
+// Import hook useLanguage dari konteks bahasa untuk internasionalisasi label dan teks
 import { useLanguage } from '../context/LanguageContext';
 
+// Mendefinisikan konstanta alamat dasar server backend Spring Boot (port 8081)
 const API_BASE = 'http://localhost:8081';
 
+// Objek pemetaan kelas CSS untuk status masing-masing slot parkir
 const SLOT_STYLES = {
-  TERISI: 'bg-eco-success/20 border border-eco-success text-eco-success',
-  DIPESAN: 'bg-warning-reserved/20 border border-warning-reserved text-warning-reserved',
-  KOSONG: 'border border-outline border-dashed text-outline',
-  ANOMALI: 'bg-alert-anomaly/20 border-2 border-alert-anomaly text-alert-anomaly pulse-anomaly cursor-pointer hover:bg-alert-anomaly/30 group relative',
+  TERISI: 'bg-eco-success/20 border border-eco-success text-eco-success', // Gaya slot parkir terisi kendaraan
+  DIPESAN: 'bg-warning-reserved/20 border border-warning-reserved text-warning-reserved', // Gaya slot parkir dalam perjalanan reservasi
+  KOSONG: 'border border-outline border-dashed text-outline', // Gaya slot parkir kosong tersedia
+  ANOMALI: 'bg-alert-anomaly/20 border-2 border-alert-anomaly text-alert-anomaly pulse-anomaly cursor-pointer hover:bg-alert-anomaly/30 group relative', // Gaya slot anomali peringatan
 };
 
-// Kunci sessionStorage untuk status peta (tab jenis + lantai terakhir per jenis)
+// Kunci penyimpanan sessionStorage peramban untuk mengingat tab jenis dan lantai denah yang dipilih
 const KUNCI_STATUS_PETA = 'spct_peta_slot';
 
-// Default setelah login: Mobil, Lantai 1 untuk kedua jenis
+// Deklarasi fungsi pembantu bacaStatusPeta untuk membaca preferensi denah dari sessionStorage
 function bacaStatusPeta() {
   const bawaan = { jenis: 'MOBIL', lantai: { MOBIL: 1, MOTOR: 1 } };
   try {
@@ -29,27 +34,39 @@ function bacaStatusPeta() {
   }
 }
 
+// Deklarasi fungsi komponen publik DashboardPage untuk pemantauan operasional lapangan
 export default function DashboardPage() {
+  // Mengambil fungsi penerjemah t dari context LanguageContext
   const { t } = useLanguage();
+  // Inisialisasi state slots bertipe array kosong untuk menampung seluruh slot parkir
   const [slots, setSlots] = useState([]);
+  // Inisialisasi state kameraList bertipe array kosong untuk menampung daftar perangkat kamera ANPR
   const [kameraList, setKameraList] = useState([]);
+  // Inisialisasi state sensorList bertipe array kosong untuk menampung daftar sensor ultrasonik
   const [sensorList, setSensorList] = useState([]);
+  // Inisialisasi state logs bertipe array kosong untuk menampung catatan log operasional IoT
   const [logs, setLogs] = useState([]);
+  // Inisialisasi state isLoading bertipe boolean dengan nilai awal true
   const [isLoading, setIsLoading] = useState(true);
-  // Status peta disimpan di sessionStorage (bertahan saat pindah halaman, di-reset saat login).
-  // Lantai diingat PER jenis kendaraan: mis. Mobil di Lantai 3, Motor di Lantai 2.
+
+  // Inisialisasi state jenisAktif dengan jenis kendaraan tersimpan ('MOBIL' atau 'MOTOR')
   const [jenisAktif, setJenisAktif] = useState(() => bacaStatusPeta().jenis);
+  // Inisialisasi state lantaiPerJenis untuk mengingat lantai aktif per jenis kendaraan
   const [lantaiPerJenis, setLantaiPerJenis] = useState(() => bacaStatusPeta().lantai);
+  // Menghitung lantai aktif saat ini
   const lantaiAktif = lantaiPerJenis[jenisAktif] || 1;
+  // Fungsi pembaruan lantai untuk jenis kendaraan yang sedang dipilih
   const setLantaiUntukJenis = (lt) => setLantaiPerJenis(prev => ({ ...prev, [jenisAktif]: lt }));
 
+  // Hook useEffect untuk menyimpan preferensi jenis kendaraan dan lantai ke sessionStorage
   useEffect(() => {
     sessionStorage.setItem(KUNCI_STATUS_PETA, JSON.stringify({ jenis: jenisAktif, lantai: lantaiPerJenis }));
   }, [jenisAktif, lantaiPerJenis]);
 
-  // ── Fetch semua data dari API ──────────────────────────────────────────
+  // Deklarasi fungsi memoize fetchAll untuk mengambil data slot, kamera, sensor, dan log secara simultan
   const fetchAll = useCallback(async () => {
     try {
+      // Mengirimkan permintaan HTTP GET paralel ke seluruh endpoint monitoring dan telemetri
       const [slotsRes, kameraRes, sensorRes, logsRes] = await Promise.all([
         fetch(`${API_BASE}/api/monitoring/slots`, { cache: 'no-store' }),
         fetch(`${API_BASE}/api/hardware/kamera`, { cache: 'no-store' }),
@@ -57,44 +74,59 @@ export default function DashboardPage() {
         fetch(`${API_BASE}/api/monitoring/log-iot`, { cache: 'no-store' }),
       ]);
 
+      // Memperbarui state slots jika respons berhasil
       if (slotsRes.ok) setSlots(await slotsRes.json());
+      // Memperbarui state kameraList jika respons berhasil
       if (kameraRes.ok) setKameraList(await kameraRes.json());
+      // Memperbarui state sensorList jika respons berhasil
       if (sensorRes.ok) setSensorList(await sensorRes.json());
+      // Memperbarui state logs jika respons berhasil
       if (logsRes.ok) setLogs(await logsRes.json());
     } catch {
-      // Backend belum siap untuk beberapa endpoint - tetap lanjut
+      // Menangkap galat jika salah satu endpoint belum siap
     } finally {
+      // Mematikan status loading
       setIsLoading(false);
     }
   }, []);
 
+  // Hook useEffect untuk menjalankan polling otomatis setiap 1500 milidetik (1.5 detik)
   useEffect(() => {
     fetchAll();
-    const interval = setInterval(fetchAll, 1500); // Auto-refresh real-time 1.5 detik
+    const interval = setInterval(fetchAll, 1500);
     return () => clearInterval(interval);
   }, [fetchAll]);
 
-  // ── Hitung statistik ringkas (case-insensitive untuk toleransi nilai DB) ──
+  // Menghitung jumlah total kapasitas slot parkir
   const totalSlot = slots.length || 0;
+  // Menghitung jumlah slot dengan status TERISI
   const slotTerisi = slots.filter(s => s.statusSlot === 'TERISI').length;
+  // Menghitung jumlah slot dengan status KOSONG
   const slotKosong = slots.filter(s => s.statusSlot === 'KOSONG').length;
+  // Menghitung jumlah slot dengan status DIPESAN
   const slotDipesan = slots.filter(s => s.statusSlot === 'DIPESAN').length;
+  // Menghitung jumlah kamera dengan status operasional ON
   const kameraOnline = kameraList.filter(k => k.statusKamera?.toUpperCase() === 'ON').length;
+  // Menghitung jumlah sensor dengan status operasional ON
   const sensorOnline = sensorList.filter(s => s.statusSensor?.toUpperCase() === 'ON').length;
+  // Menghitung jumlah anomali yang berstatus BELUM_DITANGANI
   const logBelumDitangani = logs.filter(l => l.statusResolusi === 'BELUM_DITANGANI').length;
 
-  // ── Cari sensor per slot (case-insensitive) ─────────────────────────────
+  // Fungsi pembantu untuk mencari status sensor berdasarkan ID slot
   const getSensorStatus = (idSlot) => {
     const sensor = sensorList.find(s => s.slotDipantau?.idSlot === idSlot);
     return sensor ? sensor.statusSensor?.toUpperCase() : null;
   };
 
-  // ── Helper: apakah status hardware ON? (case-insensitive) ───────────────
+  // Fungsi pembantu pengecekan apakah status hardware bernilai 'ON'
   const isOn = (status) => status?.toUpperCase() === 'ON';
 
+  // Fungsi penentu gaya visual kartu slot parkir berdasarkan status sensor, anomali, dan alokasi
   const getSlotStyle = (slot) => {
+    // Jika sensor pemantau slot dalam kondisi OFF, kategorikan sebagai ANOMALI
     if (getSensorStatus(slot.idSlot) === 'OFF') return SLOT_STYLES.ANOMALI;
 
+    // Periksa apakah terdapat log anomali kritis yang belum divalidasi pada slot tersebut
     const hasUnresolvedCriticalLog = logs.some(
       log => log.slotTerkait?.idSlot === slot.idSlot &&
         log.tingkatKeparahan === 'CRITICAL' &&
@@ -102,39 +134,43 @@ export default function DashboardPage() {
     );
     if (hasUnresolvedCriticalLog) return SLOT_STYLES.ANOMALI;
 
+    // Mengembalikan kelas visual sesuai status slot atau default KOSONG
     return SLOT_STYLES[slot.statusSlot] || SLOT_STYLES.KOSONG;
   };
 
-  // ── Filter peta: lantai & jenis kendaraan yang sedang dipilih ────────────
-  // Slot lama tanpa jenisKendaraan dianggap MOBIL
+  // Fungsi pembantu untuk mengambil jenis kendaraan slot
   const getJenisSlot = (slot) => (slot.jenisKendaraan || 'MOBIL').toUpperCase();
 
-  // Daftar lantai dibentuk dinamis dari data slot (mendukung Lantai 1, 2, 3, dst.)
+  // Membentuk daftar lantai yang tersedia secara dinamis dari data slot
   const daftarLantai = [...new Set(slots.map(s => s.lantai || 1))].sort((a, b) => a - b);
   const lantaiTersedia = daftarLantai.length > 0 ? daftarLantai : [1];
   const lantaiTerpilih = lantaiTersedia.includes(lantaiAktif) ? lantaiAktif : lantaiTersedia[0];
 
-  // Hitung slot kosong untuk badge pada tab (per lantai & jenis)
+  // Fungsi perhitungan jumlah slot kosong per lantai dan jenis kendaraan
   const hitungKosong = (lantai, jenis) => slots.filter(
     s => (s.lantai || 1) === lantai && getJenisSlot(s) === jenis && s.statusSlot === 'KOSONG'
   ).length;
 
-  // Slot yang ditampilkan, diurutkan berdasarkan ID agar tidak acak posisinya
+  // Memfilter dan mengurutkan slot yang terlihat pada lantai dan kategori kendaraan yang aktif
   const visibleSlots = slots
     .filter(s => (s.lantai || 1) === lantaiTerpilih && getJenisSlot(s) === jenisAktif)
     .sort((a, b) => a.idSlot.localeCompare(b.idSlot, undefined, { numeric: true, sensitivity: 'base' }));
 
-  // Sensor yang ditampilkan mengikuti slot pada tab aktif
+  // Mengumpulkan ID slot yang tampak untuk menyaring daftar sensor terkait
   const visibleSlotIds = new Set(visibleSlots.map(s => s.idSlot));
   const visibleSensors = sensorList.filter(s => visibleSlotIds.has(s.slotDipantau?.idSlot));
 
+  // Definisi tab jenis kendaraan
   const TAB_JENIS = [
     { key: 'MOBIL', label: t('dash.car', 'Mobil'), icon: 'directions_car' },
     { key: 'MOTOR', label: t('dash.motorcycle', 'Motor'), icon: 'two_wheeler' },
   ];
 
+  // Mengembalikan elemen antarmuka JSX dashboard operasional lapangan
   return (
+    // Membungkus tampilan dengan kerangka AppLayout dan judul navigasi
     <AppLayout breadcrumb={t('topbar.fieldOps', 'Field Operations')}>
+      {/* Definisi styling CSS kustom untuk animasi denyut anomali dan estetika tab */}
       <style>{`
         .pulse-anomaly { animation: pulse-red 2s infinite; }
         @keyframes pulse-red {
@@ -143,7 +179,6 @@ export default function DashboardPage() {
           100% { box-shadow: 0 0 0 0 rgba(255,69,0,0); border-color: #FF4500; }
         }
 
-        /* ── Tab Mobil/Motor bergaya tab browser (Chrome) ── */
         .map-shell {
           --card-bg: #121212;
           --panel-bg: #090f13;
@@ -185,7 +220,6 @@ export default function DashboardPage() {
           border-radius: 12px 12px 0 0;
           transition: color .2s ease, border-color .2s ease;
         }
-        /* Hover tab non-aktif: pill lembut seperti Chrome */
         .slot-tab:not(.active)::before {
           content: '';
           position: absolute;
@@ -203,7 +237,6 @@ export default function DashboardPage() {
           font-size: 10px;
           opacity: .75;
         }
-        /* Tab aktif: menyatu dengan panel peta + border warna surface-variant + border bawah dihilangkan agar menyatu */
         .slot-tab.active {
           background: var(--panel-bg);
           color: var(--tab-active);
@@ -211,7 +244,6 @@ export default function DashboardPage() {
           border-bottom-color: var(--panel-bg);
           z-index: 2;
         }
-        /* Tab aktif: sudut bawah lurus (tidak ada efek bengkok/notch) */
         .slot-fade-in { animation: slot-fade .25s ease; }
         @keyframes slot-fade {
           from { opacity: 0; transform: translateY(4px); }
@@ -219,9 +251,10 @@ export default function DashboardPage() {
         }
       `}</style>
 
+      {/* Wadah utama halaman dashboard lapangan */}
       <div className="p-6 flex flex-col gap-5 bg-background min-h-full">
 
-        {/* ── Stats Strip ───────────────────────────────────────────────── */}
+        {/* Baris kartu metrik statistik ringkas */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {[
             { label: t('dash.totalSlots', 'Total Slot'), val: totalSlot, icon: 'local_parking', color: 'text-system-info' },
@@ -241,19 +274,20 @@ export default function DashboardPage() {
           ))}
         </div>
 
+        {/* Pembagian grid tata letak dashboard */}
         <div className="grid grid-cols-12 gap-4">
 
-          {/* ── LEFT: Slot Map (dari slot_parkir API) ─────────────────── */}
+          {/* Kolom Kiri: Peta Real-Time Slot Parkir dan Status Perangkat Keras */}
           <div className="col-span-12 xl:col-span-8 flex flex-col gap-4">
             <div className="map-shell bg-bg-primary rounded-xl border border-surface-variant p-5 flex flex-col">
 
-              {/* Header baris 1: judul di kiri + legenda di kanan */}
+              {/* Judul dan legenda status slot */}
               <div className="flex justify-between items-center gap-4 flex-wrap mb-2">
                 <h2 className="font-semibold text-xl text-on-surface flex items-center gap-2">
                   <span className="material-symbols-outlined text-primary">map</span>
                   {t('dash.slotMapTitle', 'Peta Slot Parkir — Real-time')}
                 </h2>
-                {/* Legenda */}
+                {/* Legenda warna status slot */}
                 <div className="flex gap-4 text-xs font-mono">
                   <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-eco-success rounded-sm"></div>{t('dash.legendOccupied', 'Terisi')}</div>
                   <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-warning-reserved rounded-sm"></div>{t('dash.legendReserved', 'Dipesan')}</div>
@@ -262,9 +296,9 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Header baris 2: Tab Mobil/Motor (kiri) + Panel lantai (kanan) — sama baris, menyentuh slot-panel */}
+              {/* Baris pemilih kategori kendaraan dan lantai */}
               <div className="flex justify-between items-end">
-                {/* Tab jenis kendaraan bergaya tab browser */}
+                {/* Tab jenis kendaraan */}
                 <div className="slot-tabs" role="tablist" aria-label="Pilih jenis kendaraan">
                   {TAB_JENIS.map(t => {
                     const aktif = t.key === jenisAktif;
@@ -286,7 +320,7 @@ export default function DashboardPage() {
                   })}
                 </div>
 
-                {/* Panel pemilih lantai — kanan, sejajar bawah dengan tab */}
+                {/* Panel tombol pemilih lantai */}
                 <div id="panel-lantai" className="floor-panel inline-flex items-center gap-1 p-1 pb-[5px] rounded-t-lg border border-b-0 border-surface-variant bg-surface-container-lowest" role="tablist" aria-label="Pilih lantai">
                   <span className="material-symbols-outlined text-[18px] text-text-muted px-1.5">layers</span>
                   {lantaiTersedia.map(lt => {
@@ -311,9 +345,11 @@ export default function DashboardPage() {
                 </div>
               </div>
 
+              {/* Panel denah kotak slot parkir */}
               <div className="slot-panel bg-surface-container-lowest rounded-lg border border-surface-variant p-4 relative overflow-hidden">
                 <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none opacity-30"></div>
 
+                {/* Tampilan kondisi loading atau data denah slot */}
                 {isLoading ? (
                   <div className="py-12 text-center text-text-muted font-mono text-xs">
                     <span className="material-symbols-outlined animate-spin text-[32px] mb-2 block">progress_activity</span>
@@ -333,6 +369,7 @@ export default function DashboardPage() {
                       <div className="text-xs font-mono text-outline-variant text-center border-y border-surface-variant py-1 mb-3 uppercase tracking-widest">
                         Lantai {lantaiTerpilih} — {jenisAktif}
                       </div>
+                      {/* Grid representasi kotak slot parkir */}
                       <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.max(1, Math.min(visibleSlots.length, 8))}, minmax(0, 1fr))` }}>
                         {visibleSlots.map(slot => {
                           const styleClass = getSlotStyle(slot);
@@ -343,8 +380,8 @@ export default function DashboardPage() {
                               title={`${slot.idSlot} — ${slot.statusSlot}${slot.kendaraanAktif ? ` | ${slot.kendaraanAktif.platNomor}` : ''}`}
                               className={`group h-10 rounded flex items-center justify-center font-mono text-xs relative ${styleClass}`}
                             >
-                              {/* Tampilkan B sebagai prefix untuk slot motor (M→B) agar konsisten dengan Basement */}
                               {slot.idSlot.replace(/^M(\d+)/, 'B$1')}
+                              {/* Kotak tooltip detail anomali saat hover */}
                               {isAnomali && (
                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-surface-container-high border border-alert-anomaly p-3 rounded shadow-lg hidden group-hover:block z-50 text-left">
                                   <p className="text-xs text-alert-anomaly font-bold mb-1">ANOMALI SLOT</p>
@@ -364,10 +401,10 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* ── Hardware Status: Kamera & Sensor ─────────────────────── */}
+            {/* Bagian status perangkat keras: Kamera ANPR dan Sensor IoT */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-              {/* Kamera ANPR */}
+              {/* Status Kamera ANPR */}
               <div className="bg-bg-primary rounded-xl border border-surface-variant p-4">
                 <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2 mb-3 border-b border-surface-variant pb-2">
                   <span className="material-symbols-outlined text-[#7ad0ff] text-[18px]">videocam</span>
@@ -403,7 +440,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Sensor IoT */}
+              {/* Status Sensor IoT */}
               <div className="bg-bg-primary rounded-xl border border-surface-variant p-4">
                 <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2 mb-3 border-b border-surface-variant pb-2">
                   <span className="material-symbols-outlined text-[#ffd700] text-[18px]">sensors</span>
@@ -433,10 +470,10 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* ── RIGHT: Alerts dari log_operasional_iot + Live Gate Monitor ── */}
+          {/* Kolom Kanan: Panel Active Alerts dan Live Gate Monitor */}
           <div className="col-span-12 xl:col-span-4 flex flex-col gap-4">
 
-            {/* Active Alerts dari log_operasional_iot */}
+            {/* Panel Active Alerts */}
             <div className="bg-bg-primary rounded-xl border border-surface-variant p-5 flex flex-col flex-1">
               <div className="flex justify-between items-center mb-4 border-b border-surface-variant pb-3">
                 <h2 className="font-semibold text-lg text-on-surface flex items-center gap-2">
@@ -496,7 +533,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Live Gate Monitor — 4 kamera mini */}
+            {/* Panel Mini Live Gate Monitor */}
             <div className="bg-bg-primary rounded-xl border border-surface-variant p-5 flex flex-col">
               <h2 className="font-semibold text-lg text-on-surface flex items-center gap-2 mb-3">
                 <span className="material-symbols-outlined text-primary">videocam</span>
@@ -514,11 +551,10 @@ export default function DashboardPage() {
                           : <span className="material-symbols-outlined text-[40px] text-surface-variant opacity-30 group-hover:opacity-50 transition-opacity">local_parking</span>
                         }
                       </div>
-                      {/* Overlay merah saat OFF */}
                       {!camOn && (
                         <div className="absolute inset-0 bg-red-950/20 pointer-events-none z-0" />
                       )}
-                      {/* HUD Top */}
+                      {/* HUD Atas Kamera Mini */}
                       <div className="absolute top-2 left-2 flex items-center gap-1.5 z-10">
                         <div className={`w-1.5 h-1.5 rounded-full ${camOn ? 'bg-eco-success animate-pulse' : 'bg-red-500 animate-pulse'}`}></div>
                         <span className={`font-mono text-[9px] bg-black/60 px-1.5 py-0.5 rounded backdrop-blur-sm border ${camOn ? 'text-white border-outline-variant/30' : 'text-red-300 border-red-700/40'
@@ -526,7 +562,7 @@ export default function DashboardPage() {
                           {cam.idKamera}
                         </span>
                       </div>
-                      {/* HUD Bottom */}
+                      {/* HUD Bawah Kamera Mini */}
                       <div className={`absolute bottom-0 left-0 right-0 backdrop-blur-md p-2 border-t flex justify-between items-center z-10 ${camOn ? 'bg-black/80 border-primary/30' : 'bg-red-950/80 border-red-700/50'
                         }`}>
                         <div className="font-mono">
@@ -544,7 +580,6 @@ export default function DashboardPage() {
                     </div>
                   );
                 }) : (
-                  // Fallback 4 card dummy saat loading
                   ['Entry-Mobil', 'Entry-Motor', 'Exit-Mobil', 'Exit-Motor'].map(name => (
                     <div key={name} className="relative bg-surface-container-lowest rounded overflow-hidden border border-surface-variant aspect-video flex items-center justify-center">
                       <span className="text-[9px] font-mono text-text-muted">{name}</span>

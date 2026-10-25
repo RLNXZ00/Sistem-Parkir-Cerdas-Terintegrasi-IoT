@@ -1,25 +1,35 @@
+// Import hook useState dan useEffect dari pustaka react untuk state dan siklus hidup komponen
 import { useState, useEffect } from 'react';
+// Import komponen AppLayout sebagai kerangka tata letak antarmuka aplikasi
 import AppLayout from '../components/AppLayout';
+// Import hook useLanguage dari konteks bahasa untuk internasionalisasi label dan teks
 import { useLanguage } from '../context/LanguageContext';
 
+// Mendefinisikan konstanta alamat dasar server backend Spring Boot (port 8081)
 const API_BASE = 'http://localhost:8081';
 
+// Deklarasi fungsi komponen publik ReportsPage untuk pelaporan analitik, pratinjau, dan ekspor dokumen resmi
 export default function ReportsPage() {
+  // Mengambil fungsi penerjemah t dari context LanguageContext
   const { t } = useLanguage();
 
+  // Daftar opsi jenis laporan resmi sesuai modul PK-UC010
   const REPORT_TYPES = [
-    { value: 'finansial', label: t('reports.typeFinancial', 'Laporan Finansial') },
-    { value: 'operasional', label: t('reports.typeOperational', 'Laporan Operasional & Okupansi') },
-    { value: 'lingkungan', label: t('reports.typeEnvironmental', 'Laporan Lingkungan (Eco-Metric)') },
-    { value: 'komprehensif', label: t('reports.typeComprehensive', 'Laporan Komprehensif (Master)') },
+    { value: 'finansial', label: t('reports.typeFinancial', 'Laporan Finansial') }, // Laporan transaksi dan pendapatan
+    { value: 'operasional', label: t('reports.typeOperational', 'Laporan Operasional & Okupansi') }, // Laporan log telemetri dan anomali
+    { value: 'lingkungan', label: t('reports.typeEnvironmental', 'Laporan Lingkungan (Eco-Metric)') }, // Laporan reduksi karbon CO2 dan waktu
+    { value: 'komprehensif', label: t('reports.typeComprehensive', 'Laporan Komprehensif (Master)') }, // Laporan rekapitulasi komprehensif master
   ];
+  // Inisialisasi state reportType bertipe string dengan nilai bawaan 'finansial'
   const [reportType, setReportType] = useState('finansial');
+  // Inisialisasi state startDate bertipe string dengan tanggal awal bulan berjalan
   const [startDate, setStartDate] = useState(() => {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     return `${year}-${month}-01`;
   });
+  // Inisialisasi state endDate bertipe string dengan tanggal hari ini
   const [endDate, setEndDate] = useState(() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -27,123 +37,174 @@ export default function ReportsPage() {
     const day = String(now.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   });
+  // Inisialisasi state loading bertipe boolean untuk memantau status pengambilan pratinjau laporan
   const [loading, setLoading] = useState(false);
+  // Inisialisasi state errorMsg bertipe string atau null untuk menyimpan pesan galat validasi parameter
   const [errorMsg, setErrorMsg] = useState(null);
+  // Inisialisasi state reportData bertipe objek atau null untuk menyimpan data respons laporan backend
   const [reportData, setReportData] = useState(null);
+  // Inisialisasi state komprehensifTab bertipe string dengan nilai awal 'finansial' untuk sub-tab laporan master
   const [komprehensifTab, setKomprehensifTab] = useState('finansial');
+  // Inisialisasi state downloadingPdf bertipe boolean untuk status proses unduh berkas PDF
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  // Inisialisasi state downloadingXlsx bertipe boolean untuk status proses unduh berkas Excel
   const [downloadingXlsx, setDownloadingXlsx] = useState(false);
+  // Inisialisasi state auditLogs bertipe array kosong untuk daftar riwayat penarikan dokumen
   const [auditLogs, setAuditLogs] = useState([]);
+  // Inisialisasi state loadingAudit bertipe boolean untuk pemantauan data audit trail
   const [loadingAudit, setLoadingAudit] = useState(false);
 
-  // Mengambil Riwayat Audit Unduhan dari Backend (PK-UC010 Langkah 19-20)
+  // Deklarasi fungsi asinkron fetchAuditLogs untuk mengambil riwayat penarikan dokumen (Audit Trail PK-UC010)
   const fetchAuditLogs = async () => {
     try {
+      // Mengaktifkan status loading audit
       setLoadingAudit(true);
+      // Mengirimkan permintaan HTTP GET ke endpoint audit laporan backend
       const res = await fetch(`${API_BASE}/api/laporan/audit`);
+      // Jika respons berhasil, perbarui state auditLogs
       if (res.ok) {
         const data = await res.json();
         setAuditLogs(data);
       }
     } catch (err) {
+      // Menampilkan log galat audit ke konsol
       console.error('Error fetching audit logs:', err);
     } finally {
+      // Mematikan status loading audit
       setLoadingAudit(false);
     }
   };
 
-  // Mengunduh Dokumen Resmi PDF ber-kop surat dan tanda tangan (Fase 3 - PK-UC010)
+  // Deklarasi fungsi asinkron handleExportPdf untuk mengunduh dokumen resmi format PDF
   const handleExportPdf = async () => {
+    // Jika data laporan belum tersedia, batalkan eksekusi
     if (!reportData) return;
     try {
+      // Mengaktifkan indikator proses pengunduhan PDF
       setDownloadingPdf(true);
+      // Membentuk URL permintaan unduhan PDF dengan query parameter yang telah di-encode
       const url = `${API_BASE}/api/laporan/unduh?format=pdf&jenis=${encodeURIComponent(reportType)}&dari=${encodeURIComponent(startDate)}&sampai=${encodeURIComponent(endDate)}`;
 
+      // Mengirimkan permintaan HTTP fetch untuk mendapatkan berkas biner PDF
       const response = await fetch(url);
+      // Jika respons tidak sukses, lempar pesan galat
       if (!response.ok) {
         throw new Error(`Gagal mengunduh dokumen PDF (HTTP ${response.status})`);
       }
 
+      // Mengubah respons biner menjadi objek Blob
       const blob = await response.blob();
+      // Membuat URL sementara dari Blob
       const blobUrl = window.URL.createObjectURL(blob);
+      // Membuat elemen tautan HTML <a> secara dinamis
       const link = document.createElement('a');
       link.href = blobUrl;
+      // Menentukan nama berkas unduhan PDF
       const namaFile = `Laporan_${reportType.charAt(0).toUpperCase() + reportType.slice(1)}_${startDate}_sd_${endDate}.pdf`;
       link.setAttribute('download', namaFile);
+      // Menyisipkan elemen tautan ke dalam DOM body
       document.body.appendChild(link);
+      // Memicu klik otomatis pada elemen tautan untuk memulai unduhan
       link.click();
+      // Menghapus elemen tautan dari DOM
       document.body.removeChild(link);
+      // Mencabut URL sementara Blob untuk membebaskan alokasi memori browser
       window.URL.revokeObjectURL(blobUrl);
 
-      // Perbarui daftar audit trail setelah unduhan sukses
+      // Memperbarui rekam jejak audit unduhan terbaru
       fetchAuditLogs();
     } catch (err) {
+      // Menampilkan log kesalahan ke konsol
       console.error('Error downloading PDF:', err);
+      // Menampilkan pesan galat di antarmuka pengguna
       setErrorMsg('Gagal mengunduh dokumen PDF: ' + err.message);
     } finally {
+      // Mematikan status loading unduh PDF
       setDownloadingPdf(false);
     }
   };
 
-  // Mengunduh Dokumen Resmi Spreadsheet Excel XLSX (Fase 4 - PK-UC010)
+  // Deklarasi fungsi asinkron handleExportXlsx untuk mengunduh dokumen resmi spreadsheet format Excel (.xlsx)
   const handleExportXlsx = async () => {
+    // Jika data laporan belum tersedia, batalkan eksekusi
     if (!reportData) return;
     try {
+      // Mengaktifkan indikator proses pengunduhan Excel
       setDownloadingXlsx(true);
+      // Membentuk URL permintaan unduhan XLSX dengan query parameter ter-encode
       const url = `${API_BASE}/api/laporan/unduh?format=xlsx&jenis=${encodeURIComponent(reportType)}&dari=${encodeURIComponent(startDate)}&sampai=${encodeURIComponent(endDate)}`;
 
+      // Mengirimkan permintaan HTTP fetch untuk mengambil berkas biner Excel
       const response = await fetch(url);
+      // Jika respons gagal, lempar galat
       if (!response.ok) {
         throw new Error(`Gagal mengunduh dokumen Excel (HTTP ${response.status})`);
       }
 
+      // Mengubah respons ke format Blob
       const blob = await response.blob();
+      // Membuat URL objek sementara
       const blobUrl = window.URL.createObjectURL(blob);
+      // Membuat elemen tautan <a>
       const link = document.createElement('a');
       link.href = blobUrl;
+      // Menentukan nama berkas spreadsheet Excel
       const namaFile = `Laporan_${reportType.charAt(0).toUpperCase() + reportType.slice(1)}_${startDate}_sd_${endDate}.xlsx`;
       link.setAttribute('download', namaFile);
+      // Memasang elemen ke DOM
       document.body.appendChild(link);
+      // Memicu unduhan berkas
       link.click();
+      // Menghapus elemen dari DOM
       document.body.removeChild(link);
+      // Membersihkan alokasi memori URL objek Blob
       window.URL.revokeObjectURL(blobUrl);
 
-      // Perbarui daftar audit trail setelah unduhan sukses
+      // Memperbarui rekam jejak audit unduhan
       fetchAuditLogs();
     } catch (err) {
+      // Menampilkan galat ke konsol
       console.error('Error downloading Excel:', err);
+      // Menampilkan pesan kegagalan ke antarmuka
       setErrorMsg('Gagal mengunduh dokumen Excel: ' + err.message);
     } finally {
+      // Mematikan status loading unduh Excel
       setDownloadingXlsx(false);
     }
   };
 
-  // Mengambil laporan dari backend
+  // Deklarasi fungsi asinkron fetchReport untuk memvalidasi parameter dan mengambil pratinjau data laporan dari backend
   const fetchReport = async (jenis, dari, sampai) => {
-    // 1. Validasi Parameter Sisi Klien (Sesuai Diagram Aktifitas & Sequence PK-UC010)
+    // Validasi parameter: memastikan tanggal mulai dan akhir telah terisi
     if (!dari || !sampai) {
       setErrorMsg('Input tanggal salah: Tanggal mulai dan tanggal akhir wajib dipilih.');
       return;
     }
+    // Validasi kronologi: tanggal mulai tidak boleh melebihi tanggal akhir
     if (dari > sampai) {
       setErrorMsg('Input tanggal salah: Tanggal mulai tidak boleh lebih besar dari tanggal akhir.');
       return;
     }
 
+    // Validasi masa depan: tanggal mulai tidak boleh melebihi hari ini
     const todayStr = new Date().toISOString().split('T')[0];
     if (dari > todayStr) {
       setErrorMsg('Input tanggal salah: Tanggal mulai tidak boleh berada di masa depan.');
       return;
     }
 
+    // Mereset pesan galat menjadi null
     setErrorMsg(null);
+    // Mengaktifkan status pemuatan data
     setLoading(true);
 
     try {
+      // Mengirimkan permintaan HTTP GET ke endpoint pratinjau laporan
       const response = await fetch(
         `${API_BASE}/api/laporan/preview?jenis=${encodeURIComponent(jenis)}&dari=${encodeURIComponent(dari)}&sampai=${encodeURIComponent(sampai)}`
       );
 
+      // Jika respons tidak berhasil (non-2xx)
       if (!response.ok) {
         const errorJson = await response.json().catch(() => null);
         const pesan = errorJson?.message || `Gagal memuat laporan (HTTP ${response.status}). Silakan ulangi.`;
@@ -152,53 +213,64 @@ export default function ReportsPage() {
         return;
       }
 
+      // Mengurai data respons JSON laporan
       const data = await response.json();
+      // Menyimpan data laporan ke dalam state reportData
       setReportData(data);
     } catch (err) {
+      // Menampilkan pesan kesalahan koneksi server ke konsol
       console.error('Error fetching report:', err);
       setErrorMsg('Gagal terhubung ke server backend SPCT. Pastikan server backend sedang aktif.');
       setReportData(null);
     } finally {
+      // Mematikan status loading
       setLoading(false);
     }
   };
 
-  // Muat data awal saat halaman pertama kali dibuka
+  // Hook useEffect untuk memuat data awal laporan dan audit log saat pertama kali komponen dirender
   useEffect(() => {
     fetchReport(reportType, startDate, endDate);
     fetchAuditLogs();
   }, []);
 
+  // Deklarasi fungsi penanganan tombol submit pemicu pembuatan laporan
   const handleGenerate = (e) => {
+    // Mencegah submit standar form
     e.preventDefault();
+    // Memanggil pemuatan laporan dengan parameter terbaru
     fetchReport(reportType, startDate, endDate);
   };
 
-  // Helper warna kartu KPI
+  // Deklarasi fungsi pembantu getKpiColor untuk menentukan kelas warna kartu ringkasan KPI
   const getKpiColor = (warna) => {
     switch (warna) {
       case 'eco-success':
-        return 'text-eco-success';
+        return 'text-eco-success'; // Warna hijau ekologis
       case 'alert-anomaly':
-        return 'text-alert-anomaly';
+        return 'text-alert-anomaly'; // Warna oranye-merah anomali
       case 'secondary':
-        return 'text-secondary';
+        return 'text-secondary'; // Warna sekunder
       case 'primary':
       default:
-        return 'text-primary';
+        return 'text-primary'; // Warna primer bawaan
     }
   };
 
+  // Mengembalikan elemen JSX modul laporan analitik dan operasional
   return (
+    // Membungkus halaman dengan kerangka AppLayout dan breadcrumb navigasi
     <AppLayout breadcrumb={t('topbar.reports', 'Operational Reports')}>
+      {/* Wadah isi utama halaman dengan penataan vertikal */}
       <div className="p-6 bg-background min-h-full flex flex-col gap-6">
 
-        {/* Header Halaman */}
+        {/* Bagian header judul halaman dan status sinkronisasi */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-4xl font-bold text-on-surface tracking-tight">{t('reports.title', 'Operational Reports')}</h1>
             <p className="text-text-muted font-mono text-sm mt-1">{t('reports.subtitle', 'MANAJEMEN // DATA HISTORIS & ANALITIK RESMI (PK-UC010)')}</p>
           </div>
+          {/* Lencana status sinkronisasi database langsung */}
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-medium bg-primary/10 text-primary border border-primary/20">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
@@ -207,7 +279,7 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {/* Flash Message Validasi Parameter (Error Banner Sesuai Sequence Step 6) */}
+        {/* Banner peringatan jika validasi parameter tanggal gagal */}
         {errorMsg && (
           <div className="bg-error-container/20 border border-error/50 rounded-xl p-4 flex items-start justify-between gap-3 text-on-surface animate-fadeIn">
             <div className="flex items-center gap-3">
@@ -217,6 +289,7 @@ export default function ReportsPage() {
                 <p className="text-sm text-on-surface mt-0.5">{errorMsg}</p>
               </div>
             </div>
+            {/* Tombol penutup pesan kesalahan */}
             <button
               onClick={() => setErrorMsg(null)}
               className="text-text-muted hover:text-on-surface transition-colors p-1 cursor-pointer"
@@ -227,7 +300,7 @@ export default function ReportsPage() {
           </div>
         )}
 
-        {/* Report Generator Form */}
+        {/* Panel formulir pemilihan parameter laporan (Report Generator) */}
         <div className="bg-bg-surface rounded-xl p-5 border border-outline-variant/30 shadow-lg">
           <div className="flex items-center gap-2 mb-5">
             <span className="material-symbols-outlined text-primary text-[22px]">summarize</span>
@@ -235,7 +308,7 @@ export default function ReportsPage() {
           </div>
 
           <form onSubmit={handleGenerate} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-            {/* Pilihan Jenis Laporan */}
+            {/* Pilihan jenis laporan (Dropdown) */}
             <div className="flex flex-col gap-2 md:col-span-2">
               <label className="font-mono text-xs text-on-surface-variant uppercase tracking-wider">{t('reports.type', 'Jenis Laporan')}</label>
               <div className="relative">
@@ -256,7 +329,7 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            {/* Tanggal Mulai */}
+            {/* Input tanggal batas awal */}
             <div className="flex flex-col gap-2">
               <label className="font-mono text-xs text-on-surface-variant uppercase tracking-wider">{t('reports.startDate', 'Tanggal Mulai')}</label>
               <input
@@ -267,7 +340,7 @@ export default function ReportsPage() {
               />
             </div>
 
-            {/* Tanggal Akhir */}
+            {/* Input tanggal batas akhir */}
             <div className="flex flex-col gap-2">
               <label className="font-mono text-xs text-on-surface-variant uppercase tracking-wider">{t('reports.endDate', 'Tanggal Akhir')}</label>
               <input
@@ -278,7 +351,7 @@ export default function ReportsPage() {
               />
             </div>
 
-            {/* Tombol Generate Report */}
+            {/* Tombol aksi pemroses pembuatan laporan */}
             <button
               type="submit"
               disabled={loading}
@@ -299,11 +372,11 @@ export default function ReportsPage() {
           </form>
         </div>
 
-        {/* Section Pratinjau Laporan (Preview) */}
+        {/* Bagian pratinjau hasil penarikan laporan (Preview) */}
         {reportData && (
           <div className="flex flex-col gap-6 animate-fadeIn">
 
-            {/* Kartu Ringkasan & Header Laporan */}
+            {/* Kartu judul metadata laporan dan tombol ekspor resmi */}
             <div className="bg-bg-surface rounded-xl p-5 border border-outline-variant/30 shadow-lg">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 pb-4 border-b border-surface-variant/40">
                 <div className="flex items-center gap-3">
@@ -323,8 +396,9 @@ export default function ReportsPage() {
                   </div>
                 </div>
 
-                {/* Tombol Ekspor Dokumen Resmi (PDF & Excel) */}
+                {/* Tombol ekspor dokumen PDF dan spreadsheet Excel */}
                 <div className="flex items-center gap-3">
+                  {/* Tombol unduh dokumen PDF */}
                   <button
                     onClick={handleExportPdf}
                     disabled={downloadingPdf}
@@ -344,6 +418,7 @@ export default function ReportsPage() {
                     )}
                   </button>
 
+                  {/* Tombol unduh lembar kerja Excel */}
                   <button
                     onClick={handleExportXlsx}
                     disabled={downloadingXlsx}
@@ -365,7 +440,7 @@ export default function ReportsPage() {
                 </div>
               </div>
 
-              {/* KPI Cards Ringkasan Eksekutif */}
+              {/* Grid kartu indikator metrik KPI ringkasan */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {reportData.ringkasan.map((kpi, idx) => (
                   <div key={idx} className="bg-surface-container rounded-lg p-4 border border-outline-variant/20 hover:border-outline-variant/40 transition-colors">
@@ -379,7 +454,7 @@ export default function ReportsPage() {
                 ))}
               </div>
 
-              {/* Highlight Khusus Laporan Komprehensif (Master Executive Suite) */}
+              {/* Tiga pilar sorotan khusus laporan komprehensif master */}
               {reportData.metadata.jenisLaporan === 'komprehensif' && (
                 <div className="mt-4 pt-4 border-t border-surface-variant/40 grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="bg-surface-container/60 rounded-lg p-3 border border-outline-variant/20 flex items-center gap-3">
@@ -407,7 +482,7 @@ export default function ReportsPage() {
               )}
             </div>
 
-            {/* Kondisi Alternate Course: Data Kosong */}
+            {/* Tampilan pesan bila tidak ada data historis dalam periode terpilih */}
             {reportData.metadata.kosong ? (
               <div className="bg-bg-surface rounded-xl p-12 border border-outline-variant/30 text-center flex flex-col items-center justify-center gap-3">
                 <span className="material-symbols-outlined text-text-muted text-[48px]">folder_off</span>
@@ -418,16 +493,17 @@ export default function ReportsPage() {
                 </p>
               </div>
             ) : (
-              /* Tabel Data Historis Sesuai Jenis Laporan */
+              /* Tabel rincian data historis sesuai kategori laporan */
               <div className="bg-bg-surface rounded-xl p-5 border border-outline-variant/30 shadow-lg flex flex-col gap-4">
 
-                {/* Sub-Header Tabel & Tab Navigasi Khusus Laporan Komprehensif */}
+                {/* Sub-header tabel dan navigasi tab komprehensif */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-primary text-[20px]">table_chart</span>
                     <h3 className="text-lg font-semibold text-on-surface">Rincian Data Historis</h3>
                   </div>
 
+                  {/* Tab selektor pilar data pada laporan komprehensif */}
                   {reportData.metadata.jenisLaporan === 'komprehensif' && (
                     <div className="flex items-center bg-surface-container p-1 rounded-lg border border-outline-variant/30 text-xs font-mono">
                       <button
@@ -455,7 +531,7 @@ export default function ReportsPage() {
                   )}
                 </div>
 
-                {/* TABEL 1: LAPORAN FINANSIAL */}
+                {/* TABEL 1: RINCIAN LAPORAN FINANSIAL */}
                 {(reportData.metadata.jenisLaporan === 'finansial' ||
                   (reportData.metadata.jenisLaporan === 'komprehensif' && komprehensifTab === 'finansial')) && (
                   <div className="overflow-x-auto">
@@ -504,57 +580,40 @@ export default function ReportsPage() {
                   </div>
                 )}
 
-                {/* TABEL 2: LAPORAN OPERASIONAL & OKUPANSI */}
+                {/* TABEL 2: RINCIAN LAPORAN OPERASIONAL & OKUPANSI */}
                 {(reportData.metadata.jenisLaporan === 'operasional' ||
                   (reportData.metadata.jenisLaporan === 'komprehensif' && komprehensifTab === 'operasional')) && (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-surface-variant text-on-surface-variant font-mono text-xs uppercase tracking-wider">
-                          {/* Header kolom nomor urut */}
                           <th className="text-left pb-3 pr-3">No</th>
-                          {/* Header kolom kode ID log */}
                           <th className="text-left pb-3 pr-4">ID Log</th>
-                          {/* Header kolom waktu kejadian */}
                           <th className="text-left pb-3 pr-4">Waktu Kejadian</th>
-                          {/* Header kolom slot atau node parkir */}
                           <th className="text-left pb-3 pr-4">Slot / Node</th>
-                          {/* Header kolom tipe kejadian dari sensor/sistem */}
                           <th className="text-left pb-3 pr-4">Tipe Kejadian</th>
-                          {/* Header kolom jenis anomali yang dipilih petugas */}
                           <th className="text-left pb-3 pr-4">Jenis Anomali</th>
-                          {/* Header kolom catatan detail log */}
                           <th className="text-left pb-3 pr-4">Catatan Detail</th>
-                          {/* Header kolom tingkat keparahan */}
                           <th className="text-center pb-3 pr-4">Severity</th>
-                          {/* Header kolom status resolusi tindak lanjut */}
                           <th className="text-center pb-3">Status Resolusi</th>
                         </tr>
                       </thead>
                       <tbody>
                         {reportData.tabelOperasional.map((row) => (
                           <tr key={row.idLog} className="border-b border-surface-container hover:bg-surface-container-high transition-colors">
-                            {/* Sel data nomor urut */}
                             <td className="py-3 pr-3 font-mono text-on-surface-variant text-xs">{row.no}</td>
-                            {/* Sel data ID Log */}
                             <td className="py-3 pr-4 font-mono text-primary text-xs font-semibold">{row.idLog}</td>
-                            {/* Sel data waktu kejadian */}
                             <td className="py-3 pr-4 font-mono text-on-surface-variant text-xs">{row.waktu}</td>
-                            {/* Sel data ID slot */}
                             <td className="py-3 pr-4 font-mono text-on-surface text-xs font-bold">{row.idSlot}</td>
-                            {/* Sel data tipe kejadian */}
                             <td className="py-3 pr-4 font-mono text-on-surface text-xs">{row.jenisKejadian}</td>
-                            {/* Sel data jenis anomali dari validasi petugas di lapangan */}
                             <td className="py-3 pr-4 font-mono text-on-surface text-xs">
                               <span className="px-2 py-0.5 rounded bg-surface-container-highest border border-outline-variant/30 text-[11px] font-semibold text-primary">
                                 {row.jenisAnomali || '-'}
                               </span>
                             </td>
-                            {/* Sel data catatan detail */}
                             <td className="py-3 pr-4 text-xs text-text-muted max-w-xs truncate" title={row.catatanDetail}>
                               {row.catatanDetail}
                             </td>
-                            {/* Sel data tingkat keparahan severity */}
                             <td className="py-3 pr-4 text-center">
                               <span
                                 className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
@@ -568,7 +627,6 @@ export default function ReportsPage() {
                                 {row.tingkatKeparahan}
                               </span>
                             </td>
-                            {/* Sel data status resolusi dengan badge hijau jika sudah divalidasi */}
                             <td className="py-3 text-center">
                               <span
                                 className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
@@ -587,7 +645,7 @@ export default function ReportsPage() {
                   </div>
                 )}
 
-                {/* TABEL 3: LAPORAN LINGKUNGAN (ECO-METRIC) */}
+                {/* TABEL 3: RINCIAN LAPORAN LINGKUNGAN (ECO-METRIC) */}
                 {(reportData.metadata.jenisLaporan === 'lingkungan' ||
                   (reportData.metadata.jenisLaporan === 'komprehensif' && komprehensifTab === 'lingkungan')) && (
                   <div className="overflow-x-auto">
@@ -632,7 +690,7 @@ export default function ReportsPage() {
           </div>
         )}
 
-        {/* Section Riwayat Unduhan Dokumen (Audit Trail PK-UC010) */}
+        {/* Bagian Riwayat Unduhan Dokumen (Audit Trail PK-UC010 Langkah 19–20) */}
         <div className="bg-bg-surface rounded-xl p-5 border border-outline-variant/30 shadow-lg flex flex-col gap-4 animate-fadeIn">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-surface-variant/40 pb-4">
             <div className="flex items-center gap-3">
@@ -644,6 +702,7 @@ export default function ReportsPage() {
                 </p>
               </div>
             </div>
+            {/* Tombol penyegaran rekam jejak audit */}
             <button
               onClick={fetchAuditLogs}
               disabled={loadingAudit}
@@ -657,6 +716,7 @@ export default function ReportsPage() {
             </button>
           </div>
 
+          {/* Menampilkan indikator loading atau tabel rekam jejak audit unduhan */}
           {loadingAudit && auditLogs.length === 0 ? (
             <div className="py-8 text-center text-text-muted font-mono text-xs flex items-center justify-center gap-2">
               <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
