@@ -158,7 +158,7 @@ export default function ExitScanPage({ jenis = 'MOBIL' }) {
             </div>
           ) : (
             <div className="flex flex-col items-center gap-1 z-10 text-center px-4">
-              <span className="material-symbols-outlined text-[42px] text-slate-600 mb-1">{isMotor ? 'two_wheeler' : 'no_crash'}</span>
+              <span className="material-symbols-outlined text-[42px] text-slate-600 mb-1" style={{ fontVariationSettings: "'FILL' 0" }}>{isMotor ? 'two_wheeler' : 'directions_car'}</span>
               <span className="font-mono text-xs text-slate-400 tracking-wider">AREA PARKIR KOSONG</span>
               <span className="text-[10px] text-slate-500">Semua kendaraan sudah keluar</span>
             </div>
