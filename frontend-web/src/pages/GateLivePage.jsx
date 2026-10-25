@@ -210,7 +210,7 @@ export default function GateLivePage() {
         {isLoading && kameraList.length === 0 ? (
           <div className="h-[600px] flex items-center justify-center text-text-muted font-mono text-sm">
             <span className="material-symbols-outlined animate-spin mr-2">progress_activity</span>
-            Memuat data kamera dari server...
+            {t('dash.loading','Memuat data kamera dari server...')}
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5" style={{ height: '600px' }}>
@@ -231,7 +231,7 @@ export default function GateLivePage() {
               Activity Stream — Log Deteksi Plat
             </h3>
             <span className="text-xs text-text-muted font-mono">
-              {logDeteksi.length > 0 ? `${logDeteksi.length} RECORDS` : 'BELUM ADA DATA'}
+              {logDeteksi.length > 0 ? `${logDeteksi.length} RECORDS` : (lang === 'en' ? 'NO DATA YET' : 'BELUM ADA DATA')}
             </span>
           </div>
 

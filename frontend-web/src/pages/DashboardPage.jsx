@@ -266,46 +266,12 @@ export default function DashboardPage() {
           <div className="col-span-12 xl:col-span-8 flex flex-col gap-4">
             <div className="map-shell bg-bg-primary rounded-xl border border-surface-variant p-5 flex flex-col">
 
-              {/* Header: judul di kiri; panel lantai di kanan atas dengan legenda di bawahnya */}
-              <div className="flex justify-between items-end gap-4 flex-wrap mb-4">
+              {/* Header: judul di kiri */}
+              <div className="flex justify-between items-center gap-4 flex-wrap mb-4">
                 <h2 className="font-semibold text-xl text-on-surface flex items-center gap-2">
                   <span className="material-symbols-outlined text-primary">map</span>
                   {t('dash.slotMapTitle', 'Peta Slot Parkir — Real-time')}
                 </h2>
-
-                <div className="flex flex-col items-end gap-3">
-                  {/* Panel pemilih lantai */}
-                  <div id="panel-lantai" className="floor-panel inline-flex items-center gap-1 p-1 rounded-lg border border-surface-variant bg-surface-container-lowest" role="tablist" aria-label="Pilih lantai">
-                    <span className="material-symbols-outlined text-[18px] text-text-muted px-1.5">layers</span>
-                    {lantaiTersedia.map(lt => {
-                      const aktif = lt === lantaiTerpilih;
-                      return (
-                        <button
-                          key={lt}
-                          id={`btn-lantai-${lt}`}
-                          type="button"
-                          role="tab"
-                          aria-selected={aktif}
-                          onClick={() => setLantaiUntukJenis(lt)}
-                          className={`floor-btn px-3 py-1.5 rounded-md text-xs font-semibold font-mono border transition-all duration-200 ${
-                            aktif
-                              ? 'bg-primary/15 text-primary border-primary/40 shadow-[0_0_10px_rgba(143,214,255,0.15)]'
-                              : 'border-transparent text-text-muted hover:text-on-surface hover:bg-surface-variant/40'
-                          }`}
-                        >
-                          {t('dash.floor', 'Lantai')} {lt}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="flex gap-4 text-xs font-mono">
-                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-eco-success rounded-sm"></div>{t('dash.legendOccupied', 'Terisi')}</div>
-                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-warning-reserved rounded-sm"></div>{t('dash.legendReserved', 'Dipesan')}</div>
-                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 border border-dashed border-outline rounded-sm"></div>{t('dash.legendVacant', 'Kosong')}</div>
-                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-alert-anomaly rounded-sm"></div>{t('dash.legendAnomaly', 'Anomali')}</div>
-                  </div>
-                </div>
               </div>
 
               {/* Tab jenis kendaraan bergaya tab browser (Mobil / Motor) */}
@@ -328,6 +294,42 @@ export default function DashboardPage() {
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Sub-header: panel lantai di kiri, legenda di kanan — antara tab dan konten slot */}
+              <div className="flex justify-between items-center gap-4 flex-wrap px-1 py-2 border-b border-surface-variant/50 mb-0">
+                {/* Panel pemilih lantai */}
+                <div id="panel-lantai" className="floor-panel inline-flex items-center gap-1 p-1 rounded-lg border border-surface-variant bg-surface-container-lowest" role="tablist" aria-label="Pilih lantai">
+                  <span className="material-symbols-outlined text-[18px] text-text-muted px-1.5">layers</span>
+                  {lantaiTersedia.map(lt => {
+                    const aktif = lt === lantaiTerpilih;
+                    return (
+                      <button
+                        key={lt}
+                        id={`btn-lantai-${lt}`}
+                        type="button"
+                        role="tab"
+                        aria-selected={aktif}
+                        onClick={() => setLantaiUntukJenis(lt)}
+                        className={`floor-btn px-3 py-1.5 rounded-md text-xs font-semibold font-mono border transition-all duration-200 ${
+                          aktif
+                            ? 'bg-primary/15 text-primary border-primary/40 shadow-[0_0_10px_rgba(143,214,255,0.15)]'
+                            : 'border-transparent text-text-muted hover:text-on-surface hover:bg-surface-variant/40'
+                        }`}
+                      >
+                        {jenisAktif === 'MOTOR' ? `B${lt}` : `${t('dash.floor', 'Lantai')} ${lt}`}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Legenda */}
+                <div className="flex gap-4 text-xs font-mono">
+                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-eco-success rounded-sm"></div>{t('dash.legendOccupied', 'Terisi')}</div>
+                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-warning-reserved rounded-sm"></div>{t('dash.legendReserved', 'Dipesan')}</div>
+                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 border border-dashed border-outline rounded-sm"></div>{t('dash.legendVacant', 'Kosong')}</div>
+                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-alert-anomaly rounded-sm"></div>{t('dash.legendAnomaly', 'Anomali / Periksa')}</div>
+                </div>
               </div>
 
               <div className="slot-panel bg-surface-container-lowest rounded-lg border border-surface-variant p-4 relative overflow-hidden">
@@ -427,9 +429,9 @@ export default function DashboardPage() {
               <div className="bg-bg-primary rounded-xl border border-surface-variant p-4">
                 <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2 mb-3 border-b border-surface-variant pb-2">
                   <span className="material-symbols-outlined text-[#ffd700] text-[18px]">sensors</span>
-                  Status Sensor IoT — Lantai {lantaiTerpilih} · {jenisAktif === 'MOBIL' ? 'Mobil' : 'Motor'} ({visibleSensors.length} Unit)
+                  {t('dash.sensorIotStatus', 'Status Sensor IoT')} — {jenisAktif === 'MOTOR' ? `B${lantaiTerpilih}` : `${t('dash.floor','Lantai')} ${lantaiTerpilih}`} · {jenisAktif === 'MOBIL' ? t('dash.car','Mobil') : t('dash.motorcycle','Motor')}
                 </h3>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-1.5 w-full">
                   {visibleSensors.map(s => {
                     const sOn = isOn(s.statusSensor);
                     return (

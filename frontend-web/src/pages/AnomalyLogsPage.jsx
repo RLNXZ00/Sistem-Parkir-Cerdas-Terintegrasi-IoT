@@ -114,7 +114,7 @@ export default function AnomalyLogsPage() {
               <div className="flex items-center gap-2 bg-error-container/20 border border-alert-anomaly/30 px-3 py-2 rounded-lg">
                 <div className="w-2 h-2 rounded-full bg-alert-anomaly animate-ping absolute"></div>
                 <div className="w-2 h-2 rounded-full bg-alert-anomaly relative"></div>
-                <span className="text-alert-anomaly font-mono text-sm font-bold">{criticalCount} Critical Active</span>
+                <span className="text-alert-anomaly font-mono text-sm font-bold">{criticalCount} {t('anomaly.criticalActive','Critical Aktif')}</span>
               </div>
             )}
           </div>
@@ -158,14 +158,13 @@ export default function AnomalyLogsPage() {
                       </div>
                       <p className="text-sm text-on-surface mb-2">{anomaly.desc}</p>
                       <div className="flex flex-wrap gap-4 text-xs font-mono text-on-surface-variant">
-                        <span>Plat: <span className="text-primary">{anomaly.plate}</span></span>
-                        <span>Waktu: {anomaly.time}</span>
-                        {/* Jika jenis anomali sudah tersimpan dan bukan strip default, tampilkan badge kategori */}
+                        <span>{t('anomaly.plate','Plat')}: <span className="text-primary">{anomaly.plate}</span></span>
+                        <span>{t('anomaly.time','Waktu')}: {anomaly.time}</span>
                         {anomaly.jenisAnomali && anomaly.jenisAnomali !== '-' && (
-                          <span>Kategori: <span className="text-on-surface font-semibold bg-surface-container px-2 py-0.5 rounded border border-outline-variant/30 text-primary">{anomaly.jenisAnomali}</span></span>
+                          <span>{t('anomaly.category','Kategori')}: <span className="text-on-surface font-semibold bg-surface-container px-2 py-0.5 rounded border border-outline-variant/30 text-primary">{anomaly.jenisAnomali}</span></span>
                         )}
                         <span className={`font-semibold ${resolved ? 'text-eco-success' : 'text-warning-reserved'}`}>
-                          {resolved ? '✓ Selesai Divalidasi' : '⚠ Belum Ditangani'}
+                          {resolved ? t('anomaly.resolved','✓ Selesai Divalidasi') : t('anomaly.pending','⚠ Belum Ditangani')}
                         </span>
                       </div>
                     </div>
@@ -178,7 +177,7 @@ export default function AnomalyLogsPage() {
                         onClick={() => handleAction(anomaly.id, 'dismiss')}
                         className="px-3 py-2 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-variant text-xs font-mono transition-colors"
                       >
-                        False Positive
+                        {t('anomaly.falsePositive','False Positive')}
                       </button>
                       {/* Tombol Tangani untuk membuka modal Acknowledge Anomaly */}
                       <button
@@ -192,7 +191,7 @@ export default function AnomalyLogsPage() {
                         }}
                         className="px-4 py-2 rounded-lg bg-alert-anomaly hover:bg-alert-anomaly/80 text-white text-xs font-bold font-mono transition-colors"
                       >
-                        Tangani
+                        {t('anomaly.handle','Tangani')}
                       </button>
                     </div>
                   )}
@@ -205,7 +204,7 @@ export default function AnomalyLogsPage() {
         {filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-on-surface-variant">
             <span className="material-symbols-outlined text-6xl mb-3 text-eco-success">check_circle</span>
-            <p className="font-mono">Tidak ada anomali ditemukan.</p>
+            <p className="font-mono">{t('anomaly.noAnomaly','Tidak ada anomali ditemukan.')}</p>
           </div>
         )}
       </div>
@@ -267,7 +266,7 @@ export default function AnomalyLogsPage() {
               </div>
               
               <div className="flex flex-col mb-4">
-                <label className="block text-sm font-bold text-on-surface mb-2">Jenis Anomali</label>
+                <label className="block text-sm font-bold text-on-surface mb-2">{t('anomaly.dispatchType','Jenis Anomali')}</label>
                 <select 
                   className="w-full bg-surface-container border border-outline-variant rounded p-2 text-on-surface focus:outline-none focus:border-primary"
                   value={jenisAnomali}
@@ -280,11 +279,11 @@ export default function AnomalyLogsPage() {
               </div>
 
               <div className="flex flex-col">
-                <label className="block text-sm font-bold text-on-surface mb-2">Lain-lain:</label>
+                <label className="block text-sm font-bold text-on-surface mb-2">{t('anomaly.dispatchNote','Lain-lain:')}</label>
                 <textarea 
                   rows="3"
                   className="w-full bg-surface-container border border-outline-variant rounded p-2 text-on-surface focus:outline-none focus:border-primary resize-none placeholder:text-on-surface-variant/50"
-                  placeholder="Detail kasus..."
+                  placeholder={t('anomaly.dispatchPlaceholder','Detail kasus...')}
                   value={pesanLain}
                   onChange={(e) => setPesanLain(e.target.value)}
                 ></textarea>
@@ -297,13 +296,13 @@ export default function AnomalyLogsPage() {
                 onClick={() => setSelectedAnomaly(null)}
                 className="px-6 py-2.5 rounded-DEFAULT font-bold text-on-surface-variant border border-outline-variant/50 hover:bg-surface-bright hover:text-on-surface transition-colors"
               >
-                Batal
+                {t('anomaly.cancel','Batal')}
               </button>
               <button 
                 onClick={() => handleAction(selectedAnomaly.id, 'acknowledge')}
                 className="px-6 py-2.5 rounded-DEFAULT font-bold text-surface bg-eco-success hover:bg-eco-success/90 transition-colors shadow-[0_0_10px_rgba(46,139,87,0.4)] flex items-center gap-2"
               >
-                <span className="material-symbols-outlined text-sm">campaign</span> Kirim Dispatch
+                <span className="material-symbols-outlined text-sm">campaign</span> {t('anomaly.dispatchBtn','Kirim Dispatch')}
               </button>
             </div>
           </div>
