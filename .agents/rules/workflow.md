@@ -6,35 +6,43 @@
 
 ---
 
-## 2. Aturan Mutlak Git & Larangan Commit di `main` (STRICT PROTOCOL)
+## 2. Aturan Mutlak Git: Visual Network Graph & Larangan Direct Commit di `main` (STRICT)
 
 > [!CAUTION]
-> **DILARANG KERAS MELAKUKAN `git commit` DI BRANCH `main`!**
-> Branch `main` adalah branch produksi stabil yang **HANYA BOLEH MENERIMA PEMBARUAN MELALUI MERGE NON-FAST-FORWARD (`git merge --no-ff`)** dari branch kerja.
-> Dilarang menggunakan Fast-Forward merge ke `main` agar simpul *merge commit* dan riwayat kolaborasi selalu terbentuk jelas di grafik Git.
+> **DILARANG KERAS MELAKUKAN DIRECT COMMIT / PUSH LANGSUNG DI BRANCH `main`!**
+> Branch `main` (garis putih utama di GitHub Network Graph) adalah branch produksi stabil yang **HANYA MURNI MENERIMA HASIL MERGE NON-FAST-FORWARD (`git merge --no-ff`)**.
+> 
+> **Target Visual GitHub Network Graph**:
+> Setiap pekerjaan harus terlihat sebagai garis percabangan berwarna tersendiri yang keluar dari `main`, memiliki titik-titik commit di jalurnya sendiri, dan menyatu kembali ke `main` dengan simpul panah merge. Garis `main` tidak boleh memiliki commit pekerjaan langsung.
+
+### Standar Penamaan Branch Kerja (Descriptive Kebab-Case)
+Setiap tugas atau pembaruan fitur/bugfix wajib memiliki branch kerja tersendiri dengan penamaan topik yang jelas dan deskriptif:
+- Fitur spesifik: `feat/<nama-fitur-kebab-case>` atau `<topik-fitur-kebab-case>` (contoh: `konsistensi-sidebar-header`, `detail-card-list`, `umpan-balik-database`, `memproses-kata-sandi`)
+- Perbaikan bug: `fix/<nama-bug-kebab-case>` atau `<topik-bug-kebab-case>`
+- Pembaruan layer umum: `back-end`, `front-end`, `front-end-kiosk`
+- Dokumentasi/SOP: `docs/<nama-dokumen>` atau `chore/<nama-tugas>`
 
 ---
 
 ### SOP 6 Langkah Wajib Setiap Pengembangan Fitur / Perbaikan Bug
 
-Setiap AI Agent dan pengembang **WAJIB** mengeksekusi urutan langkah berikut secara disiplin:
+Setiap AI Agent dan pengembang **WAJIB** mengeksekusi urutan perintah terminal berikut secara disiplin tanpa melompati satu langkah pun:
 
-#### Langkah 1: Sinkronisasi Pembaruan Terkini dari `main`
-Sebelum menulis kode atau membuat perubahan apa pun:
+#### Langkah 1: Sinkronisasi Terkini dari `main`
+Sebelum memulai pengerjaan apa pun, pastikan branch `main` lokal sinkron dengan GitHub:
 ```bash
 git checkout main
 git pull origin main
 ```
 
-#### Langkah 2: Pindah ke Branch Kerja atau Buat Branch Fitur Baru
-Arahkan ke branch layer yang sesuai atau buat branch fitur baru:
-- Perubahan Backend: `git checkout back-end`
-- Perubahan Web Dashboard: `git checkout front-end`
-- Perubahan Kiosk Gerbang: `git checkout front-end-kiosk`
-- Fitur/Perbaikan Spesifik: `git checkout -b feat/nama-fitur` atau `git checkout -b fix/nama-bug`
-
-Selaraskan branch kerja dengan `main` terbaru sebelum bekerja:
+#### Langkah 2: Buat Branch Baru atau Pindah ke Branch Kerja Terkait
+DILARANG menulis kode saat berada di `main`. Buat branch baru dari `main` atau arahkan ke branch kerja:
 ```bash
+# Opsi A: Buat branch fitur/perbaikan baru (SANGAT DIREKOMENDASIKAN untuk fitur/tugas baru)
+git checkout -b <nama-branch-deskriptif>
+
+# Opsi B: Pindah ke branch layer yang sudah ada dan sinkronkan dengan main
+git checkout <back-end | front-end | front-end-kiosk>
 git merge main
 ```
 
@@ -47,8 +55,8 @@ git commit -m "tipe(cakupan): deskripsi perubahan dalam bahasa indonesia"
 ```
 *Format tipe*: `feat`, `fix`, `refactor`, `style`, `docs`, `chore`. Wajib menggunakan Bahasa Indonesia.
 
-#### Langkah 4: Push Branch Kerja ke Remote GitHub
-Dorong branch kerja ke remote agar riwayat pengerjaan terlacak oleh seluruh kolaborator:
+#### Langkah 4: Push Branch Kerja ke Remote GitHub (MANDATORY)
+Branch kerja **WAJIB di-push ke GitHub** agar jalur percabangan berwarna dan label branch tercatat di GitHub Network Graph:
 ```bash
 git push origin <nama-branch-kerja>
 ```
@@ -57,17 +65,18 @@ git push origin <nama-branch-kerja>
 Pindah ke branch `main`, lakukan merge dengan bendera `--no-ff` (Non-Fast-Forward) agar simpul grafik percabangan tercipta secara permanen, lalu push `main`:
 ```bash
 git checkout main
-git merge --no-ff <nama-branch-kerja> -m "merge: sync <nama-branch-kerja> ke main"
+git merge --no-ff <nama-branch-kerja> -m "merge: integrasikan pembaruan <nama-branch-kerja> ke main"
 git push origin main
 ```
 
 #### Langkah 6: Sinkronisasi Ulang Branch Kerja dengan `main`
-Kembali ke branch kerja dan gabungkan hasil merge dari `main` agar branch kerja tetap sejajar dan siap untuk tugas berikutnya:
+Kembali ke branch kerja dan gabungkan hasil merge dari `main` agar branch kerja tetap sejajar:
 ```bash
 git checkout <nama-branch-kerja>
 git merge main
 git push origin <nama-branch-kerja>
 ```
+*(Branch kerja di remote dipertahankan agar riwayat visual di Network Graph GitHub tetap terpampang rapi dengan labelnya).*
 
 ---
 
