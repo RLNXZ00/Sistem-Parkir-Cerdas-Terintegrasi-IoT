@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LanguageProvider } from './context/LanguageContext';
+import { NotificationProvider } from './context/NotificationContext';
 
 // === Autentikasi ===
 import LoginPage from './pages/LoginPage';
@@ -18,38 +19,40 @@ import PanduanPage from './pages/PanduanPage';
 export default function App() {
   return (
     <LanguageProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* === Autentikasi === */}
-          <Route path="/" element={<LoginPage />} />
-          <Route path="/registrasi" element={<RegistrasiPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <NotificationProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* === Autentikasi === */}
+            <Route path="/" element={<LoginPage />} />
+            <Route path="/registrasi" element={<RegistrasiPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-          {/* === Dashboard Petugas Lapangan === */}
-          <Route path="/dashboard" element={<DashboardPage />} />
+            {/* === Dashboard Petugas Lapangan === */}
+            <Route path="/dashboard" element={<DashboardPage />} />
 
-          {/* === Dashboard Manajemen === */}
-          <Route path="/dashboard-management" element={<DashboardManagementPage />} />
+            {/* === Dashboard Manajemen === */}
+            <Route path="/dashboard-management" element={<DashboardManagementPage />} />
 
-          {/* === Gate OCR Live Feed === */}
-          <Route path="/gate-live" element={<GateLivePage />} />
+            {/* === Gate OCR Live Feed === */}
+            <Route path="/gate-live" element={<GateLivePage />} />
 
-          {/* === Anomaly Logs === */}
-          <Route path="/anomaly-logs" element={<AnomalyLogsPage />} />
+            {/* === Anomaly Logs === */}
+            <Route path="/anomaly-logs" element={<AnomalyLogsPage />} />
 
-          {/* === Operational Reports === */}
-          <Route path="/reports" element={<ReportsPage />} />
+            {/* === Operational Reports === */}
+            <Route path="/reports" element={<ReportsPage />} />
 
-          {/* === Panduan Sistem & SOP === */}
-          <Route path="/panduan" element={<PanduanPage />} />
+            {/* === Panduan Sistem & SOP === */}
+            <Route path="/panduan" element={<PanduanPage />} />
 
-          {/* === Pengaturan Sistem === */}
-          <Route path="/settings" element={<SettingsPage />} />
+            {/* === Pengaturan Sistem === */}
+            <Route path="/settings" element={<SettingsPage />} />
 
-          {/* === Fallback === */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+            {/* === Fallback === */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </NotificationProvider>
     </LanguageProvider>
   );
 }
