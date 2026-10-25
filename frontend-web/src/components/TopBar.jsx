@@ -1,62 +1,13 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { useNotification } from '../context/NotificationContext';
 import NotificationPopover from './NotificationPopover';
-
-const API_BASE = 'http://localhost:8081';
-
-// Data bawaan awal agar notifikasi langsung menampilkan contoh kendaraan masuk dan anomali secara jelas
-const DEFAULT_NOTIFICATIONS = [
-  {
-    id: 'notif-anomali-live',
-    type: 'ANOMALY',
-    title: 'Anomali: Penyerobotan Slot B1-03',
-    description: 'Sensor ultrasonik mendeteksi kendaraan di Slot B1-03 padahal status reservasi masih KOSONG.',
-    time: 'Baru saja',
-    isRead: false,
-    slotId: 'B1-03',
-    severity: 'CRITICAL',
-    link: '/anomaly-logs',
-  },
-  {
-    id: 'notif-masuk-live',
-    type: 'ENTRY',
-    title: 'Kendaraan Masuk: B 1842 SPZ',
-    description: 'Mobil Toyota Fortuner terdeteksi di Barrier Gate Masuk 1. Rute alokasi diarahkan ke Slot A1-02.',
-    time: '2 mnt lalu',
-    isRead: false,
-    slotId: 'A1-02',
-    severity: 'INFO',
-    link: '/gate-live',
-  },
-  {
-    id: 'notif-masuk-live-2',
-    type: 'ENTRY',
-    title: 'Kendaraan Masuk: D 9921 AB',
-    description: 'Kendaraan terdeteksi di Gerbang Utama. Slot B1-01 dialokasikan otomatis oleh AI Gateway.',
-    time: '7 mnt lalu',
-    isRead: true,
-    slotId: 'B1-01',
-    severity: 'INFO',
-    link: '/gate-live',
-  },
-  {
-    id: 'notif-anomali-live-2',
-    type: 'ANOMALY',
-    title: 'Anomali Durasi: Melebihi Batas Slot A2-05',
-    description: 'Kendaraan parkir melebihi kuota 24 jam tanpa perpanjangan sesi.',
-    time: '18 mnt lalu',
-    isRead: true,
-    slotId: 'A2-05',
-    severity: 'WARNING',
-    link: '/anomaly-logs',
-  },
-];
 
 // TopBar: Header yang muncul di semua halaman fitur menu
 export default function TopBar({ breadcrumb, status }) {
   const { lang, setLanguage, t } = useLanguage();
+  const { notifications, unreadCount, markAllRead, markAsRead } = useNotification();
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [notifications, setNotifications] = useState(DEFAULT_NOTIFICATIONS);
   const notificationRef = useRef(null);
 
   const toggleLanguage = () => {
@@ -64,62 +15,6 @@ export default function TopBar({ breadcrumb, status }) {
   };
 
   const displayStatus = status || t('topbar.systemHealthy', 'IoT Connected');
-
-  // Ambil data log real-time dari backend untuk memperkaya notifikasi
-  const fetchNotifications = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/monitoring/log-iot`, { cache: 'no-store' });
-      if (!res.ok) return;
-      const logs = await res.json();
-
-      if (Array.isArray(logs) && logs.length > 0) {
-        // Konversi log backend menjadi objek notifikasi
-        const mapped = logs.slice(0, 10).map((log) => {
-          const isAnomaly = log.jenisKejadian?.includes('ANOMALI');
-          const isEntry = log.jenisKejadian?.includes('MASUK') || log.jenisKejadian?.includes('TIBA');
-          const isExit = log.jenisKejadian?.includes('KELUAR');
-
-          let type = 'SYSTEM';
-          if (isAnomaly) type = 'ANOMALY';
-          else if (isEntry) type = 'ENTRY';
-          else if (isExit) type = 'EXIT';
-
-          const waktu = log.waktuKejadian ? new Date(log.waktuKejadian).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : 'Hari ini';
-
-          return {
-            id: `iot-log-${log.idLog}`,
-            type,
-            title: isAnomaly
-              ? `Anomali: ${log.jenisAnomali && log.jenisAnomali !== '-' ? log.jenisAnomali : 'Deteksi Sensor'}`
-              : isEntry
-              ? `Kendaraan Tiba di Slot ${log.slotTerkait?.idSlot || '-'}`
-              : `Aktivitas Sensor IoT #${log.idLog}`,
-            description: log.catatanDetail || 'Pembaruan telemetri sensor sistem parkir.',
-            time: waktu,
-            isRead: log.statusResolusi === 'SELESAI_DIVALIDASI',
-            slotId: log.slotTerkait?.idSlot,
-            severity: log.tingkatKeparahan || (isAnomaly ? 'CRITICAL' : 'INFO'),
-            link: isAnomaly ? '/anomaly-logs' : '/dashboard',
-          };
-        });
-
-        // Gabungkan notifikasi dinamis backend dengan notifikasi visual agar informatif
-        setNotifications((prev) => {
-          const ids = new Set(mapped.map((m) => m.id));
-          const filteredPrev = prev.filter((p) => !ids.has(p.id));
-          return [...mapped, ...filteredPrev].slice(0, 15);
-        });
-      }
-    } catch {
-      // Jika backend tidak tersambung, DEFAULT_NOTIFICATIONS tetap aktif
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 10000);
-    return () => clearInterval(interval);
-  }, [fetchNotifications]);
 
   // Tutup popover jika pengguna mengklik di luar area notifikasi
   useEffect(() => {
@@ -139,17 +34,13 @@ export default function TopBar({ breadcrumb, status }) {
 
   // Tandai semua notifikasi telah dibaca
   const handleMarkAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    markAllRead();
   };
 
   // Tandai satu notifikasi telah dibaca saat diklik
   const handleNotificationClick = (item) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === item.id ? { ...n, isRead: true } : n))
-    );
+    markAsRead(item.id);
   };
-
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
     <header className="bg-surface border-b border-surface-container flex justify-between items-center h-16 px-6 fixed top-0 right-0 z-40 left-20 lg:left-64">
