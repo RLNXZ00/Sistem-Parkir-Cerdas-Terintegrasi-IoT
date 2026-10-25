@@ -71,7 +71,37 @@ git push origin <nama-branch-kerja>
 
 ---
 
-## 3. Menjaga Sumber Kebenaran Mutlak & Keutuhan Folder Lokal
+## 3. Logika Inti & Arsitektur SPCT IoT yang Wajib Dipertahankan (INVARIANTS)
+
+> [!WARNING]
+> Penambahan fitur baru dilarang merusak atau mengubah logika bisnis fundamental berikut:
+
+1. **Rumus Tarif Resmi (Single Source of Truth di `TransaksiPembayaranService`)**:
+   - Grace period ≤ 10 menit = Rp 0 (Bebas Biaya / `GRACE_PERIOD_FREE`).
+   - Parkir normal ≤ 8 jam = Tarif Flat Rp 5.000.
+   - Jam ke-9 s.d. 12 = +Rp 2.000 per jam tambahan.
+   - Rawat inap (> 12 jam) = Tarif Flat Maksimal Rp 10.000.
+   - *Dilarang menulis ulang rumus tarif di tempat lain*. Semua controller dan service gerbang keluar wajib memanggil `transaksiPembayaranService.hitungTarif(minutes)`.
+
+2. **Waktu Transaksi Keluar Selalu Real-Time (`LocalDateTime.now()`)**:
+   - Waktu keluar dan waktu pembayaran **wajib dicatat pada waktu riil saat ini (`LocalDateTime.now()`)**.
+   - Jika durasi simulasi digunakan pada kiosk keluar, **waktu masuk** yang dimundurkan ke belakang (`waktuMasuk = waktuKeluar.minusMinutes(durasiSimulasi)`), **TIDAK BOLEH** menambahkan durasi ke waktu masuk karena akan melempar waktu keluar ke esok hari / masa depan dan merusak kueri pendapatan harian.
+
+3. **Status Siklus Hidup Slot Parkir**:
+   - Transisi status slot: `KOSONG` ➔ `DIPESAN` (alokasi rute) ➔ `TERISI` (sensor mendeteksi kendaraan) ➔ `KOSONG` (pembebasan saat gerbang keluar bayar lunas via `transaksiPembayaranService.bebaskanSlotParkir`).
+   - Slot bermasalah/sensor mati bertransisi ke `ANOMALI` dan tercatat di `log_operasional_iot`.
+
+4. **Kapasitas Multi-Lantai & Peruntukan Slot**:
+   - Alokasi rute A* memprioritaskan slot kosong sesuai `jenisKendaraan` (`MOBIL` / `MOTOR`) mulai dari lantai terendah (Lantai 1) sebelum naik ke lantai berikutnya.
+   - Agregasi kapasitas analitik menggunakan penghitungan dinamis (`slotParkirRepository.count()`), bukan nilai statis hardcode.
+
+5. **Kebijakan Retensi Data & Audit Trail (Fase 7 & PK-UC010)**:
+   - Penghapusan log rutin normal dilakukan otomatis setelah batas retensi (90 hari) melalui cron `0 0 2 * * ?` atau endpoint purge manual. Log anomali tidak boleh dihapus secara otomatis.
+   - Seluruh unduhan laporan (PDF & Excel) wajib mencatatkan riwayat audit ke tabel `log_audit_laporan`.
+
+---
+
+## 4. Menjaga Sumber Kebenaran Mutlak & Keutuhan Folder Lokal
 
 > [!IMPORTANT]
 > Lingkungan lokal adalah **sumber kebenaran mutlak**.
