@@ -35,7 +35,7 @@ function CameraCard({ kamera, deteksiTerbaru }) {
   const plateTampil = hasDeteksi ? `ID Kendaraan: ${deteksiTerbaru.idKendaraan}` : null;
 
   return (
-    <div className={`relative bg-black rounded-lg border overflow-hidden shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] ${style.border} ${styleKey === 'anomaly' ? 'shadow-[inset_0_0_20px_rgba(255,69,0,0.1)]' : ''}`}>
+    <div className={`relative isolate z-0 bg-black rounded-lg border overflow-hidden shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] ${style.border} ${styleKey === 'anomaly' ? 'shadow-[inset_0_0_20px_rgba(255,69,0,0.1)]' : ''}`}>
       {/* Background simulasi kamera */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#1a2830] via-[#0e1418] to-[#1a1f24] flex items-center justify-center">
         {isOffline
@@ -54,7 +54,7 @@ function CameraCard({ kamera, deteksiTerbaru }) {
       {styleKey === 'anomaly' && <div className="absolute inset-0 bg-alert-anomaly/10 pointer-events-none"></div>}
 
       {/* Top HUD */}
-      <div className="absolute top-0 left-0 w-full p-3 flex justify-between items-start bg-gradient-to-b from-black/80 to-transparent z-10">
+      <div className="absolute top-0 left-0 w-full p-3 flex justify-between items-start bg-gradient-to-b from-black/80 to-transparent z-[2]">
         <div className="flex items-center gap-2">
           <span className={`material-symbols-outlined text-sm ${isOffline ? 'text-red-500' : hasDeteksi ? 'text-system-info' : 'text-text-muted'}`}>videocam</span>
           <span className={`font-mono text-xs font-bold tracking-widest ${isOffline ? 'text-red-400' : hasDeteksi ? 'text-system-info' : 'text-text-muted'}`}>{labelInfo.label}</span>
@@ -69,7 +69,7 @@ function CameraCard({ kamera, deteksiTerbaru }) {
       </div>
 
       {/* Bottom HUD */}
-      <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black via-black/80 to-transparent z-10">
+      <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black via-black/80 to-transparent z-[2]">
         {isOffline ? (
           <p className="font-mono text-xs text-red-400 tracking-widest text-center">KAMERA OFFLINE — PERLU MAINTENANCE</p>
         ) : hasDeteksi ? (
