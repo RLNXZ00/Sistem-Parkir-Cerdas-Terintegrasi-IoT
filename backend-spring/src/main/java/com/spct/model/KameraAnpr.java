@@ -1,111 +1,117 @@
-package com.spct.model;
+package com.spct.model; // Nama package dari modul model entitas sistem
 
+// Import library persistensi database Jakarta JPA
 import jakarta.persistence.*;
 
-// Deklarasi Entity: merepresentasikan tabel 'kamera_anpr' di Database Relasional
-// Tabel ini adalah tabel MASTER HARDWARE yang meregistrasikan ke-4 unit kamera ALPR/ANPR
-// yang terpasang di sistem parkir (2 gerbang masuk, 2 gerbang keluar)
-// Setiap request dari Python Microservice akan membawa id_kamera untuk identifikasi asal sinyal
-@Entity
-@Table(name = "kamera_anpr")
+// Kelas entitas publik java KameraAnpr untuk memetakan tabel kamera_anpr di database relasional
+// Tabel ini mencatat data master perangkat kamera ALPR/ANPR di gerbang masuk dan keluar
+@Entity // Menandakan kelas ini sebagai entitas JPA yang dipetakan ke tabel basis data
+@Table(name = "kamera_anpr") // Menentukan nama tabel basis data relasional yaitu kamera_anpr
 public class KameraAnpr
 {
     // =====================================================================
-    // Deklarasi Atribut: Kolom-kolom tabel 'kamera_anpr'
+    // Deklarasi Atribut Kolom Tabel kamera_anpr
     // =====================================================================
 
-    @Id
-    @Column(name = "id_kamera", length = 20)
-    private String idKamera; // ID unik kamera (misal: "PG-IN-MOB", "PG-OUT-MOT") - bukan auto-increment
+    @Id // Menandai atribut idKamera sebagai Primary Key entitas
+    @Column(name = "id_kamera", length = 20) // Pemetaan kolom id_kamera dengan panjang karakter maksimal 20
+    private String idKamera; // Deklarasi atribut idKamera bertipe String untuk identitas unik kamera (misal: PG-IN-MOB)
 
-    // Status operasional kamera saat ini: ON atau OFF
-    // Sesuai ERD: status_kamera (on/off)
-    @Column(name = "status_kamera", nullable = false, length = 3)
-    private String statusKamera; // "ON" atau "OFF" - diupdate oleh health-check sistem
+    @Column(name = "status_kamera", nullable = false, length = 3) // Pemetaan kolom status_kamera dengan batasan not-null
+    private String statusKamera; // Deklarasi atribut statusKamera bertipe String untuk status operasional (ON/OFF)
 
-    // Posisi kamera di gerbang: sesuai ERD depan/belakang ~ MASUK/KELUAR
-    // Nilai: "MASUK" atau "KELUAR"
-    @Column(name = "posisi_gerbang", nullable = false, length = 10)
-    private String posisiGerbang; // Gerbang mana kamera ini dipasang
+    @Column(name = "posisi_gerbang", nullable = false, length = 10) // Pemetaan kolom posisi_gerbang dengan batasan not-null
+    private String posisiGerbang; // Deklarasi atribut posisiGerbang bertipe String untuk lokasi gerbang (MASUK/KELUAR)
 
-    // Tipe kendaraan yang dipantau kamera ini: MOBIL atau MOTOR
-    // Sesuai ERD: tipe (opsional)
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tipe_kendaraan", length = 10)
-    private JenisKendaraan tipeKendaraan; // MOBIL atau MOTOR (opsional, bisa null jika universal)
+    @Enumerated(EnumType.STRING) // Menyimpan representasi enum JenisKendaraan sebagai string teks di database
+    @Column(name = "tipe_kendaraan", length = 10) // Pemetaan kolom tipe_kendaraan dengan panjang maksimal 10
+    private JenisKendaraan tipeKendaraan; // Deklarasi atribut tipeKendaraan bertipe enum JenisKendaraan (MOBIL/MOTOR)
 
-    @Column(name = "deskripsi", length = 200)
-    private String deskripsi; // Keterangan tambahan lokasi pemasangan fisik kamera
-
+    @Column(name = "deskripsi", length = 200) // Pemetaan kolom deskripsi lokasi kamera dengan panjang maksimal 200 karakter
+    private String deskripsi; // Deklarasi atribut deskripsi bertipe String untuk keterangan detail posisi fisik kamera
 
     // =====================================================================
-    // Konstruktor LENGKAP (gaya penulisan Anda)
+    // Konstruktor Kelas KameraAnpr
     // =====================================================================
+
+    // Konstruktor berparameter lengkap untuk inisialisasi master data kamera
     public KameraAnpr(String idKamera, String posisiGerbang, JenisKendaraan tipeKendaraan, String deskripsi)
     {
-        this.idKamera = idKamera;                 // Menginisialisasi ID kamera (format: PG-IN-MOB)
-        this.posisiGerbang = posisiGerbang;       // Menginisialisasi posisi gerbang (MASUK/KELUAR)
-        this.tipeKendaraan = tipeKendaraan;       // Menginisialisasi tipe kendaraan yang dipantau
-        this.deskripsi = deskripsi;               // Menginisialisasi deskripsi lokasi fisik
-        this.statusKamera = "ON";                 // Default: semua kamera ON saat sistem diinisialisasi
+        this.idKamera = idKamera; // Inisialisasi atribut idKamera dengan nilai parameter idKamera
+        this.posisiGerbang = posisiGerbang; // Inisialisasi atribut posisiGerbang dengan nilai parameter posisiGerbang
+        this.tipeKendaraan = tipeKendaraan; // Inisialisasi atribut tipeKendaraan dengan nilai parameter tipeKendaraan
+        this.deskripsi = deskripsi; // Inisialisasi atribut deskripsi dengan nilai parameter deskripsi
+        this.statusKamera = "ON"; // Inisialisasi status default perangkat kamera bernilai ON
     }
 
-    // Konstruktor kosong (wajib ada untuk JPA/Hibernate)
-    public KameraAnpr() {}
-
+    // Konstruktor default tanpa parameter (diperlukan oleh framework Hibernate/JPA)
+    public KameraAnpr() 
+    {
+        // Konstruktor kosong untuk instansiasi reflektif JPA
+    }
 
     // =====================================================================
-    // Getter & Setter (gaya penulisan Anda)
+    // Method Setter & Getter Atribut
     // =====================================================================
 
+    // Method setter untuk mengubah nilai atribut idKamera
     public void setIdKamera(String idKamera)
     {
-        this.idKamera = idKamera;
+        this.idKamera = idKamera; // Inisialisasi atribut idKamera dengan nilai dari parameter
     }
 
+    // Method getter untuk mengambil nilai atribut idKamera
     public String getIdKamera()
     {
-        return idKamera;
+        return idKamera; // Mengembalikan nilai dari atribut idKamera
     }
 
+    // Method setter untuk mengubah nilai status operasional kamera
     public void setStatusKamera(String statusKamera)
     {
-        // Normalisasi ke uppercase agar konsisten (toleransi nilai DB: 'on', 'OFF', 'On')
+        // Jika parameter tidak null, ubah ke huruf kapital; jika null beri nilai default "OFF"
         this.statusKamera = (statusKamera != null) ? statusKamera.toUpperCase() : "OFF";
     }
 
+    // Method getter untuk mengambil nilai status operasional kamera
     public String getStatusKamera()
     {
-        return statusKamera;
+        return statusKamera; // Mengembalikan nilai dari atribut statusKamera
     }
 
+    // Method setter untuk mengubah nilai atribut posisiGerbang
     public void setPosisiGerbang(String posisiGerbang)
     {
-        this.posisiGerbang = posisiGerbang;
+        this.posisiGerbang = posisiGerbang; // Inisialisasi atribut posisiGerbang dengan nilai dari parameter
     }
 
+    // Method getter untuk mengambil nilai atribut posisiGerbang
     public String getPosisiGerbang()
     {
-        return posisiGerbang;
+        return posisiGerbang; // Mengembalikan nilai dari atribut posisiGerbang
     }
 
+    // Method setter untuk mengubah tipe kendaraan pantauan kamera
     public void setTipeKendaraan(JenisKendaraan tipeKendaraan)
     {
-        this.tipeKendaraan = tipeKendaraan;
+        this.tipeKendaraan = tipeKendaraan; // Inisialisasi atribut tipeKendaraan dengan nilai dari parameter
     }
 
+    // Method getter untuk mengambil tipe kendaraan pantauan kamera
     public JenisKendaraan getTipeKendaraan()
     {
-        return tipeKendaraan;
+        return tipeKendaraan; // Mengembalikan nilai dari atribut tipeKendaraan
     }
 
+    // Method setter untuk mengubah deskripsi keterangan kamera
     public void setDeskripsi(String deskripsi)
     {
-        this.deskripsi = deskripsi;
+        this.deskripsi = deskripsi; // Inisialisasi atribut deskripsi dengan nilai dari parameter
     }
 
+    // Method getter untuk mengambil keterangan deskripsi kamera
     public String getDeskripsi()
     {
-        return deskripsi;
+        return deskripsi; // Mengembalikan nilai dari atribut deskripsi
     }
 }

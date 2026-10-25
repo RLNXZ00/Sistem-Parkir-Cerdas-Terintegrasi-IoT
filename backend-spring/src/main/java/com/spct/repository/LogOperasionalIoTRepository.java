@@ -1,60 +1,58 @@
-package com.spct.repository;
+package com.spct.repository; // Nama package dari modul repositori akses data sistem
 
+// Import entitas LogOperasionalIoT dari package model
 import com.spct.model.LogOperasionalIoT;
+// Import enum StatusResolusi dari package model
 import com.spct.model.StatusResolusi;
+// Import enum TingkatKeparahan dari package model
 import com.spct.model.TingkatKeparahan;
+// Import antarmuka JpaRepository dari Spring Data JPA
 import org.springframework.data.jpa.repository.JpaRepository;
+// Import anotasi Repository dari komponen Spring Framework
 import org.springframework.stereotype.Repository;
-
-import java.time.LocalDateTime; // Mengimpor LocalDateTime untuk filter kueri berdasarkan rentang waktu
+// Import tipe data LocalDateTime java untuk filter kueri rentang waktu
+import java.time.LocalDateTime;
+// Import koleksi List dari java util
 import java.util.List;
 
-// Deklarasi Repository: pengganti PreparedStatement manual untuk tabel log_operasional_iot
-// JpaRepository<LogOperasionalIoT, Long> otomatis menyediakan CRUD dasar
-@Repository
+// Interface publik java LogOperasionalIoTRepository untuk operasi akses basis data tabel log_operasional_iot
+// Mengelola pencatatan kejadian sensor IoT, status anomali penyerobotan, dan kebijakan retensi data
+@Repository // Menandai interface ini sebagai komponen Spring Repository
 public interface LogOperasionalIoTRepository extends JpaRepository<LogOperasionalIoT, Long>
 {
     // =====================================================================
     // Method Kueri Kustom untuk LogOperasionalIoT
     // =====================================================================
 
-    // Mencari semua log yang belum ditangani berdasarkan tingkat keparahan
-    // Digunakan oleh Dashboard Admin untuk menampilkan daftar anomali yang perlu perhatian petugas
-    // Setara: SELECT * FROM log_operasional_iot WHERE status_resolusi = ? AND tingkat_keparahan = ? ORDER BY waktu_kejadian DESC
+    // Method findByStatusResolusiAndTingkatKeparahanOrderByWaktuKejadianDesc untuk mencari log berdasarkan status resolusi dan tingkat keparahan
     List<LogOperasionalIoT> findByStatusResolusiAndTingkatKeparahanOrderByWaktuKejadianDesc(
-        StatusResolusi statusResolusi, TingkatKeparahan tingkatKeparahan);
+        StatusResolusi statusResolusi, TingkatKeparahan tingkatKeparahan); // Mengembalikan daftar List log yang sesuai kriteria
 
-    // Mencari semua log anomali yang belum ditangani (BELUM_DITANGANI)
-    // Digunakan untuk badge notifikasi di Dashboard Admin (misal: "3 anomali belum ditangani")
-    // Setara: SELECT * FROM log_operasional_iot WHERE status_resolusi = 'BELUM_DITANGANI'
-    List<LogOperasionalIoT> findByStatusResolusiOrderByWaktuKejadianDesc(StatusResolusi statusResolusi);
+    // Method findByStatusResolusiOrderByWaktuKejadianDesc untuk mencari semua log anomali berdasarkan status resolusi
+    List<LogOperasionalIoT> findByStatusResolusiOrderByWaktuKejadianDesc(StatusResolusi statusResolusi); // Mengembalikan daftar List log anomali
 
-    // Mencari semua log berdasarkan slot tertentu (untuk riwayat kejadian di satu slot)
-    // Setara: SELECT * FROM log_operasional_iot WHERE id_slot = ? ORDER BY waktu_kejadian DESC
-    List<LogOperasionalIoT> findBySlotTerkait_IdSlotOrderByWaktuKejadianDesc(String idSlot);
+    // Method findBySlotTerkait_IdSlotOrderByWaktuKejadianDesc untuk mencari riwayat log kejadian pada satu slot spesifik
+    List<LogOperasionalIoT> findBySlotTerkait_IdSlotOrderByWaktuKejadianDesc(String idSlot); // Mengembalikan daftar List riwayat kejadian slot
 
-    // Mencari semua log dalam rentang waktu tertentu (untuk halaman Laporan Log Anomali)
-    // Setara: SELECT * FROM log_operasional_iot WHERE waktu_kejadian BETWEEN ? AND ?
+    // Method findByWaktuKejadianBetweenOrderByWaktuKejadianDesc untuk mencari log operasional dalam rentang waktu tertentu
     List<LogOperasionalIoT> findByWaktuKejadianBetweenOrderByWaktuKejadianDesc(
-        LocalDateTime awal, LocalDateTime akhir);
+        LocalDateTime awal, LocalDateTime akhir); // Mengembalikan daftar List kejadian terurut waktu menurun
 
-    // Menghitung jumlah anomali yang belum ditangani (untuk badge notifikasi di header Dashboard)
-    // Setara: SELECT COUNT(*) FROM log_operasional_iot WHERE status_resolusi = 'BELUM_DITANGANI'
-    Long countByStatusResolusi(StatusResolusi statusResolusi);
+    // Method countByStatusResolusi untuk menghitung jumlah anomali berdasarkan status resolusinya
+    Long countByStatusResolusi(StatusResolusi statusResolusi); // Mengembalikan jumlah total data anomali bertipe Long
 
-    // Menghitung total log operasional dalam rentang waktu tertentu
-    Long countByWaktuKejadianBetween(LocalDateTime awal, LocalDateTime akhir);
+    // Method countByWaktuKejadianBetween untuk menghitung total kuantitas log dalam rentang waktu tertentu
+    Long countByWaktuKejadianBetween(LocalDateTime awal, LocalDateTime akhir); // Mengembalikan total jumlah baris kejadian
 
     // =====================================================================
-    // Kueri Kebijakan Retensi Data (Fase 7)
+    // Kueri Kebijakan Retensi Data Pembersihan Log Rutin
     // =====================================================================
 
-    // Menghitung jumlah log IoT rutin/normal (INFO) yang lebih tua dari waktu cutoff
-    Long countByWaktuKejadianBeforeAndTingkatKeparahan(LocalDateTime cutoff, TingkatKeparahan tingkatKeparahan);
+    // Method countByWaktuKejadianBeforeAndTingkatKeparahan untuk menghitung data log rutin lama sebelum waktu batas cutoff
+    Long countByWaktuKejadianBeforeAndTingkatKeparahan(LocalDateTime cutoff, TingkatKeparahan tingkatKeparahan); // Mengembalikan jumlah data kadaluarsa
 
-    // Menghapus log IoT rutin/normal (INFO) yang lebih tua dari batas retensi (misal 90 hari)
-    // Transaksi finansial dan log anomali penting tidak akan terpengaruh oleh kueri ini
-    @org.springframework.data.jpa.repository.Modifying
-    @org.springframework.transaction.annotation.Transactional
-    long deleteByWaktuKejadianBeforeAndTingkatKeparahan(LocalDateTime cutoff, TingkatKeparahan tingkatKeparahan);
+    // Method deleteByWaktuKejadianBeforeAndTingkatKeparahan untuk menghapus log rutin lama demi efisiensi kapasitas basis data
+    @org.springframework.data.jpa.repository.Modifying // Menandai kueri sebagai operasi modifikasi data DML
+    @org.springframework.transaction.annotation.Transactional // Memastikan eksekusi berjalan dalam konteks transaksi database
+    long deleteByWaktuKejadianBeforeAndTingkatKeparahan(LocalDateTime cutoff, TingkatKeparahan tingkatKeparahan); // Mengembalikan jumlah baris yang berhasil dihapus
 }

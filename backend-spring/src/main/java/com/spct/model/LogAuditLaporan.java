@@ -1,111 +1,221 @@
-package com.spct.model;
+package com.spct.model; // Nama package dari modul model entitas sistem
 
+// Import pustaka Jackson untuk mengabaikan properti Hibernate proxy pada JSON
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+// Import pustaka persistensi database Jakarta JPA
 import jakarta.persistence.*;
+// Import tipe data tanggal lokal java
 import java.time.LocalDate;
+// Import tipe data tanggal dan waktu lokal java
 import java.time.LocalDateTime;
 
-/**
- * Entity: LogAuditLaporan
- * Merepresentasikan tabel 'log_audit_laporan' di Database Relasional PostgreSQL.
- * Mencatat setiap aktivitas pengunduhan dokumen resmi (PDF / XLSX) oleh pihak manajemen
- * sesuai diagram urutan dan narasi spesifikasi PK-UC010 (Langkah 19-20: Audit Trail Keamanan).
- */
-@Entity
-@Table(name = "log_audit_laporan")
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+// Kelas entitas publik java LogAuditLaporan untuk memetakan tabel log_audit_laporan di database relasional
+// Kelas ini mencatat jejak audit (audit trail) pengunduhan berkas laporan (PDF/XLSX) oleh aktor sistem
+@Entity // Menandai kelas ini sebagai entitas JPA
+@Table(name = "log_audit_laporan") // Menentukan pemetaan nama tabel database yaitu log_audit_laporan
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // Mengabaikan atribut lazy loading proxy Hibernate
 public class LogAuditLaporan
 {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_audit")
-    private Long idAudit; // Primary Key auto-increment
+    // =====================================================================
+    // Deklarasi Atribut Kolom Tabel log_audit_laporan
+    // =====================================================================
 
-    @Column(name = "waktu_unduh", nullable = false)
-    private LocalDateTime waktuUnduh; // Timestamp presisi waktu file diunduh
+    @Id // Menandai atribut idAudit sebagai Primary Key entitas
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Mengonfigurasi strategi penomoran otomatis auto-increment
+    @Column(name = "id_audit") // Pemetaan kolom id_audit pada tabel database
+    private Long idAudit; // Deklarasi atribut idAudit bertipe Long untuk primary key riwayat audit
 
-    @Column(name = "pengguna", nullable = false, length = 100)
-    private String pengguna; // Aktor yang meminta unduhan (misal: "Manajemen RS (Admin)")
+    @Column(name = "waktu_unduh", nullable = false) // Pemetaan kolom waktu_unduh dengan batasan not-null
+    private LocalDateTime waktuUnduh; // Deklarasi atribut waktuUnduh bertipe LocalDateTime untuk timestamp waktu unduh
 
-    @Column(name = "jenis_laporan", nullable = false, length = 50)
-    private String jenisLaporan; // "FINANSIAL", "OPERASIONAL", "LINGKUNGAN", "KOMPREHENSIF"
+    @Column(name = "pengguna", nullable = false, length = 100) // Pemetaan kolom pengguna dengan batasan not-null
+    private String pengguna; // Deklarasi atribut pengguna bertipe String untuk mencatat identitas aktor pengunduh
 
-    @Column(name = "format_berkas", nullable = false, length = 10)
-    private String formatBerkas; // "PDF" atau "XLSX"
+    @Column(name = "jenis_laporan", nullable = false, length = 50) // Pemetaan kolom jenis_laporan dengan batasan not-null
+    private String jenisLaporan; // Deklarasi atribut jenisLaporan bertipe String (FINANSIAL/OPERASIONAL/KOMPREHENSIF)
 
-    @Column(name = "periode_awal", nullable = false)
-    private LocalDate periodeAwal; // Batas awal rentang data yang diekspor
+    @Column(name = "format_berkas", nullable = false, length = 10) // Pemetaan kolom format_berkas dengan batasan not-null
+    private String formatBerkas; // Deklarasi atribut formatBerkas bertipe String untuk ekstensi berkas (PDF/XLSX)
 
-    @Column(name = "periode_akhir", nullable = false)
-    private LocalDate periodeAkhir; // Batas akhir rentang data yang diekspor
+    @Column(name = "periode_awal", nullable = false) // Pemetaan kolom periode_awal dengan batasan not-null
+    private LocalDate periodeAwal; // Deklarasi atribut periodeAwal bertipe LocalDate untuk tanggal awal filter data
 
-    @Column(name = "nama_berkas", nullable = false, length = 200)
-    private String namaBerkas; // Nama file fisik yang dikirim ke browser
+    @Column(name = "periode_akhir", nullable = false) // Pemetaan kolom periode_akhir dengan batasan not-null
+    private LocalDate periodeAkhir; // Deklarasi atribut periodeAkhir bertipe LocalDate untuk tanggal akhir filter data
 
-    @Column(name = "ukuran_byte", nullable = false)
-    private Long ukuranByte; // Ukuran dokumen dalam satuan byte
+    @Column(name = "nama_berkas", nullable = false, length = 200) // Pemetaan kolom nama_berkas dengan batasan not-null
+    private String namaBerkas; // Deklarasi atribut namaBerkas bertipe String untuk nama fisik file dokumen yang diunduh
 
-    @Column(name = "status_keberhasilan", nullable = false, length = 20)
-    private String statusKeberhasilan; // "SUKSES" atau "GAGAL"
+    @Column(name = "ukuran_byte", nullable = false) // Pemetaan kolom ukuran_byte dengan batasan not-null
+    private Long ukuranByte; // Deklarasi atribut ukuranByte bertipe Long untuk mencatat ukuran berkas dalam byte
 
-    @Column(name = "ip_address", length = 50)
-    private String ipAddress; // Alamat IP pemohon (opsional)
+    @Column(name = "status_keberhasilan", nullable = false, length = 20) // Pemetaan kolom status_keberhasilan not-null
+    private String statusKeberhasilan; // Deklarasi atribut statusKeberhasilan bertipe String (SUKSES/GAGAL)
 
-    // Konstruktor Default
+    @Column(name = "ip_address", length = 50) // Pemetaan kolom ip_address dengan panjang maksimal 50 karakter
+    private String ipAddress; // Deklarasi atribut ipAddress bertipe String untuk mencatat alamat IP klien pengunduh
+
+    // =====================================================================
+    // Konstruktor Kelas LogAuditLaporan
+    // =====================================================================
+
+    // Konstruktor default tanpa parameter untuk instansiasi awal entitas
     public LogAuditLaporan()
     {
-        this.waktuUnduh = LocalDateTime.now();
-        this.statusKeberhasilan = "SUKSES";
+        this.waktuUnduh = LocalDateTime.now(); // Inisialisasi atribut waktuUnduh dengan waktu lokal saat ini
+        this.statusKeberhasilan = "SUKSES"; // Inisialisasi atribut statusKeberhasilan dengan nilai default SUKSES
     }
 
-    // Konstruktor Lengkap
+    // Konstruktor dengan parameter lengkap untuk pencatatan log audit unduhan
     public LogAuditLaporan(String pengguna, String jenisLaporan, String formatBerkas,
                            LocalDate periodeAwal, LocalDate periodeAkhir,
                            String namaBerkas, Long ukuranByte, String ipAddress)
     {
-        this.waktuUnduh = LocalDateTime.now();
-        this.pengguna = pengguna;
-        this.jenisLaporan = jenisLaporan;
-        this.formatBerkas = formatBerkas;
-        this.periodeAwal = periodeAwal;
-        this.periodeAkhir = periodeAkhir;
-        this.namaBerkas = namaBerkas;
-        this.ukuranByte = ukuranByte;
-        this.statusKeberhasilan = "SUKSES";
-        this.ipAddress = ipAddress;
+        this.waktuUnduh = LocalDateTime.now(); // Inisialisasi atribut waktuUnduh dengan waktu lokal saat ini
+        this.pengguna = pengguna; // Inisialisasi atribut pengguna dengan parameter pengguna
+        this.jenisLaporan = jenisLaporan; // Inisialisasi atribut jenisLaporan dengan parameter jenisLaporan
+        this.formatBerkas = formatBerkas; // Inisialisasi atribut formatBerkas dengan parameter formatBerkas
+        this.periodeAwal = periodeAwal; // Inisialisasi atribut periodeAwal dengan parameter periodeAwal
+        this.periodeAkhir = periodeAkhir; // Inisialisasi atribut periodeAkhir dengan parameter periodeAkhir
+        this.namaBerkas = namaBerkas; // Inisialisasi atribut namaBerkas dengan parameter namaBerkas
+        this.ukuranByte = ukuranByte; // Inisialisasi atribut ukuranByte dengan parameter ukuranByte
+        this.statusKeberhasilan = "SUKSES"; // Inisialisasi atribut statusKeberhasilan dengan nilai SUKSES
+        this.ipAddress = ipAddress; // Inisialisasi atribut ipAddress dengan parameter ipAddress
     }
 
-    // Getter dan Setter
-    public Long getIdAudit() { return idAudit; }
-    public void setIdAudit(Long idAudit) { this.idAudit = idAudit; }
+    // =====================================================================
+    // Method Setter & Getter Atribut
+    // =====================================================================
 
-    public LocalDateTime getWaktuUnduh() { return waktuUnduh; }
-    public void setWaktuUnduh(LocalDateTime waktuUnduh) { this.waktuUnduh = waktuUnduh; }
+    // Method getter getIdAudit untuk mengambil nilai atribut idAudit
+    public Long getIdAudit() 
+    { 
+        return idAudit; // Mengembalikan nilai dari atribut idAudit
+    }
 
-    public String getPengguna() { return pengguna; }
-    public void setPengguna(String pengguna) { this.pengguna = pengguna; }
+    // Method setter setIdAudit untuk mengubah nilai atribut idAudit
+    public void setIdAudit(Long idAudit) 
+    { 
+        this.idAudit = idAudit; // Inisialisasi atribut idAudit dengan parameter
+    }
 
-    public String getJenisLaporan() { return jenisLaporan; }
-    public void setJenisLaporan(String jenisLaporan) { this.jenisLaporan = jenisLaporan; }
+    // Method getter getWaktuUnduh untuk mengambil nilai atribut waktuUnduh
+    public LocalDateTime getWaktuUnduh() 
+    { 
+        return waktuUnduh; // Mengembalikan nilai dari atribut waktuUnduh
+    }
 
-    public String getFormatBerkas() { return formatBerkas; }
-    public void setFormatBerkas(String formatBerkas) { this.formatBerkas = formatBerkas; }
+    // Method setter setWaktuUnduh untuk mengubah nilai atribut waktuUnduh
+    public void setWaktuUnduh(LocalDateTime waktuUnduh) 
+    { 
+        this.waktuUnduh = waktuUnduh; // Inisialisasi atribut waktuUnduh dengan parameter
+    }
 
-    public LocalDate getPeriodeAwal() { return periodeAwal; }
-    public void setPeriodeAwal(LocalDate periodeAwal) { this.periodeAwal = periodeAwal; }
+    // Method getter getPengguna untuk mengambil nilai atribut pengguna
+    public String getPengguna() 
+    { 
+        return pengguna; // Mengembalikan nilai dari atribut pengguna
+    }
 
-    public LocalDate getPeriodeAkhir() { return periodeAkhir; }
-    public void setPeriodeAkhir(LocalDate periodeAkhir) { this.periodeAkhir = periodeAkhir; }
+    // Method setter setPengguna untuk mengubah nilai atribut pengguna
+    public void setPengguna(String pengguna) 
+    { 
+        this.pengguna = pengguna; // Inisialisasi atribut pengguna dengan parameter
+    }
 
-    public String getNamaBerkas() { return namaBerkas; }
-    public void setNamaBerkas(String namaBerkas) { this.namaBerkas = namaBerkas; }
+    // Method getter getJenisLaporan untuk mengambil nilai atribut jenisLaporan
+    public String getJenisLaporan() 
+    { 
+        return jenisLaporan; // Mengembalikan nilai dari atribut jenisLaporan
+    }
 
-    public Long getUkuranByte() { return ukuranByte; }
-    public void setUkuranByte(Long ukuranByte) { this.ukuranByte = ukuranByte; }
+    // Method setter setJenisLaporan untuk mengubah nilai atribut jenisLaporan
+    public void setJenisLaporan(String jenisLaporan) 
+    { 
+        this.jenisLaporan = jenisLaporan; // Inisialisasi atribut jenisLaporan dengan parameter
+    }
 
-    public String getStatusKeberhasilan() { return statusKeberhasilan; }
-    public void setStatusKeberhasilan(String statusKeberhasilan) { this.statusKeberhasilan = statusKeberhasilan; }
+    // Method getter getFormatBerkas untuk mengambil nilai atribut formatBerkas
+    public String getFormatBerkas() 
+    { 
+        return formatBerkas; // Mengembalikan nilai dari atribut formatBerkas
+    }
 
-    public String getIpAddress() { return ipAddress; }
-    public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
+    // Method setter setFormatBerkas untuk mengubah nilai atribut formatBerkas
+    public void setFormatBerkas(String formatBerkas) 
+    { 
+        this.formatBerkas = formatBerkas; // Inisialisasi atribut formatBerkas dengan parameter
+    }
+
+    // Method getter getPeriodeAwal untuk mengambil nilai atribut periodeAwal
+    public LocalDate getPeriodeAwal() 
+    { 
+        return periodeAwal; // Mengembalikan nilai dari atribut periodeAwal
+    }
+
+    // Method setter setPeriodeAwal untuk mengubah nilai atribut periodeAwal
+    public void setPeriodeAwal(LocalDate periodeAwal) 
+    { 
+        this.periodeAwal = periodeAwal; // Inisialisasi atribut periodeAwal dengan parameter
+    }
+
+    // Method getter getPeriodeAkhir untuk mengambil nilai atribut periodeAkhir
+    public LocalDate getPeriodeAkhir() 
+    { 
+        return periodeAkhir; // Mengembalikan nilai dari atribut periodeAkhir
+    }
+
+    // Method setter setPeriodeAkhir untuk mengubah nilai atribut periodeAkhir
+    public void setPeriodeAkhir(LocalDate periodeAkhir) 
+    { 
+        this.periodeAkhir = periodeAkhir; // Inisialisasi atribut periodeAkhir dengan parameter
+    }
+
+    // Method getter getNamaBerkas untuk mengambil nilai atribut namaBerkas
+    public String getNamaBerkas() 
+    { 
+        return namaBerkas; // Mengembalikan nilai dari atribut namaBerkas
+    }
+
+    // Method setter setNamaBerkas untuk mengubah nilai atribut namaBerkas
+    public void setNamaBerkas(String namaBerkas) 
+    { 
+        this.namaBerkas = namaBerkas; // Inisialisasi atribut namaBerkas dengan parameter
+    }
+
+    // Method getter getUkuranByte untuk mengambil nilai atribut ukuranByte
+    public Long getUkuranByte() 
+    { 
+        return ukuranByte; // Mengembalikan nilai dari atribut ukuranByte
+    }
+
+    // Method setter setUkuranByte untuk mengubah nilai atribut ukuranByte
+    public void setUkuranByte(Long ukuranByte) 
+    { 
+        this.ukuranByte = ukuranByte; // Inisialisasi atribut ukuranByte dengan parameter
+    }
+
+    // Method getter getStatusKeberhasilan untuk mengambil nilai atribut statusKeberhasilan
+    public String getStatusKeberhasilan() 
+    { 
+        return statusKeberhasilan; // Mengembalikan nilai dari atribut statusKeberhasilan
+    }
+
+    // Method setter setStatusKeberhasilan untuk mengubah nilai atribut statusKeberhasilan
+    public void setStatusKeberhasilan(String statusKeberhasilan) 
+    { 
+        this.statusKeberhasilan = statusKeberhasilan; // Inisialisasi atribut statusKeberhasilan dengan parameter
+    }
+
+    // Method getter getIpAddress untuk mengambil nilai atribut ipAddress
+    public String getIpAddress() 
+    { 
+        return ipAddress; // Mengembalikan nilai dari atribut ipAddress
+    }
+
+    // Method setter setIpAddress untuk mengubah nilai atribut ipAddress
+    public void setIpAddress(String ipAddress) 
+    { 
+        this.ipAddress = ipAddress; // Inisialisasi atribut ipAddress dengan parameter
+    }
 }

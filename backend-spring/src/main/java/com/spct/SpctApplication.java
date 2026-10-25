@@ -1,55 +1,70 @@
-package com.spct;
+package com.spct; // Nama package root dari aplikasi sistem parkir cerdas terintegrasi IoT
 
+// Import pustaka Spring Boot Application
 import org.springframework.boot.SpringApplication;
+// Import anotasi konfigurasi otomatis Spring Boot
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-
-// Ini adalah Kelas Utama (Main Class) yang bertugas untuk menjalankan server Spring Boot.
-// Sama seperti fungsi public static void main(String[] args) pada Java Core Anda.
+// Import antarmuka CommandLineRunner untuk eksekusi kode saat aplikasi pertama kali boot
 import org.springframework.boot.CommandLineRunner;
+// Import anotasi Bean untuk registrasi objek ke Spring ApplicationContext
 import org.springframework.context.annotation.Bean;
-import com.spct.model.SlotParkir;
-import com.spct.model.StatusSlot;
-import com.spct.repository.SlotParkirRepository;
-import com.spct.model.User;
-import com.spct.repository.UserRepository;
-import com.spct.model.DataKendaraan;
-import com.spct.model.JenisKendaraan;
-import com.spct.repository.DataKendaraanRepository;
-import com.spct.model.TransaksiParkir;
-import com.spct.model.StatusPembayaran;
-import com.spct.repository.TransaksiParkirRepository;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
+// Import anotasi EnableScheduling untuk mengaktifkan scheduler cron di latar belakang
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+// Import entitas-entitas model sistem
+import com.spct.model.SlotParkir;
+import com.spct.model.StatusSlot;
+import com.spct.model.User;
+import com.spct.model.DataKendaraan;
+import com.spct.model.JenisKendaraan;
+import com.spct.model.TransaksiParkir;
+import com.spct.model.StatusPembayaran;
 import com.spct.model.KameraAnpr;
 import com.spct.model.SensorIoT;
+
+// Import repositori-repositori akses basis data
+import com.spct.repository.SlotParkirRepository;
+import com.spct.repository.UserRepository;
+import com.spct.repository.DataKendaraanRepository;
+import com.spct.repository.TransaksiParkirRepository;
 import com.spct.repository.KameraAnprRepository;
 import com.spct.repository.SensorIoTRepository;
 
-@SpringBootApplication
-@EnableScheduling
-public class SpctApplication {
-    // Konfigurasi denah gedung parkir: jumlah lantai dan jumlah slot per zona (per lantai per jenis kendaraan)
+// Import tipe data BigDecimal untuk nominal mata uang
+import java.math.BigDecimal;
+// Import tipe data waktu LocalDateTime java
+import java.time.LocalDateTime;
+
+// Kelas utama publik java SpctApplication yang bertugas mengeksekusi dan menjalankan seluruh ekosistem backend Spring Boot
+@SpringBootApplication // Anotasi gabungan @Configuration, @EnableAutoConfiguration, dan @ComponentScan
+@EnableScheduling // Mengaktifkan mekanisme penjadwalan pembersihan otomatis data lama
+public class SpctApplication 
+{
+    // Deklarasi konstanta JUMLAH_LANTAI bertipe int dengan nilai 3 lantai
     private static final int JUMLAH_LANTAI = 3;
+    // Deklarasi konstanta SLOT_PER_ZONA bertipe int dengan nilai 16 slot per jenis kendaraan per lantai
     private static final int SLOT_PER_ZONA = 16;
 
-    public static void main(String[] args) {
+    // Method main sebagai titik awal (entry point) eksekusi program Java
+    public static void main(String[] args) 
+    {
+        // Menjalankan Spring Boot Application context dan server embedded Tomcat
         SpringApplication.run(SpctApplication.class, args);
+        // Menampilkan pesan banner konfirmasi keberhasilan server aktif di konsol
         System.out.println("==========================================================");
         System.out.println("SERVER SPCT IoT BERHASIL DIJALANKAN DI PORT 8081");
         System.out.println("==========================================================");
     }
 
-    // Method seederData bertipe CommandLineRunner untuk auto-seeder data master
-    // (Akun, Slot Mobil & Motor per Lantai, 4 Kamera ANPR, Sensor IoT per Slot)
-    @Bean
+    // Method seederData bertipe CommandLineRunner untuk auto-seeder data master awal
+    @Bean // Mendaftarkan method ini sebagai Spring Bean yang dieksekusi saat startup
     public CommandLineRunner seederData(
             SlotParkirRepository slotRepo, // Injeksi repository slot_parkir
             UserRepository userRepo, // Injeksi repository users
             KameraAnprRepository kameraRepo, // Injeksi repository kamera_anpr
             SensorIoTRepository sensorRepo // Injeksi repository sensor_iot
-    ) {
+    ) 
+    {
         return args -> {
             // =====================================================================
             // 1. Sinkronisasi Akun Pengguna Default (Admin, Petugas, Manajer)
@@ -57,42 +72,57 @@ public class SpctApplication {
             System.out.println("SINKRONISASI AKUN DEFAULT...");
 
             // Cek apakah akun admin sudah terdaftar di database
-            if (userRepo.findByUsername("admin").isEmpty()) {
+            if (userRepo.findByUsername("admin").isEmpty()) 
+            {
                 // Inisialisasi objek user admin baru dengan role ADMIN dan NIP 10000001
                 User admin = new User("admin", "admin123", "Administrator Sistem", "ADMIN", "10000001");
-                userRepo.save(admin);
+                userRepo.save(admin); // Menyimpan akun admin ke database
                 System.out.println("AKUN ADMIN BERHASIL DIBUAT (user: admin, nip: 10000001, pass: admin123)");
-            } else {
+            } 
+            else 
+            {
+                // Jika sudah ada, pastikan NIP default terisi
                 User admin = userRepo.findByUsername("admin").get();
-                if (admin.getNip() == null || admin.getNip().trim().isEmpty()) {
+                if (admin.getNip() == null || admin.getNip().trim().isEmpty()) 
+                {
                     admin.setNip("10000001");
                     userRepo.save(admin);
                 }
             }
 
             // Cek apakah akun petugas01 sudah terdaftar di database
-            if (userRepo.findByUsername("petugas01").isEmpty()) {
+            if (userRepo.findByUsername("petugas01").isEmpty()) 
+            {
                 // Inisialisasi objek user petugas01 baru dengan role PETUGAS_LAPANGAN dan NIP 10000002
                 User petugas = new User("petugas01", "petugas123", "Budi Santoso", "PETUGAS_LAPANGAN", "10000002");
-                userRepo.save(petugas);
+                userRepo.save(petugas); // Menyimpan akun petugas ke database
                 System.out.println("AKUN PETUGAS BERHASIL DIBUAT (user: petugas01, nip: 10000002, pass: petugas123)");
-            } else {
+            } 
+            else 
+            {
+                // Jika sudah ada, pastikan NIP default terisi
                 User petugas = userRepo.findByUsername("petugas01").get();
-                if (petugas.getNip() == null || petugas.getNip().trim().isEmpty()) {
+                if (petugas.getNip() == null || petugas.getNip().trim().isEmpty()) 
+                {
                     petugas.setNip("10000002");
                     userRepo.save(petugas);
                 }
             }
 
             // Cek apakah akun manajer sudah terdaftar di database
-            if (userRepo.findByUsername("manajer").isEmpty()) {
+            if (userRepo.findByUsername("manajer").isEmpty()) 
+            {
                 // Inisialisasi objek user manajer baru dengan role Manajemen RS dan NIP 10000003
                 User manajer = new User("manajer", "manajer123", "Manajer RS Panti Rapih", "Manajemen RS", "10000003");
-                userRepo.save(manajer);
+                userRepo.save(manajer); // Menyimpan akun manajer ke database
                 System.out.println("AKUN MANAJER BERHASIL DIBUAT (user: manajer, nip: 10000003, pass: manajer123)");
-            } else {
+            } 
+            else 
+            {
+                // Jika sudah ada, pastikan NIP default terisi
                 User manajer = userRepo.findByUsername("manajer").get();
-                if (manajer.getNip() == null || manajer.getNip().trim().isEmpty()) {
+                if (manajer.getNip() == null || manajer.getNip().trim().isEmpty()) 
+                {
                     manajer.setNip("10000003");
                     userRepo.save(manajer);
                 }
@@ -103,14 +133,17 @@ public class SpctApplication {
             // =====================================================================
             System.out.println("SINKRONISASI KOORDINAT SLOT PARKIR (GRID MULTI-LANTAI)...");
             // Looping setiap lantai (1 s.d. JUMLAH_LANTAI)
-            for (int lantai = 1; lantai <= JUMLAH_LANTAI; lantai++) {
+            for (int lantai = 1; lantai <= JUMLAH_LANTAI; lantai++) 
+            {
                 // Looping setiap jenis kendaraan: MOBIL (prefix B) dan MOTOR (prefix M)
-                for (JenisKendaraan jenis : JenisKendaraan.values()) {
+                for (JenisKendaraan jenis : JenisKendaraan.values()) 
+                {
                     // Menentukan prefix kode slot: B = Basement mobil, M = zona motor
                     String zona = ((jenis == JenisKendaraan.MOBIL) ? "B" : "M") + lantai;
 
                     // Looping i dari 1 hingga SLOT_PER_ZONA untuk membentuk slot pada zona ini
-                    for (int i = 1; i <= SLOT_PER_ZONA; i++) {
+                    for (int i = 1; i <= SLOT_PER_ZONA; i++) 
+                    {
                         // Menentukan idSlot dengan format dua digit angka (misal: B1-01, B2-16, M1-05)
                         String idSlot = zona + "-" + String.format("%02d", i);
                         // Menentukan nodeId penanda titik pada peta navigasi graf (misal: NODE_B1_1, NODE_M2_5)
@@ -126,7 +159,8 @@ public class SpctApplication {
                         // Mencari apakah idSlot sudah tersimpan di database
                         java.util.Optional<SlotParkir> existingSlot = slotRepo.findById(idSlot);
                         // Jika slot sudah ada sebelumnya di database, maka:
-                        if (existingSlot.isPresent()) {
+                        if (existingSlot.isPresent()) 
+                        {
                             // Mengambil referensi entitas slot yang sudah ada
                             SlotParkir slot = existingSlot.get();
                             // Memperbarui atribut nodeId
@@ -139,8 +173,10 @@ public class SpctApplication {
                             slot.setJenisKendaraan(jenis);
                             // Menyimpan kembali pembaruan data slot ke database
                             slotRepo.save(slot);
-                        } else { // Jika slot belum ada di database, maka:
-                            // Inisialisasi entitas objek SlotParkir baru
+                        } 
+                        else 
+                        { 
+                            // Jika slot belum ada di database, inisialisasi entitas objek SlotParkir baru
                             SlotParkir slot = new SlotParkir(idSlot, lantai, nodeId, x, y);
                             // Mengatur peruntukan slot (MOBIL / MOTOR)
                             slot.setJenisKendaraan(jenis);
@@ -167,11 +203,13 @@ public class SpctApplication {
             };
 
             // Melakukan perulangan untuk setiap data kamera dalam array dataKamera
-            for (String[] k : dataKamera) {
+            for (String[] k : dataKamera) 
+            {
                 // Mengambil nilai idKamera dari array
                 String idKamera = k[0];
                 // Cek apakah kamera sudah ada di tabel kamera_anpr
-                if (kameraRepo.findById(idKamera).isEmpty()) {
+                if (kameraRepo.findById(idKamera).isEmpty()) 
+                {
                     // Parsing enum jenis kendaraan MOBIL / MOTOR
                     JenisKendaraan tipe = "MOBIL".equals(k[2]) ? JenisKendaraan.MOBIL : JenisKendaraan.MOTOR;
                     // Inisialisasi objek KameraAnpr baru
@@ -190,12 +228,14 @@ public class SpctApplication {
             // =====================================================================
             System.out.println("SINKRONISASI SENSOR IOT PER-SLOT...");
             // Melakukan perulangan untuk setiap slot yang ada di database (semua lantai, mobil & motor)
-            for (SlotParkir slotTarget : slotRepo.findAll()) {
+            for (SlotParkir slotTarget : slotRepo.findAll()) 
+            {
                 // Menentukan idSensor dengan format SNS-<idSlot> (misal: SNS-B1-01, SNS-M2-05)
                 String idSensor = "SNS-" + slotTarget.getIdSlot();
 
                 // Cek apakah sensor sudah tersimpan di tabel sensor_iot
-                if (sensorRepo.findById(idSensor).isEmpty()) {
+                if (sensorRepo.findById(idSensor).isEmpty()) 
+                {
                     // Inisialisasi objek SensorIoT baru yang memantau slot tersebut
                     SensorIoT sensor = new SensorIoT(idSensor, slotTarget);
                     // Mengatur status operasional sensor menjadi ON

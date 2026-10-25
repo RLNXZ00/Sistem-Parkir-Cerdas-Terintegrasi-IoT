@@ -1,129 +1,163 @@
-package com.spct.dto;
+package com.spct.dto; // Nama package dari modul data transfer object (DTO)
 
-import java.time.LocalDateTime; // Mengimpor LocalDateTime untuk menyimpan waktu masuk di respons
-import java.util.List;          // Mengimpor List untuk menyimpan urutan node rute hasil A*
+// Import tipe data LocalDateTime java untuk pencatatan waktu masuk
+import java.time.LocalDateTime;
+// Import koleksi List dari java util
+import java.util.List;
 
-// DTO (Data Transfer Object): Objek respons JSON yang dikirim ke Frontend Kiosk Terminal Masuk
-// Menggabungkan semua informasi yang dibutuhkan Kiosk dalam SATU respons setelah plat terdeteksi
-// (plat, slot, rute, waktu, ID transaksi) sehingga Kiosk tidak perlu request tambahan
-public class HasilDeteksiMasukDto // Kelas DTO untuk membungkus seluruh hasil pemrosesan kendaraan masuk
+// Kelas publik java HasilDeteksiMasukDto untuk membungkus data respon pemrosesan gerbang masuk ke terminal Kiosk
+public class HasilDeteksiMasukDto
 {
     // =====================================================================
-    // Deklarasi Atribut: Data yang akan dikirim ke Frontend Kiosk Masuk
+    // Deklarasi Atribut Hasil Deteksi Masuk
     // =====================================================================
 
-    private String status;                  // Status operasi: "SUKSES", "CONFIDENCE_RENDAH", "BASEMENT_PENUH"
-    private String platNomor;               // Plat nomor yang berhasil dibaca oleh OCR (konfirmasi ke pengguna Kiosk)
-    private LocalDateTime waktuMasuk;       // Timestamp waktu kendaraan masuk (untuk ditampilkan di layar Kiosk)
-    private Long idTransaksi;               // ID transaksi yang baru dibuat (disimpan Kiosk untuk referensi keluar)
-    private String slotDialokasikan;        // Nomor slot yang diberikan (misal: "B1-12") untuk ditampilkan di Kiosk
-    private Integer lantaiSlot;             // Lantai dari slot (untuk konteks navigasi)
-    private List<TitikRuteDto> jalurRuteGraf;     // Array urutan titik (id, x, y) rute dari Algoritma A* (untuk rendering simulasi visual 2D)
-    private String pesanKeterangan;         // Keterangan tambahan (misal: pesan error atau instruksi ke pengguna)
+    // Deklarasi atribut status bertipe String untuk status keberhasilan deteksi (SUKSES/GAGAL)
+    private String status;
 
+    // Deklarasi atribut platNomor bertipe String untuk nomor plat hasil pengenalan citra
+    private String platNomor;
+
+    // Deklarasi atribut waktuMasuk bertipe LocalDateTime untuk waktu kendaraan masuk
+    private LocalDateTime waktuMasuk;
+
+    // Deklarasi atribut idTransaksi bertipe Long untuk nomor tiket transaksi
+    private Long idTransaksi;
+
+    // Deklarasi atribut slotDialokasikan bertipe String untuk nomor slot parkir tujuan
+    private String slotDialokasikan;
+
+    // Deklarasi atribut lantaiSlot bertipe Integer untuk nomor lantai slot parkir
+    private Integer lantaiSlot;
+
+    // Deklarasi atribut jalurRuteGraf bertipe List<TitikRuteDto> untuk jalur rute graf A*
+    private List<TitikRuteDto> jalurRuteGraf;
+
+    // Deklarasi atribut pesanKeterangan bertipe String untuk petunjuk atau pesan informasi
+    private String pesanKeterangan;
 
     // =====================================================================
-    // Konstruktor LENGKAP (gaya penulisan Anda)
+    // Konstruktor Kelas HasilDeteksiMasukDto
     // =====================================================================
+
+    // Konstruktor dengan parameter lengkap
     public HasilDeteksiMasukDto(String status, String platNomor, LocalDateTime waktuMasuk,
                                  Long idTransaksi, String slotDialokasikan, Integer lantaiSlot,
                                  List<TitikRuteDto> jalurRuteGraf, String pesanKeterangan)
     {
-        this.status = status;                         // Menginisialisasi atribut status
-        this.platNomor = platNomor;                   // Menginisialisasi atribut platNomor
-        this.waktuMasuk = waktuMasuk;                 // Menginisialisasi atribut waktuMasuk
-        this.idTransaksi = idTransaksi;               // Menginisialisasi atribut idTransaksi
-        this.slotDialokasikan = slotDialokasikan;     // Menginisialisasi atribut slotDialokasikan
-        this.lantaiSlot = lantaiSlot;                 // Menginisialisasi atribut lantaiSlot
-        this.jalurRuteGraf = jalurRuteGraf;           // Menginisialisasi atribut jalurRuteGraf
-        this.pesanKeterangan = pesanKeterangan;       // Menginisialisasi atribut pesanKeterangan
+        this.status = status; // Inisialisasi atribut status dengan parameter status
+        this.platNomor = platNomor; // Inisialisasi atribut platNomor dengan parameter platNomor
+        this.waktuMasuk = waktuMasuk; // Inisialisasi atribut waktuMasuk dengan parameter waktuMasuk
+        this.idTransaksi = idTransaksi; // Inisialisasi atribut idTransaksi dengan parameter idTransaksi
+        this.slotDialokasikan = slotDialokasikan; // Inisialisasi atribut slotDialokasikan dengan parameter slotDialokasikan
+        this.lantaiSlot = lantaiSlot; // Inisialisasi atribut lantaiSlot dengan parameter lantaiSlot
+        this.jalurRuteGraf = jalurRuteGraf; // Inisialisasi atribut jalurRuteGraf dengan parameter jalurRuteGraf
+        this.pesanKeterangan = pesanKeterangan; // Inisialisasi atribut pesanKeterangan dengan parameter pesanKeterangan
     }
 
-    // Konstruktor kosong (diperlukan oleh Jackson untuk serialisasi/deserialisasi JSON)
-    public HasilDeteksiMasukDto() {}
-
+    // Konstruktor default tanpa parameter untuk Jackson
+    public HasilDeteksiMasukDto() 
+    {
+        // Konstruktor kosong untuk kebutuhan Jackson JSON serializer
+    }
 
     // =====================================================================
-    // Getter & Setter (gaya penulisan Anda)
+    // Method Setter & Getter Atribut
     // =====================================================================
 
-    public void setStatus(String status) // Deklarasi method setter untuk status
+    // Method setter setStatus untuk mengubah nilai atribut status
+    public void setStatus(String status)
     {
-        this.status = status; // Mengubah nilai atribut status
+        this.status = status; // Inisialisasi atribut status dengan parameter
     }
 
-    public String getStatus() // Deklarasi method getter untuk status
+    // Method getter getStatus untuk mengambil nilai atribut status
+    public String getStatus()
     {
-        return status; // Mengembalikan nilai atribut status
+        return status; // Mengembalikan nilai dari atribut status
     }
 
-    public void setPlatNomor(String platNomor) // Deklarasi method setter untuk platNomor
+    // Method setter setPlatNomor untuk mengubah nomor plat
+    public void setPlatNomor(String platNomor)
     {
-        this.platNomor = platNomor;
+        this.platNomor = platNomor; // Inisialisasi atribut platNomor dengan parameter
     }
 
-    public String getPlatNomor() // Deklarasi method getter untuk platNomor
+    // Method getter getPlatNomor untuk mengambil nomor plat
+    public String getPlatNomor()
     {
-        return platNomor; // Mengembalikan nilai atribut platNomor
+        return platNomor; // Mengembalikan nilai dari atribut platNomor
     }
 
-    public void setWaktuMasuk(LocalDateTime waktuMasuk) // Deklarasi method setter untuk waktuMasuk
+    // Method setter setWaktuMasuk untuk mengubah waktu masuk
+    public void setWaktuMasuk(LocalDateTime waktuMasuk)
     {
-        this.waktuMasuk = waktuMasuk;
+        this.waktuMasuk = waktuMasuk; // Inisialisasi atribut waktuMasuk dengan parameter
     }
 
-    public LocalDateTime getWaktuMasuk() // Deklarasi method getter untuk waktuMasuk
+    // Method getter getWaktuMasuk untuk mengambil waktu masuk
+    public LocalDateTime getWaktuMasuk()
     {
-        return waktuMasuk; // Mengembalikan nilai atribut waktuMasuk
+        return waktuMasuk; // Mengembalikan nilai dari atribut waktuMasuk
     }
 
-    public void setIdTransaksi(Long idTransaksi) // Deklarasi method setter untuk idTransaksi
+    // Method setter setIdTransaksi untuk mengubah id transaksi
+    public void setIdTransaksi(Long idTransaksi)
     {
-        this.idTransaksi = idTransaksi;
+        this.idTransaksi = idTransaksi; // Inisialisasi atribut idTransaksi dengan parameter
     }
 
-    public Long getIdTransaksi() // Deklarasi method getter untuk idTransaksi
+    // Method getter getIdTransaksi untuk mengambil id transaksi
+    public Long getIdTransaksi()
     {
-        return idTransaksi; // Mengembalikan nilai atribut idTransaksi
+        return idTransaksi; // Mengembalikan nilai dari atribut idTransaksi
     }
 
-    public void setSlotDialokasikan(String slotDialokasikan) // Deklarasi method setter untuk slotDialokasikan
+    // Method setter setSlotDialokasikan untuk mengubah kode slot
+    public void setSlotDialokasikan(String slotDialokasikan)
     {
-        this.slotDialokasikan = slotDialokasikan;
+        this.slotDialokasikan = slotDialokasikan; // Inisialisasi atribut slotDialokasikan dengan parameter
     }
 
-    public String getSlotDialokasikan() // Deklarasi method getter untuk slotDialokasikan
+    // Method getter getSlotDialokasikan untuk mengambil kode slot
+    public String getSlotDialokasikan()
     {
-        return slotDialokasikan; // Mengembalikan nilai atribut slotDialokasikan
+        return slotDialokasikan; // Mengembalikan nilai dari atribut slotDialokasikan
     }
 
-    public void setLantaiSlot(Integer lantaiSlot) // Deklarasi method setter untuk lantaiSlot
+    // Method setter setLantaiSlot untuk mengubah nomor lantai
+    public void setLantaiSlot(Integer lantaiSlot)
     {
-        this.lantaiSlot = lantaiSlot;
+        this.lantaiSlot = lantaiSlot; // Inisialisasi atribut lantaiSlot dengan parameter
     }
 
-    public Integer getLantaiSlot() // Deklarasi method getter untuk lantaiSlot
+    // Method getter getLantaiSlot untuk mengambil nomor lantai
+    public Integer getLantaiSlot()
     {
-        return lantaiSlot; // Mengembalikan nilai atribut lantaiSlot
+        return lantaiSlot; // Mengembalikan nilai dari atribut lantaiSlot
     }
 
-    public void setJalurRuteGraf(List<TitikRuteDto> jalurRuteGraf) // Deklarasi method setter untuk jalurRuteGraf
+    // Method setter setJalurRuteGraf untuk mengubah rute graf navigasi
+    public void setJalurRuteGraf(List<TitikRuteDto> jalurRuteGraf)
     {
-        this.jalurRuteGraf = jalurRuteGraf;
+        this.jalurRuteGraf = jalurRuteGraf; // Inisialisasi atribut jalurRuteGraf dengan parameter
     }
 
-    public List<TitikRuteDto> getJalurRuteGraf() // Deklarasi method getter untuk jalurRuteGraf
+    // Method getter getJalurRuteGraf untuk mengambil rute graf navigasi
+    public List<TitikRuteDto> getJalurRuteGraf()
     {
-        return jalurRuteGraf; // Mengembalikan nilai atribut jalurRuteGraf (array rute A*)
+        return jalurRuteGraf; // Mengembalikan daftar titik rute dari atribut jalurRuteGraf
     }
 
-    public void setPesanKeterangan(String pesanKeterangan) // Deklarasi method setter untuk pesanKeterangan
+    // Method setter setPesanKeterangan untuk mengubah pesan keterangan
+    public void setPesanKeterangan(String pesanKeterangan)
     {
-        this.pesanKeterangan = pesanKeterangan; // Mengubah nilai atribut pesanKeterangan
+        this.pesanKeterangan = pesanKeterangan; // Inisialisasi atribut pesanKeterangan dengan parameter
     }
 
-    public String getPesanKeterangan() // Deklarasi method getter untuk pesanKeterangan
+    // Method getter getPesanKeterangan untuk mengambil pesan keterangan
+    public String getPesanKeterangan()
     {
-        return pesanKeterangan; // Mengembalikan nilai atribut pesanKeterangan
+        return pesanKeterangan; // Mengembalikan nilai dari atribut pesanKeterangan
     }
 }

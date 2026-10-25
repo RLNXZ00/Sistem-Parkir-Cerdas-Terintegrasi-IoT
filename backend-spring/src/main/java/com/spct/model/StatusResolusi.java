@@ -1,8 +1,11 @@
-package com.spct.model;
+package com.spct.model; // Nama package dari modul model entitas sistem
 
-// Deklarasi Enum StatusResolusi: memastikan petugas tidak melewatkan anomali yang terjadi
+// Enum publik java dari StatusResolusi: merepresentasikan status penanganan anomali operasional oleh petugas
 public enum StatusResolusi
 {
-    BELUM_DITANGANI,    // Anomali baru masuk, petugas belum mengkonfirmasi
-    SELESAI_DIVALIDASI  // Petugas sudah mengecek lapangan dan mengkonfirmasi penanganan selesai
+    // Status BELUM_DITANGANI: anomali baru terdeteksi dan menunggu inspeksi petugas lapangan
+    BELUM_DITANGANI,
+    
+    // Status SELESAI_DIVALIDASI: anomali telah selesai diinspeksi dan dikonfirmasi tuntas oleh petugas
+    SELESAI_DIVALIDASI
 }

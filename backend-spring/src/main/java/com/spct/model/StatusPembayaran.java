@@ -1,10 +1,17 @@
-package com.spct.model;
+package com.spct.model; // Nama package dari modul model entitas sistem
 
-// Deklarasi Enum StatusPembayaran: merepresentasikan semua kemungkinan state pembayaran sebuah transaksi
+// Enum publik java dari StatusPembayaran: merepresentasikan siklus status pembayaran transaksi parkir
 public enum StatusPembayaran
 {
-    BELUM_LUNAS,        // Kendaraan sudah masuk, belum ada aksi pembayaran di gerbang keluar
-    PROSES_GATEWAY,     // Sedang dalam proses verifikasi di Payment Gateway (e-Toll / QRIS)
-    LUNAS,              // Pembayaran berhasil dikonfirmasi, palang keluar terbuka
-    GRACE_PERIOD_FREE   // Durasi parkir < 10 menit, dibebaskan dari tagihan
+    // Status BELUM_LUNAS: tiket parkir aktif dan belum dibayar di gardu keluar
+    BELUM_LUNAS,
+    
+    // Status PROSES_GATEWAY: proses verifikasi pembayaran sedang berlangsung di gateway transaksi
+    PROSES_GATEWAY,
+    
+    // Status LUNAS: transaksi telah berhasil dibayar lunas dan palang keluar dibuka
+    LUNAS,
+    
+    // Status GRACE_PERIOD_FREE: durasi parkir di bawah batas toleransi (bebas biaya)
+    GRACE_PERIOD_FREE
 }

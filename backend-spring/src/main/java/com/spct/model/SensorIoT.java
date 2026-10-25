@@ -1,84 +1,89 @@
-package com.spct.model;
+package com.spct.model; // Nama package dari modul model entitas sistem
 
+// Import anotasi Jackson untuk penanganan serialisasi objek JSON
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+// Import pustaka persistensi database Jakarta JPA
 import jakarta.persistence.*;
 
-// Deklarasi Entity: merepresentasikan tabel 'sensor_iot' di Database Relasional
-// Tabel MASTER HARDWARE untuk unit sensor ultrasonik yang dipasang di tiap slot parkir
-// Setiap sensor memiliki 1 relasi ke 1 SlotParkir (One-to-One)
-// Arsitektur: Sensor mengirim sinyal ke backend melalui endpoint IoT Gateway
-@Entity
-@Table(name = "sensor_iot")
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // Cegah error Jackson saat serialisasi proxy Hibernate
+// Kelas entitas publik java SensorIoT untuk memetakan tabel sensor_iot di database relasional
+// Kelas ini merepresentasikan master unit sensor ultrasonik pemantau ketersediaan slot parkir
+@Entity // Menandai kelas ini sebagai entitas JPA
+@Table(name = "sensor_iot") // Memetakan kelas ke tabel sensor_iot
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // Mengabaikan atribut proxy internal hibernate pada serialisasi JSON
 public class SensorIoT
 {
     // =====================================================================
-    // Deklarasi Atribut: Kolom-kolom tabel 'sensor_iot'
+    // Deklarasi Atribut Kolom Tabel sensor_iot
     // =====================================================================
 
-    @Id
-    @Column(name = "id_sensor", length = 20)
-    private String idSensor; // ID unik sensor (misal: "SNS-B1-01") - mengikuti ID slot parkir
+    @Id // Menandai atribut idSensor sebagai Primary Key tabel
+    @Column(name = "id_sensor", length = 20) // Pemetaan kolom id_sensor dengan panjang 20 karakter
+    private String idSensor; // Deklarasi atribut idSensor bertipe String untuk identitas unik sensor (misal: SNS-B1-01)
 
-    // Status operasional sensor saat ini
-    // Sesuai ERD: status_sensor (on/off)
-    @Column(name = "status_sensor", nullable = false, length = 3)
-    private String statusSensor; // "ON" atau "OFF" - jika OFF akan tercatat sebagai anomali
+    @Column(name = "status_sensor", nullable = false, length = 3) // Pemetaan kolom status_sensor dengan batasan not-null
+    private String statusSensor; // Deklarasi atribut statusSensor bertipe String untuk status operasional (ON/OFF)
 
-    // Relasi ke SlotParkir: tiap sensor memantau TEPAT SATU slot (One-to-One)
-    // Satu slot juga hanya punya satu sensor
-    @OneToOne(fetch = FetchType.EAGER) // EAGER: langsung load data slot saat sensor di-query
-    @JoinColumn(name = "id_slot", nullable = false, unique = true) // FK unik ke slot_parkir
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "kendaraanAktif"}) // Cegah circular reference ke DataKendaraan
-    private SlotParkir slotDipantau; // Slot parkir yang dipantau sensor ini
-
+    @OneToOne(fetch = FetchType.EAGER) // Relasi satu-ke-satu dengan slot parkir dengan pemuatan instan (EAGER)
+    @JoinColumn(name = "id_slot", nullable = false, unique = true) // Foreign key unik ke tabel slot_parkir
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "kendaraanAktif"}) // Mencegah referensi sirkular serialisasi ke kendaraan
+    private SlotParkir slotDipantau; // Deklarasi atribut slotDipantau bertipe objek SlotParkir yang dimonitor
 
     // =====================================================================
-    // Konstruktor LENGKAP (gaya penulisan Anda)
+    // Konstruktor Kelas SensorIoT
     // =====================================================================
+
+    // Konstruktor dengan parameter idSensor dan slotDipantau
     public SensorIoT(String idSensor, SlotParkir slotDipantau)
     {
-        this.idSensor = idSensor;           // Menginisialisasi ID sensor (format: SNS-B1-01)
-        this.slotDipantau = slotDipantau;   // Menginisialisasi relasi ke slot yang dipantau
-        this.statusSensor = "ON";           // Default: sensor ON saat diregistrasikan
+        this.idSensor = idSensor; // Inisialisasi atribut idSensor dengan nilai parameter idSensor
+        this.slotDipantau = slotDipantau; // Inisialisasi atribut slotDipantau dengan nilai parameter slotDipantau
+        this.statusSensor = "ON"; // Inisialisasi status default sensor bernilai ON
     }
 
-    // Konstruktor kosong (wajib ada untuk JPA/Hibernate)
-    public SensorIoT() {}
-
+    // Konstruktor default tanpa parameter untuk JPA
+    public SensorIoT() 
+    {
+        // Konstruktor kosong untuk kebutuhan instansiasi JPA Hibernate
+    }
 
     // =====================================================================
-    // Getter & Setter (gaya penulisan Anda)
+    // Method Setter & Getter Atribut
     // =====================================================================
 
+    // Method setter setIdSensor untuk mengubah nilai atribut idSensor
     public void setIdSensor(String idSensor)
     {
-        this.idSensor = idSensor;
+        this.idSensor = idSensor; // Mengubah nilai atribut idSensor dari nilai parameter
     }
 
+    // Method getter getIdSensor untuk mengambil nilai atribut idSensor
     public String getIdSensor()
     {
-        return idSensor;
+        return idSensor; // Mengembalikan nilai dari atribut idSensor
     }
 
+    // Method setter setStatusSensor untuk mengubah status operasional sensor
     public void setStatusSensor(String statusSensor)
     {
-        // Normalisasi ke uppercase agar konsisten (toleransi nilai DB: 'on', 'OFF', 'On')
+        // Jika parameter tidak bernilai null, ubah ke uppercase; jika tidak beri nilai "OFF"
         this.statusSensor = (statusSensor != null) ? statusSensor.toUpperCase() : "OFF";
     }
 
+    // Method getter getStatusSensor untuk mengambil nilai status operasional sensor
     public String getStatusSensor()
     {
-        return statusSensor;
+        return statusSensor; // Mengembalikan nilai dari atribut statusSensor
     }
 
+    // Method setter setSlotDipantau untuk mengubah objek slot parkir yang dipantau
     public void setSlotDipantau(SlotParkir slotDipantau)
     {
-        this.slotDipantau = slotDipantau;
+        this.slotDipantau = slotDipantau; // Inisialisasi atribut slotDipantau dengan nilai objek dari parameter
     }
 
+    // Method getter getSlotDipantau untuk mengambil objek slot parkir yang dipantau
     public SlotParkir getSlotDipantau()
     {
-        return slotDipantau;
+        return slotDipantau; // Mengembalikan objek slot parkir dari atribut slotDipantau
     }
 }

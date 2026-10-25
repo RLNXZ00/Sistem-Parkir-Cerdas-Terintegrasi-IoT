@@ -1,241 +1,302 @@
-package com.spct.controller;
+package com.spct.controller; // Nama package dari modul pengontrol REST API sistem
 
+// Import DTO HasilDeteksiKeluarDto dari package dto
+import com.spct.dto.HasilDeteksiKeluarDto;
+// Import DTO HasilDeteksiMasukDto dari package dto
 import com.spct.dto.HasilDeteksiMasukDto;
+// Import enum JenisKendaraan dari package model
 import com.spct.model.JenisKendaraan;
+// Import entitas LogDeteksiPlat dari package model
+import com.spct.model.LogDeteksiPlat;
+// Import repositori LogDeteksiPlatRepository dari package repository
 import com.spct.repository.LogDeteksiPlatRepository;
+// Import service DeteksiPlatService dari package service
 import com.spct.service.DeteksiPlatService;
+// Import anotasi Autowired dari Spring Framework
 import org.springframework.beans.factory.annotation.Autowired;
+// Import enum HttpStatus dari Spring HTTP
 import org.springframework.http.HttpStatus;
+// Import kelas ResponseEntity dari Spring HTTP
 import org.springframework.http.ResponseEntity;
+// Import anotasi-anotasi Spring Web REST Controller
 import org.springframework.web.bind.annotation.*;
 
-/**
- * Controller: DeteksiPlatController
- * Sesuai Diagram Sequence (Masuk Parkir) dan Use-Case UC001.
- *
- * ALUR EKSEKUSI (sesuai pseudocode yang disepakati):
- * 1. Menerima HTTP POST dari kamera gerbang (YOLOv11/OCR Python Microservice).
- * 2. Validasi confidence score. Jika rendah, kirim peringatan validasi manual.
- * 3. Mendelegasikan seluruh logika (registrasi, alokasi, transaksi) ke DeteksiPlatService.
- * 4. Mengembalikan HasilDeteksiMasukDto ke Frontend Kiosk Terminal.
- *
- * Endpoint Base URL: /api/gate, /api/deteksi
- */
+// Import tipe data BigDecimal untuk nominal saldo
+import java.math.BigDecimal;
+// Import pembanding Comparator dari java util
+import java.util.Comparator;
+// Import antarmuka Map dari java util
+import java.util.Map;
+// Import kolektor Collectors dari java util stream
+import java.util.stream.Collectors;
 
-// Deklarasi Controller: kelas penerima request HTTP dari kamera gerbang masuk (Python ALPR)
-// Ini adalah PINTU MASUK UTAMA dari seluruh sistem SPCT
-@RestController
-@RequestMapping("/api/gate") // Base URL: http://localhost:8080/api/gate
-@CrossOrigin(origins = "*")  // Mengizinkan request dari origin manapun (ALPR Python, Frontend Kiosk)
-public class DeteksiPlatController // Kelas controller untuk mengelola seluruh alur kendaraan masuk gerbang
+// Kelas pengontrol publik java DeteksiPlatController untuk mengelola alur deteksi plat nomor gerbang masuk dan gerbang keluar
+@RestController // Menandai kelas sebagai pengendali REST API
+@RequestMapping("/api/gate") // Menetapkan path rute dasar endpoint /api/gate
+@CrossOrigin(origins = "*") // Mengizinkan permintaan lintas domain dari Kamera ALPR dan Terminal Kiosk
+public class DeteksiPlatController
 {
-    // =====================================================================
-    // Deklarasi Atribut Service (diinject otomatis oleh Spring)
-    // =====================================================================
-
+    // Injeksi otomatis layanan DeteksiPlatService oleh Spring
     @Autowired
-    private DeteksiPlatService deteksiPlatService; // Service yang berisi semua logika bisnis deteksi plat
+    private DeteksiPlatService deteksiPlatService; // Deklarasi atribut deteksiPlatService bertipe DeteksiPlatService
 
+    // Injeksi otomatis repositori LogDeteksiPlatRepository oleh Spring
     @Autowired
-    private LogDeteksiPlatRepository logDeteksiPlatRepository; // Repository untuk mengambil riwayat log deteksi
-
+    private LogDeteksiPlatRepository logDeteksiPlatRepository; // Deklarasi atribut logDeteksiPlatRepository
 
     // =====================================================================
-    // Endpoint POST: Menerima data deteksi plat dari ALPR Python Microservice
+    // Endpoint POST: Menerima data deteksi plat gerbang MASUK
     // =====================================================================
 
-    // Endpoint utama yang dipanggil oleh Kiosk (Simulasi) dan ALPR (Python/YOLOv11)
-    // Mendukung dua cara pengiriman:
-    // 1. JSON Body (dari Kiosk React): { "platNomor": "D 1234 SPCT", "jenisKendaraan": "MOBIL" }
-    // 2. Query Param (dari ALPR Python): POST /api/gate/masuk?platNomor=D1234XY&jenisKendaraan=MOBIL
+    // Method POST prosesKendaraanMasuk untuk memproses kendaraan yang tiba di gerbang masuk
     @PostMapping("/masuk")
     public ResponseEntity<HasilDeteksiMasukDto> prosesKendaraanMasuk(
-        @RequestBody(required = false) java.util.Map<String, String> body,
-        @RequestParam(required = false) String platNomor,
-        @RequestParam(name = "jenisKendaraan", required = false) String jenisKendaraanParam,
-        @RequestParam(defaultValue = "1.0") double confidence)
+        @RequestBody(required = false) Map<String, String> body, // Payload body JSON dari simulasi antarmuka Kiosk
+        @RequestParam(required = false) String platNomor, // Parameter query platNomor dari kamera ALPR Python
+        @RequestParam(name = "jenisKendaraan", required = false) String jenisKendaraanParam, // Parameter query tipe kendaraan
+        @RequestParam(defaultValue = "1.0") double confidence) // Parameter query confidence score akurasi model OCR
     {
-        // Ambil platNomor dan jenisKendaraan dari body JSON (kiosk) atau query param (ALPR)
-        String platFinal = (body != null && body.containsKey("platNomor"))
-            ? body.get("platNomor") : platNomor;
+        // Mengambil plat nomor dari body JSON jika tersedia, atau dari query param
+        String platFinal = (body != null && body.containsKey("platNomor")) ? body.get("platNomor") : platNomor;
 
-        String jeniStr = (body != null && body.containsKey("jenisKendaraan"))
-            ? body.get("jenisKendaraan") : jenisKendaraanParam;
+        // Mengambil tipe jenis kendaraan dari body JSON jika tersedia, atau dari query param
+        String jeniStr = (body != null && body.containsKey("jenisKendaraan")) ? body.get("jenisKendaraan") : jenisKendaraanParam;
 
-        // Default ke MOBIL jika tidak dikirim (simulasi kiosk sederhana)
+        // Deklarasi variabel jenis bertipe enum JenisKendaraan
         JenisKendaraan jenis;
+
+        // Blok try-catch untuk parsing string enum jenis kendaraan
         try 
         {
+            // Jika string jenis ada, ubah ke enum JenisKendaraan; jika tidak, gunakan MOBIL secara default
             jenis = (jeniStr != null) ? JenisKendaraan.valueOf(jeniStr.toUpperCase()) : JenisKendaraan.MOBIL;
-        } catch (IllegalArgumentException e) {
+        } 
+        catch (IllegalArgumentException e) 
+        {
+            // Jika nilai string tidak valid, fallback ke tipe MOBIL
             jenis = JenisKendaraan.MOBIL;
         }
 
-        // Validasi: platNomor wajib ada
-        if (platFinal == null || platFinal.isBlank()) {
+        // Jika nomor plat kosong atau hanya spasi, maka:
+        if (platFinal == null || platFinal.isBlank()) 
+        {
+            // Instansiasi objek HasilDeteksiMasukDto untuk informasi error
             HasilDeteksiMasukDto err = new HasilDeteksiMasukDto();
+            // Inisialisasi status respon dengan nilai ERROR
             err.setStatus("ERROR");
+            // Inisialisasi pesan keterangan kesalahan
             err.setPesanKeterangan("Parameter platNomor wajib diisi.");
+            // Kembalikan respons entitas HTTP 400 Bad Request
             return ResponseEntity.badRequest().body(err);
         }
 
-        // Mendelegasikan seluruh pemrosesan ke DeteksiPlatService
+        // Memanggil service untuk memproses registrasi, alokasi slot, dan pencarian rute A*
         HasilDeteksiMasukDto hasil = deteksiPlatService.prosesKendaraanMasuk(platFinal, jenis, confidence);
 
-        // Branching berdasarkan status hasil yang dikembalikan oleh service
+        // Jika tingkat keyakinan OCR rendah di bawah ambang batas, maka:
         if ("CONFIDENCE_RENDAH".equals(hasil.getStatus()))
         {
+            // Kembalikan status HTTP 422 Unprocessable Entity agar petugas memvalidasi secara manual
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(hasil);
         }
 
+        // Jika kapasitas seluruh slot parkir penuh, maka:
         if ("BASEMENT_PENUH".equals(hasil.getStatus()))
         {
+            // Kembalikan status HTTP 409 Conflict
             return ResponseEntity.status(HttpStatus.CONFLICT).body(hasil);
         }
 
+        // Pemrosesan berhasil: kembalikan status HTTP 200 OK dengan membawa data alokasi rute
         return ResponseEntity.ok(hasil);
     }
-
 
     // =====================================================================
     // Endpoint POST: Override manual oleh petugas (saat confidence rendah)
     // =====================================================================
 
-    // Endpoint yang digunakan petugas untuk mengoverride hasil deteksi yang confidence-nya rendah
-    // Petugas mengetik manual plat nomor yang sebenarnya melalui Dashboard Admin
-    @PostMapping("/masuk/override-manual") // URL lengkap: POST /api/gate/masuk/override-manual
+    // Method POST overridePlatManual untuk input koreksi manual plat nomor oleh petugas
+    @PostMapping("/masuk/override-manual")
     public ResponseEntity<HasilDeteksiMasukDto> overridePlatManual(
-        @RequestParam String platNomor,               // Plat nomor yang dikoreksi manual oleh petugas
-        @RequestParam JenisKendaraan jenisKendaraan)  // Jenis kendaraan yang dikonfirmasi petugas
+        @RequestParam String platNomor, // Parameter nomor plat hasil koreksi petugas
+        @RequestParam JenisKendaraan jenisKendaraan) // Parameter jenis kendaraan yang divalidasi
     {
-        // Langsung proses dengan confidence 1.0 (dipercaya penuh karena sudah divalidasi manusia)
+        // Menjalankan alur alokasi dengan tingkat keyakinan penuh 1.0 karena telah dikoreksi manusia
         HasilDeteksiMasukDto hasil = deteksiPlatService.prosesKendaraanMasuk(platNomor, jenisKendaraan, 1.0);
 
-        // Jika basement penuh meski sudah override, tetap kembalikan error
+        // Jika basement penuh, kembalikan HTTP 409 Conflict
         if ("BASEMENT_PENUH".equals(hasil.getStatus()))
         {
-            // Panggil HTTP 409 Conflict: kendaraan tidak bisa masuk
             return ResponseEntity.status(HttpStatus.CONFLICT).body(hasil);
         }
 
-        // Override berhasil -> kembalikan HTTP 200 OK
+        // Kembalikan status HTTP 200 OK
         return ResponseEntity.ok(hasil);
     }
 
     // =====================================================================
-    // Endpoint GET: Mengambil riwayat log deteksi plat (untuk GateLivePage)
-    // URL: GET /api/gate/log (di bawah base /api/gate yang sudah ada)
+    // Endpoint GET: Mengambil riwayat log deteksi plat
     // =====================================================================
+
+    // Method GET getAllLogDeteksi untuk menyajikan daftar seluruh pembacaan plat nomor
     @GetMapping("/log")
     public ResponseEntity<?> getAllLogDeteksi()
     {
-        // Mengambil semua log deteksi plat, diurutkan terbaru di atas
+        // Mengambil seluruh log deteksi dari basis data dan mengurutkannya dari waktu terbaru
         return ResponseEntity.ok(
             logDeteksiPlatRepository.findAll()
                 .stream()
-                .sorted(java.util.Comparator.comparing(
-                    com.spct.model.LogDeteksiPlat::getWaktuDeteksi,
-                    java.util.Comparator.reverseOrder()
+                .sorted(Comparator.comparing(
+                    LogDeteksiPlat::getWaktuDeteksi,
+                    Comparator.reverseOrder()
                 ))
-                .collect(java.util.stream.Collectors.toList())
+                .collect(Collectors.toList())
         );
     }
 
     // =====================================================================
     // Endpoint POST: Menerima data kendaraan KELUAR
     // =====================================================================
+
+    // Method POST prosesKendaraanKeluar untuk memproses transaksi keluar dan checkout saldo pembayaran
     @PostMapping("/keluar")
-    public ResponseEntity<com.spct.dto.HasilDeteksiKeluarDto> prosesKendaraanKeluar(
-        @RequestBody(required = false) java.util.Map<String, Object> body,
-        @RequestParam(required = false) String platNomor,
-        @RequestParam(required = false) java.math.BigDecimal saldoEwallet,
-        @RequestParam(name = "jenisKendaraan", required = false) String jenisKendaraanParam) 
+    public ResponseEntity<HasilDeteksiKeluarDto> prosesKendaraanKeluar(
+        @RequestBody(required = false) Map<String, Object> body, // Payload request body JSON
+        @RequestParam(required = false) String platNomor, // Parameter plat nomor
+        @RequestParam(required = false) BigDecimal saldoEwallet, // Parameter saldo dompet digital
+        @RequestParam(name = "jenisKendaraan", required = false) String jenisKendaraanParam) // Parameter jenis kendaraan
     {
+        // Menentukan nomor plat akhir dari body JSON atau query param
         String platFinal = (body != null && body.containsKey("platNomor") && body.get("platNomor") != null) 
             ? String.valueOf(body.get("platNomor")) 
             : platNomor;
         
-        java.math.BigDecimal saldoFinal = saldoEwallet;
-        if (body != null && body.containsKey("saldoEwallet") && body.get("saldoEwallet") != null) {
-            try {
-                saldoFinal = new java.math.BigDecimal(body.get("saldoEwallet").toString());
-            } catch (Exception ex) {
+        // Inisialisasi variabel saldoFinal
+        BigDecimal saldoFinal = saldoEwallet;
+
+        // Memeriksa keberadaan saldo di dalam payload body
+        if (body != null && body.containsKey("saldoEwallet") && body.get("saldoEwallet") != null) 
+        {
+            try 
+            {
+                // Konversi nilai saldo menjadi objek BigDecimal
+                saldoFinal = new BigDecimal(body.get("saldoEwallet").toString());
+            } 
+            catch (Exception ex) 
+            {
+                // Menampilkan log galat parsing saldo
                 System.err.println("[GATE KELUAR] Format saldoEwallet di body tidak valid: " + ex.getMessage());
             }
         }
-        if (saldoFinal == null) {
-            saldoFinal = new java.math.BigDecimal("50000.00");
+
+        // Jika nilai saldo null, berikan saldo simulasi sebesar 50.000 rupiah
+        if (saldoFinal == null) 
+        {
+            saldoFinal = new BigDecimal("50000.00");
         }
         
-        // Jika platFinal kosong atau tidak dikirim, otomatis diarahkan ke mode antrean "QUEUE" (FIFO)
-        if (platFinal == null || platFinal.isBlank()) {
+        // Jika plat tidak dikirim, otomatis alihkan ke antrean FIFO terlama
+        if (platFinal == null || platFinal.isBlank()) 
+        {
             platFinal = "QUEUE";
         }
 
+        // Inisialisasi variabel durasi menit simulasi
         Integer durasiMenitFinal = null;
-        if (body != null && body.containsKey("durasiMenit") && body.get("durasiMenit") != null) {
-            try {
+
+        // Memeriksa apakah parameter durasiMenit dikirim di dalam body
+        if (body != null && body.containsKey("durasiMenit") && body.get("durasiMenit") != null) 
+        {
+            try 
+            {
+                // Parsing nilai durasi menit menjadi Integer
                 durasiMenitFinal = Integer.valueOf(body.get("durasiMenit").toString());
-            } catch (Exception ex) {
+            } 
+            catch (Exception ex) 
+            {
+                // Menampilkan log galat format durasi
                 System.err.println("[GATE KELUAR] Format durasiMenit di body tidak valid: " + ex.getMessage());
             }
         }
 
-        // Jenis kendaraan gerbang keluar (MOBIL/MOTOR) - menentukan antrean FIFO yang diproses
+        // Inisialisasi tipe jenis kendaraan gerbang keluar
         JenisKendaraan jenisKeluar = null;
+
+        // Mengambil data jenis kendaraan dari body JSON jika tersedia
         Object jenisRaw = (body != null) ? body.get("jenisKendaraan") : null;
         String jenisKeluarStr = (jenisRaw != null) ? String.valueOf(jenisRaw) : jenisKendaraanParam;
-        if (jenisKeluarStr != null && !jenisKeluarStr.isBlank()) {
-            try {
+
+        // Jika string jenis kendaraan terisi, ubah menjadi enum JenisKendaraan
+        if (jenisKeluarStr != null && !jenisKeluarStr.isBlank()) 
+        {
+            try 
+            {
                 jenisKeluar = JenisKendaraan.valueOf(jenisKeluarStr.trim().toUpperCase());
-            } catch (IllegalArgumentException ex) {
+            } 
+            catch (IllegalArgumentException ex) 
+            {
                 System.err.println("[GATE KELUAR] jenisKendaraan tidak valid: " + jenisKeluarStr);
             }
         }
 
-        com.spct.dto.HasilDeteksiKeluarDto hasil = deteksiPlatService.prosesKendaraanKeluar(platFinal, saldoFinal, durasiMenitFinal, jenisKeluar);
+        // Memanggil service untuk menghitung tagihan, memotong saldo, dan melepaskan slot parkir
+        HasilDeteksiKeluarDto hasil = deteksiPlatService.prosesKendaraanKeluar(platFinal, saldoFinal, durasiMenitFinal, jenisKeluar);
         
-        if ("KENDARAAN_TIDAK_DITEMUKAN".equals(hasil.getStatus())) {
+        // Jika tiket transaksi tidak ditemukan di database, maka:
+        if ("KENDARAAN_TIDAK_DITEMUKAN".equals(hasil.getStatus())) 
+        {
+            // Kembalikan status HTTP 404 Not Found
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(hasil);
         }
         
-        if ("SALDO_KURANG".equals(hasil.getStatus())) {
-            // Mengembalikan status Payment Required
+        // Jika saldo tidak mencukupi untuk pembayaran tagihan, maka:
+        if ("SALDO_KURANG".equals(hasil.getStatus())) 
+        {
+            // Kembalikan status HTTP 402 Payment Required
             return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body(hasil);
         }
 
+        // Transaksi keluar dan pembayaran lunas: kembalikan respons HTTP 200 OK
         return ResponseEntity.ok(hasil);
     }
 
     // =====================================================================
     // Endpoint GET: Mengambil antrean kendaraan yang sedang parkir (FIFO)
-    // URL: GET /api/gate/antrean-keluar
     // =====================================================================
+
+    // Method GET getAntreanKeluar untuk menyajikan daftar kendaraan yang sedang aktif parkir
     @GetMapping("/antrean-keluar")
     public ResponseEntity<?> getAntreanKeluar(
         @RequestParam(name = "jenisKendaraan", required = false) String jenisKendaraanParam)
     {
-        // Filter opsional per jenis kendaraan (gerbang keluar mobil / motor punya antrean sendiri)
+        // Inisialisasi filter jenis kendaraan
         JenisKendaraan jenisFilter = null;
-        if (jenisKendaraanParam != null && !jenisKendaraanParam.isBlank()) {
-            try {
+
+        // Jika parameter jenis kendaraan terisi, lakukan parsing enum
+        if (jenisKendaraanParam != null && !jenisKendaraanParam.isBlank()) 
+        {
+            try 
+            {
                 jenisFilter = JenisKendaraan.valueOf(jenisKendaraanParam.trim().toUpperCase());
-            } catch (IllegalArgumentException ex) {
+            } 
+            catch (IllegalArgumentException ex) 
+            {
                 jenisFilter = null;
             }
         }
 
+        // Mengambil daftar antrean transaksi aktif dan memetakannya ke bentuk Map ringkas
         return ResponseEntity.ok(
             deteksiPlatService.ambilAntreanKendaraanKeluar(jenisFilter)
                 .stream()
-                .map(t -> java.util.Map.of(
-                    "idTransaksi", t.getIdTransaksi(),
-                    "platNomor", t.getKendaraan().getPlatNomor(),
-                    "jenisKendaraan", t.getKendaraan().getJenisKendaraan().name(),
-                    "idSlot", t.getSlotDipilih() != null ? t.getSlotDipilih().getIdSlot() : "-",
-                    "waktuMasuk", t.getWaktuMasuk().toString()
+                .map(t -> Map.of(
+                    "idTransaksi", t.getIdTransaksi(), // ID transaksi tiket
+                    "platNomor", t.getKendaraan().getPlatNomor(), // Nomor plat kendaraan
+                    "jenisKendaraan", t.getKendaraan().getJenisKendaraan().name(), // Tipe kendaraan
+                    "idSlot", t.getSlotDipilih() != null ? t.getSlotDipilih().getIdSlot() : "-", // Nomor slot
+                    "waktuMasuk", t.getWaktuMasuk().toString() // Waktu masuk sistem
                 ))
-                .collect(java.util.stream.Collectors.toList())
+                .collect(Collectors.toList())
         );
     }
 }

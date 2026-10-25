@@ -1,10 +1,17 @@
-package com.spct.model;
+package com.spct.model; // Nama package dari modul model entitas sistem
 
-// Deklarasi Enum MetodePembayaran: merepresentasikan pilihan metode pembayaran yang didukung
+// Enum publik java dari MetodePembayaran: merepresentasikan opsi kanal pembayaran yang tersedia
 public enum MetodePembayaran
 {
-    QRIS,           // Pembayaran via QR Code
-    ETOLL_MANDIRI,  // Kartu e-Toll Bank Mandiri
-    ETOLL_BRI,      // Kartu e-Toll Bank BRI
-    CASH            // Tunai (dibantu petugas)
+    // Opsi pembayaran nontunai digital menggunakan QRIS dinamis
+    QRIS,
+    
+    // Opsi pembayaran uang elektronik menggunakan kartu e-Toll Mandiri (e-Money)
+    ETOLL_MANDIRI,
+    
+    // Opsi pembayaran uang elektronik menggunakan kartu BRIZZI Bank BRI
+    ETOLL_BRI,
+    
+    // Opsi pembayaran tunai langsung melalui kasir petugas loket
+    CASH
 }

@@ -1,8 +1,11 @@
-package com.spct.model;
+package com.spct.model; // Nama package dari modul model entitas sistem
 
-// Deklarasi Enum JenisKendaraan: merepresentasikan tipe kendaraan yang masuk ke sistem
+// Enum publik java dari JenisKendaraan: merepresentasikan tipe kategori kendaraan yang masuk ke sistem
 public enum JenisKendaraan
 {
-    MOBIL, // Kendaraan roda empat
-    MOTOR  // Kendaraan roda dua
+    // Nilai enum MOBIL untuk kategori kendaraan roda empat
+    MOBIL, 
+    
+    // Nilai enum MOTOR untuk kategori kendaraan roda dua
+    MOTOR  
 }

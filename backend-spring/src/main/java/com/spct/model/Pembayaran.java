@@ -1,148 +1,154 @@
-package com.spct.model;
+package com.spct.model; // Nama package dari modul model entitas sistem
 
+// Import pustaka persistensi database Jakarta JPA
 import jakarta.persistence.*;
+// Import tipe data BigDecimal untuk ketepatan perhitungan mata uang rupiah
 import java.math.BigDecimal;
+// Import tipe data tanggal dan waktu LocalDateTime java
 import java.time.LocalDateTime;
 
-// Deklarasi Entity: merepresentasikan tabel 'pembayaran' di Database Relasional
-//
-// KEPUTUSAN ARSITEKTUR (Pemisahan dari TransaksiParkir):
-// Tabel 'transaksi_parkir' murni mencatat event parkir (jam masuk, jam keluar, slot).
-// Tabel 'pembayaran' ini khusus mencatat proses FINANSIAL (nominal, metode, referensi gateway).
-// Relasi: One-to-One dengan TransaksiParkir (satu transaksi = satu pembayaran).
-//
-// Ini menjadi jembatan antara sistem kita dengan Payment Gateway eksternal (e-Toll/QRIS)
-// yang disebut 'Payment_Gateway' di ERD. Kolom 'referensi_transaksi' menyimpan ID/kode
-// dari sistem gateway pihak ketiga agar bisa direconcile jika ada dispute pembayaran.
-@Entity
-@Table(name = "pembayaran")
+// Kelas entitas publik java Pembayaran untuk memetakan tabel pembayaran di database relasional
+// Kelas ini merepresentasikan rekonsiliasi data finansial transaksi parkir
+@Entity // Menandai kelas ini sebagai entitas JPA
+@Table(name = "pembayaran") // Memetakan kelas ke tabel basis data pembayaran
 public class Pembayaran
 {
     // =====================================================================
-    // Deklarasi Atribut: Kolom-kolom tabel 'pembayaran'
+    // Deklarasi Atribut Kolom Tabel pembayaran
     // =====================================================================
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-increment oleh database
-    @Column(name = "id_pembayaran")
-    private Long idPembayaran; // ID unik record pembayaran sebagai primary key
+    @Id // Menandai atribut idPembayaran sebagai Primary Key entitas
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Menggunakan strategi auto-increment penomoran id
+    @Column(name = "id_pembayaran") // Pemetaan nama kolom id_pembayaran
+    private Long idPembayaran; // Deklarasi atribut idPembayaran bertipe Long untuk identitas unik pembayaran
 
-    @Column(name = "total_pembayaran", nullable = false, precision = 10, scale = 2)
-    private BigDecimal totalPembayaran; // Nominal final yang dibayarkan (dalam rupiah)
+    @Column(name = "total_pembayaran", nullable = false, precision = 10, scale = 2) // Kolom nominal uang dengan 2 angka di belakang koma
+    private BigDecimal totalPembayaran; // Deklarasi atribut totalPembayaran bertipe BigDecimal untuk jumlah rupiah bayar
 
-    // Metode pembayaran yang dipilih pengguna
-    // Sesuai ERD: metode_pembayaran (E_TOLL, QRIS, TUNAI)
-    @Enumerated(EnumType.STRING)
-    @Column(name = "metode_pembayaran", nullable = false)
-    private MetodePembayaran metodePembayaran; // Cara bayar: E_TOLL, QRIS, TUNAI
+    @Enumerated(EnumType.STRING) // Menyimpan nilai enum MetodePembayaran sebagai string teks
+    @Column(name = "metode_pembayaran", nullable = false) // Pemetaan kolom opsi metode bayar
+    private MetodePembayaran metodePembayaran; // Deklarasi atribut metodePembayaran bertipe enum MetodePembayaran
 
-    // Status pembayaran saat ini - sesuai ERD: status_pembayaran
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status_pembayaran", nullable = false)
-    private StatusPembayaran statusPembayaran; // BELUM_LUNAS, LUNAS, GAGAL
+    @Enumerated(EnumType.STRING) // Menyimpan nilai enum StatusPembayaran sebagai string teks
+    @Column(name = "status_pembayaran", nullable = false) // Pemetaan kolom status pelunasan tagihan
+    private StatusPembayaran statusPembayaran; // Deklarasi atribut statusPembayaran bertipe enum StatusPembayaran
 
-    @Column(name = "waktu_pembayaran")
-    private LocalDateTime waktuPembayaran; // Timestamp saat pembayaran dikonfirmasi berhasil (NULL jika belum lunas)
+    @Column(name = "waktu_pembayaran") // Pemetaan kolom waktu keberhasilan transaksi bayar
+    private LocalDateTime waktuPembayaran; // Deklarasi atribut waktuPembayaran bertipe LocalDateTime
 
-    // Kode referensi dari Payment Gateway eksternal (e-Toll/QRIS provider)
-    // Sesuai ERD: referensi_transaksi - berguna untuk rekonsiliasi keuangan
-    @Column(name = "referensi_gateway", length = 100)
-    private String referensiGateway; // Kode unik dari sistem pembayaran pihak ketiga (nullable jika TUNAI)
+    @Column(name = "referensi_gateway", length = 100) // Pemetaan kolom kode referensi transaksi gateway eksternal
+    private String referensiGateway; // Deklarasi atribut referensiGateway bertipe String untuk nomor seri settlement
 
-    // Relasi One-to-One ke TransaksiParkir: satu parkir = satu record pembayaran
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_transaksi", nullable = false, unique = true) // FK unik ke transaksi_parkir
-    private TransaksiParkir transaksiParkir; // Transaksi parkir yang dibayar
-
+    @OneToOne(fetch = FetchType.LAZY) // Relasi satu-ke-satu dengan entitas TransaksiParkir
+    @JoinColumn(name = "id_transaksi", nullable = false, unique = true) // Foreign key unik ke id_transaksi
+    private TransaksiParkir transaksiParkir; // Deklarasi atribut transaksiParkir bertipe objek TransaksiParkir
 
     // =====================================================================
-    // Konstruktor LENGKAP (gaya penulisan Anda)
+    // Konstruktor Kelas Pembayaran
     // =====================================================================
+
+    // Konstruktor berparameter untuk registrasi pembayaran baru
     public Pembayaran(TransaksiParkir transaksiParkir, BigDecimal totalPembayaran,
                       MetodePembayaran metodePembayaran)
     {
-        this.transaksiParkir = transaksiParkir;         // Menginisialisasi relasi ke transaksi parkir
-        this.totalPembayaran = totalPembayaran;         // Menginisialisasi total yang harus dibayar
-        this.metodePembayaran = metodePembayaran;       // Menginisialisasi metode pembayaran
-        this.statusPembayaran = StatusPembayaran.BELUM_LUNAS; // Default: pembayaran dibuat dengan status BELUM_LUNAS
-        this.waktuPembayaran = null;                    // Belum ada timestamp bayar karena belum lunas
+        this.transaksiParkir = transaksiParkir; // Inisialisasi atribut transaksiParkir dengan parameter transaksiParkir
+        this.totalPembayaran = totalPembayaran; // Inisialisasi atribut totalPembayaran dengan parameter totalPembayaran
+        this.metodePembayaran = metodePembayaran; // Inisialisasi atribut metodePembayaran dengan parameter metodePembayaran
+        this.statusPembayaran = StatusPembayaran.BELUM_LUNAS; // Inisialisasi status pembayaran awal bernilai BELUM_LUNAS
+        this.waktuPembayaran = null; // Inisialisasi waktu bayar bernilai null sebelum dilunasi
     }
 
-    // Konstruktor kosong (wajib ada untuk JPA/Hibernate)
-    public Pembayaran() {}
-
+    // Konstruktor default tanpa parameter untuk JPA Hibernate
+    public Pembayaran() 
+    {
+        // Konstruktor kosong untuk instansiasi JPA Hibernate
+    }
 
     // =====================================================================
-    // Getter & Setter (gaya penulisan Anda)
+    // Method Setter & Getter Atribut
     // =====================================================================
 
+    // Method setter setIdPembayaran untuk mengubah nilai atribut idPembayaran
     public void setIdPembayaran(Long idPembayaran)
     {
-        this.idPembayaran = idPembayaran;
+        this.idPembayaran = idPembayaran; // Inisialisasi atribut idPembayaran dengan parameter
     }
 
+    // Method getter getIdPembayaran untuk mengambil nilai atribut idPembayaran
     public Long getIdPembayaran()
     {
-        return idPembayaran;
+        return idPembayaran; // Mengembalikan nilai dari atribut idPembayaran
     }
 
+    // Method setter setTotalPembayaran untuk mengubah nominal pembayaran
     public void setTotalPembayaran(BigDecimal totalPembayaran)
     {
-        this.totalPembayaran = totalPembayaran;
+        this.totalPembayaran = totalPembayaran; // Inisialisasi atribut totalPembayaran dengan parameter
     }
 
+    // Method getter getTotalPembayaran untuk mengambil nominal pembayaran
     public BigDecimal getTotalPembayaran()
     {
-        return totalPembayaran;
+        return totalPembayaran; // Mengembalikan nilai dari atribut totalPembayaran
     }
 
+    // Method setter setMetodePembayaran untuk mengubah opsi kanal pembayaran
     public void setMetodePembayaran(MetodePembayaran metodePembayaran)
     {
-        this.metodePembayaran = metodePembayaran;
+        this.metodePembayaran = metodePembayaran; // Inisialisasi atribut metodePembayaran dengan parameter
     }
 
+    // Method getter getMetodePembayaran untuk mengambil opsi kanal pembayaran
     public MetodePembayaran getMetodePembayaran()
     {
-        return metodePembayaran;
+        return metodePembayaran; // Mengembalikan nilai dari atribut metodePembayaran
     }
 
+    // Method setter setStatusPembayaran untuk mengubah status pelunasan transaksi
     public void setStatusPembayaran(StatusPembayaran statusPembayaran)
     {
-        this.statusPembayaran = statusPembayaran;
+        this.statusPembayaran = statusPembayaran; // Inisialisasi atribut statusPembayaran dengan parameter
     }
 
+    // Method getter getStatusPembayaran untuk mengambil status pelunasan transaksi
     public StatusPembayaran getStatusPembayaran()
     {
-        return statusPembayaran;
+        return statusPembayaran; // Mengembalikan nilai dari atribut statusPembayaran
     }
 
+    // Method setter setWaktuPembayaran untuk mengubah waktu timestamp pembayaran berhasil
     public void setWaktuPembayaran(LocalDateTime waktuPembayaran)
     {
-        this.waktuPembayaran = waktuPembayaran;
+        this.waktuPembayaran = waktuPembayaran; // Inisialisasi atribut waktuPembayaran dengan parameter
     }
 
+    // Method getter getWaktuPembayaran untuk mengambil waktu timestamp pembayaran berhasil
     public LocalDateTime getWaktuPembayaran()
     {
-        return waktuPembayaran;
+        return waktuPembayaran; // Mengembalikan nilai dari atribut waktuPembayaran
     }
 
+    // Method setter setReferensiGateway untuk mengubah nomor referensi payment gateway
     public void setReferensiGateway(String referensiGateway)
     {
-        this.referensiGateway = referensiGateway;
+        this.referensiGateway = referensiGateway; // Inisialisasi atribut referensiGateway dengan parameter
     }
 
+    // Method getter getReferensiGateway untuk mengambil nomor referensi payment gateway
     public String getReferensiGateway()
     {
-        return referensiGateway;
+        return referensiGateway; // Mengembalikan nilai dari atribut referensiGateway
     }
 
+    // Method setter setTransaksiParkir untuk menghubungkan entitas transaksi parkir
     public void setTransaksiParkir(TransaksiParkir transaksiParkir)
     {
-        this.transaksiParkir = transaksiParkir;
+        this.transaksiParkir = transaksiParkir; // Inisialisasi atribut transaksiParkir dengan parameter
     }
 
+    // Method getter getTransaksiParkir untuk mengambil entitas transaksi parkir
     public TransaksiParkir getTransaksiParkir()
     {
-        return transaksiParkir;
+        return transaksiParkir; // Mengembalikan objek transaksi parkir dari atribut transaksiParkir
     }
 }

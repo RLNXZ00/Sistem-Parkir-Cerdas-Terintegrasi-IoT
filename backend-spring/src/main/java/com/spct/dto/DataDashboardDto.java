@@ -1,106 +1,193 @@
-package com.spct.dto;
+package com.spct.dto; // Nama package dari modul data transfer object (DTO)
 
-import java.math.BigDecimal; // Mengimpor BigDecimal untuk total pendapatan yang presisi
-import java.util.List;       // Mengimpor List untuk data grafik okupansi per jam
+// Import tipe data BigDecimal untuk akurasi perhitungan nominal pendapatan
+import java.math.BigDecimal;
+// Import koleksi List dari java util
+import java.util.List;
 
-// DTO (Data Transfer Object): Objek respons JSON yang dikirim ke Frontend Dashboard Manajemen
-// Merupakan "snapshot" lengkap kondisi sistem pada periode tertentu, siap digambar oleh Chart.js
-// Setara dengan model yang kita isi datanya dari berbagai kueri sebelum dikirim ke tampilan
-public class DataDashboardDto // Kelas DTO untuk membungkus semua data analitik dan laporan Dashboard Admin
+// Kelas publik java DataDashboardDto untuk membungkus data agregat analitik dan metrik ringkasan Dashboard Admin
+public class DataDashboardDto
 {
     // =====================================================================
-    // Deklarasi Atribut: Semua metrik yang ditampilkan di Dashboard
+    // Deklarasi Atribut Metrik Data Dashboard
     // =====================================================================
 
-    private BigDecimal pendapatanTotal;      // Total pendapatan kotor dari transaksi LUNAS di periode ini (backward-compatible)
-    private BigDecimal pendapatanHariIni;    // Total pendapatan hari ini (00:00 - 23:59)
-    private BigDecimal pendapatanBulanan;    // Total pendapatan bulan berjalan (tanggal 1 s.d. hari ini)
-    private Double persentasePendapatan;     // Persentase perbandingan pendapatan hari ini dengan kemarin
-    private Long totalKendaraan;             // Jumlah total kendaraan yang masuk (volume lalu lintas) dari seluruh history
-    private Long totalAnomali;               // Jumlah kejadian anomali IoT yang terjadi di periode ini
-    private Long slotKosongSaatIni;          // Jumlah slot parkir yang sedang kosong (real-time)
-    private Long slotTerisiSaatIni;          // Jumlah slot parkir yang sedang terisi (real-time)
-    private Long totalSensor;                // Total unit sensor IoT yang terpasang di database
-    private Long totalSensorAktif;           // Total unit sensor IoT berstatus ON
-    private Double reduksiCo2Kg;             // Estimasi reduksi emisi CO2 berkat sistem navigasi (Eco-Metrics)
-    private Double persentaseCo2;            // Persentase reduksi CO2 berbanding angka terburuk (misal 2000kg)
-    private List<DataOkupansiJamDto> grafikOkupansiPerJam; // Array data untuk grafik Chart.js per jam
-    private List<DataPendapatanHarianDto> grafikPendapatanHarian; // Array data pertumbuhan pendapatan harian (tgl 1 s.d. hari ini)
-    private Long totalTransaksiLunas;        // Jumlah transaksi lunas bulan berjalan
-    private BigDecimal rataRataTarifTransaksi; // Rata-rata nominal per transaksi lunas (Avg Fee per Vehicle)
-    private BigDecimal revenuePerSlot;       // Pendapatan rata-rata per slot kapasitas (RevPAS)
-    private Double occupancyRateSaatIni;     // Persentase keterisian slot saat ini (0.0 - 100.0)
-    private Long totalKendaraanHariIni;      // Jumlah kendaraan masuk hari ini
+    // Deklarasi atribut pendapatanTotal bertipe BigDecimal untuk total akumulasi pendapatan kotor
+    private BigDecimal pendapatanTotal;
+
+    // Deklarasi atribut pendapatanHariIni bertipe BigDecimal untuk total pendapatan pada hari ini
+    private BigDecimal pendapatanHariIni;
+
+    // Deklarasi atribut pendapatanBulanan bertipe BigDecimal untuk pendapatan bulan berjalan
+    private BigDecimal pendapatanBulanan;
+
+    // Deklarasi atribut persentasePendapatan bertipe Double untuk rasio pertumbuhan pendapatan
+    private Double persentasePendapatan;
+
+    // Deklarasi atribut totalKendaraan bertipe Long untuk jumlah seluruh volume kendaraan masuk
+    private Long totalKendaraan;
+
+    // Deklarasi atribut totalAnomali bertipe Long untuk jumlah kejadian anomali penyerobotan/malfungsi
+    private Long totalAnomali;
+
+    // Deklarasi atribut slotKosongSaatIni bertipe Long untuk total slot bebas real-time
+    private Long slotKosongSaatIni;
+
+    // Deklarasi atribut slotTerisiSaatIni bertipe Long untuk total slot terisi real-time
+    private Long slotTerisiSaatIni;
+
+    // Deklarasi atribut totalSensor bertipe Long untuk jumlah seluruh unit sensor IoT
+    private Long totalSensor;
+
+    // Deklarasi atribut totalSensorAktif bertipe Long untuk jumlah sensor berstatus ON
+    private Long totalSensorAktif;
+
+    // Deklarasi atribut reduksiCo2Kg bertipe Double untuk estimasi reduksi gas emisi CO2 (kg)
+    private Double reduksiCo2Kg;
+
+    // Deklarasi atribut persentaseCo2 bertipe Double untuk capaian persentase ramah lingkungan
+    private Double persentaseCo2;
+
+    // Deklarasi atribut grafikOkupansiPerJam bertipe List<DataOkupansiJamDto> untuk titik data grafik per jam
+    private List<DataOkupansiJamDto> grafikOkupansiPerJam;
+
+    // Deklarasi atribut grafikPendapatanHarian bertipe List<DataPendapatanHarianDto> untuk data pendapatan harian
+    private List<DataPendapatanHarianDto> grafikPendapatanHarian;
+
+    // Deklarasi atribut totalTransaksiLunas bertipe Long untuk jumlah transaksi sukses lunas
+    private Long totalTransaksiLunas;
+
+    // Deklarasi atribut rataRataTarifTransaksi bertipe BigDecimal untuk tarif rata-rata per kendaraan
+    private BigDecimal rataRataTarifTransaksi;
+
+    // Deklarasi atribut revenuePerSlot bertipe BigDecimal untuk rata-rata pendapatan per slot (RevPAS)
+    private BigDecimal revenuePerSlot;
+
+    // Deklarasi atribut occupancyRateSaatIni bertipe Double untuk persentase tingkat keterisian slot
+    private Double occupancyRateSaatIni;
+
+    // Deklarasi atribut totalKendaraanHariIni bertipe Long untuk volume kendaraan masuk khusus hari ini
+    private Long totalKendaraanHariIni;
 
     // =====================================================================
-    // Inner Class: DataPendapatanHarianDto (Data titik harian dari tgl 1 s.d. hari ini)
+    // Inner Class: DataPendapatanHarianDto
     // =====================================================================
     public static class DataPendapatanHarianDto
     {
-        private Integer hari;          // Angka tanggal (1, 2, 3, ..., 13)
-        private String labelTanggal;  // Label tanggal ("01 Okt", "02 Okt", ...)
-        private BigDecimal nominal;    // Nominal pendapatan pada hari tersebut
+        // Deklarasi atribut hari bertipe Integer untuk tanggal kalender
+        private Integer hari;
 
+        // Deklarasi atribut labelTanggal bertipe String untuk label sumbu X grafik
+        private String labelTanggal;
+
+        // Deklarasi atribut nominal bertipe BigDecimal untuk nominal rupiah harian
+        private BigDecimal nominal;
+
+        // Konstruktor dengan parameter
         public DataPendapatanHarianDto(Integer hari, String labelTanggal, BigDecimal nominal)
         {
-            this.hari = hari;
-            this.labelTanggal = labelTanggal;
-            this.nominal = (nominal != null) ? nominal : BigDecimal.ZERO;
+            this.hari = hari; // Inisialisasi atribut hari dengan parameter
+            this.labelTanggal = labelTanggal; // Inisialisasi atribut labelTanggal dengan parameter
+            this.nominal = (nominal != null) ? nominal : BigDecimal.ZERO; // Inisialisasi atribut nominal
         }
 
-        public DataPendapatanHarianDto() {}
+        // Konstruktor default tanpa parameter
+        public DataPendapatanHarianDto() 
+        {
+            // Konstruktor kosong untuk serialisasi Jackson
+        }
 
-        public Integer getHari() { return hari; }
-        public void setHari(Integer hari) { this.hari = hari; }
+        // Method getter getHari untuk mengambil tanggal hari
+        public Integer getHari() 
+        { 
+            return hari; // Mengembalikan nilai hari
+        }
 
-        public String getLabelTanggal() { return labelTanggal; }
-        public void setLabelTanggal(String labelTanggal) { this.labelTanggal = labelTanggal; }
+        // Method setter setHari untuk mengubah tanggal hari
+        public void setHari(Integer hari) 
+        { 
+            this.hari = hari; // Inisialisasi atribut hari dengan parameter
+        }
 
-        public BigDecimal getNominal() { return nominal; }
-        public void setNominal(BigDecimal nominal) { this.nominal = nominal; }
+        // Method getter getLabelTanggal untuk mengambil teks label tanggal
+        public String getLabelTanggal() 
+        { 
+            return labelTanggal; // Mengembalikan nilai labelTanggal
+        }
+
+        // Method setter setLabelTanggal untuk mengubah teks label tanggal
+        public void setLabelTanggal(String labelTanggal) 
+        { 
+            this.labelTanggal = labelTanggal; // Inisialisasi atribut labelTanggal dengan parameter
+        }
+
+        // Method getter getNominal untuk mengambil nominal pendapatan harian
+        public BigDecimal getNominal() 
+        { 
+            return nominal; // Mengembalikan nominal pendapatan harian
+        }
+
+        // Method setter setNominal untuk mengubah nominal pendapatan harian
+        public void setNominal(BigDecimal nominal) 
+        { 
+            this.nominal = nominal; // Inisialisasi atribut nominal dengan parameter
+        }
     }
 
     // =====================================================================
-    // Inner Class: DataOkupansiJamDto (Menyimpan data satu titik dalam grafik garis okupansi)
-    // Setara dengan satu baris data di TableModel.java Anda, namun untuk grafik
+    // Inner Class: DataOkupansiJamDto
     // =====================================================================
-    public static class DataOkupansiJamDto // Kelas inner untuk merepresentasikan satu titik data dalam grafik okupansi
+    public static class DataOkupansiJamDto
     {
-        private String jam;         // Label sumbu X grafik (misal: "08:00", "09:00", ..., "22:00")
-        private Long jumlahMasuk;   // Jumlah kendaraan yang masuk pada jam tersebut
+        // Deklarasi atribut jam bertipe String untuk label waktu per jam
+        private String jam;
 
-        // Konstruktor DataOkupansiJamDto
+        // Deklarasi atribut jumlahMasuk bertipe Long untuk frekuensi kendaraan masuk
+        private Long jumlahMasuk;
+
+        // Konstruktor dengan parameter jam dan jumlahMasuk
         public DataOkupansiJamDto(String jam, Long jumlahMasuk)
         {
-            this.jam = jam;                 // Menginisialisasi atribut jam
-            this.jumlahMasuk = jumlahMasuk; // Menginisialisasi atribut jumlahMasuk
+            this.jam = jam; // Inisialisasi atribut jam dengan parameter
+            this.jumlahMasuk = jumlahMasuk; // Inisialisasi atribut jumlahMasuk dengan parameter
         }
 
-        public void setJam(String jam) // Setter jam
+        // Konstruktor default tanpa parameter
+        public DataOkupansiJamDto() 
         {
-            this.jam = jam;
+            // Konstruktor kosong untuk serialisasi Jackson
         }
 
-        public String getJam() // Getter jam
+        // Method setter setJam untuk mengubah label jam
+        public void setJam(String jam)
         {
-            return jam;
+            this.jam = jam; // Inisialisasi atribut jam dengan parameter
         }
 
-        public void setJumlahMasuk(Long jumlahMasuk) // Setter jumlahMasuk
+        // Method getter getJam untuk mengambil label jam
+        public String getJam()
         {
-            this.jumlahMasuk = jumlahMasuk;
+            return jam; // Mengembalikan nilai label jam
         }
 
-        public Long getJumlahMasuk() // Getter jumlahMasuk
+        // Method setter setJumlahMasuk untuk mengubah jumlah kendaraan
+        public void setJumlahMasuk(Long jumlahMasuk)
         {
-            return jumlahMasuk;
+            this.jumlahMasuk = jumlahMasuk; // Inisialisasi atribut jumlahMasuk dengan parameter
+        }
+
+        // Method getter getJumlahMasuk untuk mengambil jumlah kendaraan
+        public Long getJumlahMasuk()
+        {
+            return jumlahMasuk; // Mengembalikan nilai jumlahMasuk
         }
     }
 
+    // =====================================================================
+    // Konstruktor Kelas DataDashboardDto
+    // =====================================================================
 
-    // =====================================================================
-    // Konstruktor LENGKAP
-    // =====================================================================
+    // Konstruktor lengkap dengan seluruh parameter metrik dashboard
     public DataDashboardDto(BigDecimal pendapatanHariIni, BigDecimal pendapatanBulanan, Double persentasePendapatan,
                             Long totalKendaraan, Long totalAnomali,
                             Long slotKosongSaatIni, Long slotTerisiSaatIni,
@@ -109,209 +196,275 @@ public class DataDashboardDto // Kelas DTO untuk membungkus semua data analitik 
                             List<DataOkupansiJamDto> grafikOkupansiPerJam,
                             List<DataPendapatanHarianDto> grafikPendapatanHarian)
     {
-        this.pendapatanTotal = pendapatanHariIni;
-        this.pendapatanHariIni = pendapatanHariIni;
-        this.pendapatanBulanan = pendapatanBulanan;
-        this.persentasePendapatan = persentasePendapatan;
-        this.totalKendaraan = totalKendaraan;
-        this.totalAnomali = totalAnomali;
-        this.slotKosongSaatIni = slotKosongSaatIni;
-        this.slotTerisiSaatIni = slotTerisiSaatIni;
-        this.totalSensor = totalSensor;
-        this.totalSensorAktif = totalSensorAktif;
-        this.reduksiCo2Kg = reduksiCo2Kg;
-        this.persentaseCo2 = persentaseCo2;
-        this.grafikOkupansiPerJam = grafikOkupansiPerJam;
-        this.grafikPendapatanHarian = grafikPendapatanHarian;
+        this.pendapatanTotal = pendapatanHariIni; // Inisialisasi atribut pendapatanTotal
+        this.pendapatanHariIni = pendapatanHariIni; // Inisialisasi atribut pendapatanHariIni
+        this.pendapatanBulanan = pendapatanBulanan; // Inisialisasi atribut pendapatanBulanan
+        this.persentasePendapatan = persentasePendapatan; // Inisialisasi atribut persentasePendapatan
+        this.totalKendaraan = totalKendaraan; // Inisialisasi atribut totalKendaraan
+        this.totalAnomali = totalAnomali; // Inisialisasi atribut totalAnomali
+        this.slotKosongSaatIni = slotKosongSaatIni; // Inisialisasi atribut slotKosongSaatIni
+        this.slotTerisiSaatIni = slotTerisiSaatIni; // Inisialisasi atribut slotTerisiSaatIni
+        this.totalSensor = totalSensor; // Inisialisasi atribut totalSensor
+        this.totalSensorAktif = totalSensorAktif; // Inisialisasi atribut totalSensorAktif
+        this.reduksiCo2Kg = reduksiCo2Kg; // Inisialisasi atribut reduksiCo2Kg
+        this.persentaseCo2 = persentaseCo2; // Inisialisasi atribut persentaseCo2
+        this.grafikOkupansiPerJam = grafikOkupansiPerJam; // Inisialisasi atribut grafikOkupansiPerJam
+        this.grafikPendapatanHarian = grafikPendapatanHarian; // Inisialisasi atribut grafikPendapatanHarian
     }
 
+    // Konstruktor fleksibel untuk kompatibilitas data ringkas
     public DataDashboardDto(BigDecimal pendapatanTotal, Double persentasePendapatan, Long totalKendaraan, Long totalAnomali,
                              Long slotKosongSaatIni, Long slotTerisiSaatIni,
                              Double reduksiCo2Kg, Double persentaseCo2, List<DataOkupansiJamDto> grafikOkupansiPerJam)
     {
-        this.pendapatanTotal = pendapatanTotal;
-        this.pendapatanHariIni = pendapatanTotal;
-        this.pendapatanBulanan = pendapatanTotal;
-        this.persentasePendapatan = persentasePendapatan;
-        this.totalKendaraan = totalKendaraan;
-        this.totalAnomali = totalAnomali;
-        this.slotKosongSaatIni = slotKosongSaatIni;
-        this.slotTerisiSaatIni = slotTerisiSaatIni;
-        this.reduksiCo2Kg = reduksiCo2Kg;
-        this.persentaseCo2 = persentaseCo2;
-        this.grafikOkupansiPerJam = grafikOkupansiPerJam;
+        this.pendapatanTotal = pendapatanTotal; // Inisialisasi atribut pendapatanTotal
+        this.pendapatanHariIni = pendapatanTotal; // Inisialisasi atribut pendapatanHariIni
+        this.pendapatanBulanan = pendapatanTotal; // Inisialisasi atribut pendapatanBulanan
+        this.persentasePendapatan = persentasePendapatan; // Inisialisasi atribut persentasePendapatan
+        this.totalKendaraan = totalKendaraan; // Inisialisasi atribut totalKendaraan
+        this.totalAnomali = totalAnomali; // Inisialisasi atribut totalAnomali
+        this.slotKosongSaatIni = slotKosongSaatIni; // Inisialisasi atribut slotKosongSaatIni
+        this.slotTerisiSaatIni = slotTerisiSaatIni; // Inisialisasi atribut slotTerisiSaatIni
+        this.reduksiCo2Kg = reduksiCo2Kg; // Inisialisasi atribut reduksiCo2Kg
+        this.persentaseCo2 = persentaseCo2; // Inisialisasi atribut persentaseCo2
+        this.grafikOkupansiPerJam = grafikOkupansiPerJam; // Inisialisasi atribut grafikOkupansiPerJam
     }
 
-    public DataDashboardDto() {} // Konstruktor kosong untuk Jackson
-
+    // Konstruktor default tanpa parameter
+    public DataDashboardDto() 
+    {
+        // Konstruktor kosong untuk Jackson JSON serializer
+    }
 
     // =====================================================================
-    // Getter & Setter (gaya penulisan Anda)
+    // Method Setter & Getter Atribut
     // =====================================================================
 
-    public void setPendapatanTotal(BigDecimal pendapatanTotal) // Setter pendapatanTotal
+    // Method setter setPendapatanTotal untuk mengubah pendapatan total
+    public void setPendapatanTotal(BigDecimal pendapatanTotal)
     {
-        this.pendapatanTotal = pendapatanTotal;
+        this.pendapatanTotal = pendapatanTotal; // Inisialisasi atribut pendapatanTotal dengan parameter
     }
 
-    public BigDecimal getPendapatanTotal() // Getter pendapatanTotal
+    // Method getter getPendapatanTotal untuk mengambil pendapatan total
+    public BigDecimal getPendapatanTotal()
     {
-        return pendapatanTotal;
+        return pendapatanTotal; // Mengembalikan nilai dari atribut pendapatanTotal
     }
 
-    public void setTotalKendaraan(Long totalKendaraan) // Setter totalKendaraan
+    // Method setter setTotalKendaraan untuk mengubah total volume kendaraan
+    public void setTotalKendaraan(Long totalKendaraan)
     {
-        this.totalKendaraan = totalKendaraan;
+        this.totalKendaraan = totalKendaraan; // Inisialisasi atribut totalKendaraan dengan parameter
     }
 
-    public Long getTotalKendaraan() // Getter totalKendaraan
+    // Method getter getTotalKendaraan untuk mengambil total volume kendaraan
+    public Long getTotalKendaraan()
     {
-        return totalKendaraan;
+        return totalKendaraan; // Mengembalikan nilai dari atribut totalKendaraan
     }
 
-    public void setTotalAnomali(Long totalAnomali) // Setter totalAnomali
+    // Method setter setTotalAnomali untuk mengubah jumlah anomali
+    public void setTotalAnomali(Long totalAnomali)
     {
-        this.totalAnomali = totalAnomali;
+        this.totalAnomali = totalAnomali; // Inisialisasi atribut totalAnomali dengan parameter
     }
 
-    public Long getTotalAnomali() // Getter totalAnomali
+    // Method getter getTotalAnomali untuk mengambil jumlah anomali
+    public Long getTotalAnomali()
     {
-        return totalAnomali;
+        return totalAnomali; // Mengembalikan nilai dari atribut totalAnomali
     }
 
-    public void setSlotKosongSaatIni(Long slotKosongSaatIni) // Setter slotKosongSaatIni
+    // Method setter setSlotKosongSaatIni untuk mengubah total slot kosong
+    public void setSlotKosongSaatIni(Long slotKosongSaatIni)
     {
-        this.slotKosongSaatIni = slotKosongSaatIni;
+        this.slotKosongSaatIni = slotKosongSaatIni; // Inisialisasi atribut slotKosongSaatIni dengan parameter
     }
 
-    public Long getSlotKosongSaatIni() // Getter slotKosongSaatIni
+    // Method getter getSlotKosongSaatIni untuk mengambil total slot kosong
+    public Long getSlotKosongSaatIni()
     {
-        return slotKosongSaatIni;
+        return slotKosongSaatIni; // Mengembalikan nilai dari atribut slotKosongSaatIni
     }
 
-    public void setSlotTerisiSaatIni(Long slotTerisiSaatIni) // Setter slotTerisiSaatIni
+    // Method setter setSlotTerisiSaatIni untuk mengubah total slot terisi
+    public void setSlotTerisiSaatIni(Long slotTerisiSaatIni)
     {
-        this.slotTerisiSaatIni = slotTerisiSaatIni;
+        this.slotTerisiSaatIni = slotTerisiSaatIni; // Inisialisasi atribut slotTerisiSaatIni dengan parameter
     }
 
-    public Long getSlotTerisiSaatIni() // Getter slotTerisiSaatIni
+    // Method getter getSlotTerisiSaatIni untuk mengambil total slot terisi
+    public Long getSlotTerisiSaatIni()
     {
-        return slotTerisiSaatIni;
+        return slotTerisiSaatIni; // Mengembalikan nilai dari atribut slotTerisiSaatIni
     }
 
-    public void setReduksiCo2Kg(Double reduksiCo2Kg) // Setter reduksiCo2Kg
+    // Method setter setReduksiCo2Kg untuk mengubah capaian reduksi CO2
+    public void setReduksiCo2Kg(Double reduksiCo2Kg)
     {
-        this.reduksiCo2Kg = reduksiCo2Kg;
+        this.reduksiCo2Kg = reduksiCo2Kg; // Inisialisasi atribut reduksiCo2Kg dengan parameter
     }
 
-    public Double getReduksiCo2Kg() // Getter reduksiCo2Kg
+    // Method getter getReduksiCo2Kg untuk mengambil capaian reduksi CO2
+    public Double getReduksiCo2Kg()
     {
-        return reduksiCo2Kg;
+        return reduksiCo2Kg; // Mengembalikan nilai dari atribut reduksiCo2Kg
     }
 
-    public void setGrafikOkupansiPerJam(List<DataOkupansiJamDto> grafikOkupansiPerJam) // Setter grafikOkupansiPerJam
+    // Method setter setGrafikOkupansiPerJam untuk mengubah data grafik per jam
+    public void setGrafikOkupansiPerJam(List<DataOkupansiJamDto> grafikOkupansiPerJam)
     {
-        this.grafikOkupansiPerJam = grafikOkupansiPerJam;
+        this.grafikOkupansiPerJam = grafikOkupansiPerJam; // Inisialisasi atribut grafikOkupansiPerJam dengan parameter
     }
 
-    public List<DataOkupansiJamDto> getGrafikOkupansiPerJam() // Getter grafikOkupansiPerJam
+    // Method getter getGrafikOkupansiPerJam untuk mengambil data grafik per jam
+    public List<DataOkupansiJamDto> getGrafikOkupansiPerJam()
     {
-        return grafikOkupansiPerJam;
+        return grafikOkupansiPerJam; // Mengembalikan daftar data grafik okupansi per jam
     }
 
-    public void setPersentasePendapatan(Double persentasePendapatan) {
-        this.persentasePendapatan = persentasePendapatan;
+    // Method setter setPersentasePendapatan untuk mengubah persentase pendapatan
+    public void setPersentasePendapatan(Double persentasePendapatan) 
+    {
+        this.persentasePendapatan = persentasePendapatan; // Inisialisasi atribut persentasePendapatan dengan parameter
     }
 
-    public Double getPersentasePendapatan() {
-        return persentasePendapatan;
+    // Method getter getPersentasePendapatan untuk mengambil persentase pendapatan
+    public Double getPersentasePendapatan() 
+    {
+        return persentasePendapatan; // Mengembalikan nilai persentasePendapatan
     }
 
-    public void setPersentaseCo2(Double persentaseCo2) {
-        this.persentaseCo2 = persentaseCo2;
+    // Method setter setPersentaseCo2 untuk mengubah persentase reduksi emisi
+    public void setPersentaseCo2(Double persentaseCo2) 
+    {
+        this.persentaseCo2 = persentaseCo2; // Inisialisasi atribut persentaseCo2 dengan parameter
     }
 
-    public Double getPersentaseCo2() {
-        return persentaseCo2;
+    // Method getter getPersentaseCo2 untuk mengambil persentase reduksi emisi
+    public Double getPersentaseCo2() 
+    {
+        return persentaseCo2; // Mengembalikan nilai persentaseCo2
     }
 
-    public BigDecimal getPendapatanHariIni() {
-        return pendapatanHariIni;
+    // Method getter getPendapatanHariIni untuk mengambil pendapatan hari ini
+    public BigDecimal getPendapatanHariIni() 
+    {
+        return pendapatanHariIni; // Mengembalikan nilai pendapatanHariIni
     }
 
-    public void setPendapatanHariIni(BigDecimal pendapatanHariIni) {
-        this.pendapatanHariIni = pendapatanHariIni;
+    // Method setter setPendapatanHariIni untuk mengubah pendapatan hari ini
+    public void setPendapatanHariIni(BigDecimal pendapatanHariIni) 
+    {
+        this.pendapatanHariIni = pendapatanHariIni; // Inisialisasi atribut pendapatanHariIni dengan parameter
     }
 
-    public BigDecimal getPendapatanBulanan() {
-        return pendapatanBulanan;
+    // Method getter getPendapatanBulanan untuk mengambil pendapatan bulanan
+    public BigDecimal getPendapatanBulanan() 
+    {
+        return pendapatanBulanan; // Mengembalikan nilai pendapatanBulanan
     }
 
-    public void setPendapatanBulanan(BigDecimal pendapatanBulanan) {
-        this.pendapatanBulanan = pendapatanBulanan;
+    // Method setter setPendapatanBulanan untuk mengubah pendapatan bulanan
+    public void setPendapatanBulanan(BigDecimal pendapatanBulanan) 
+    {
+        this.pendapatanBulanan = pendapatanBulanan; // Inisialisasi atribut pendapatanBulanan dengan parameter
     }
 
-    public Long getTotalSensor() {
-        return totalSensor;
+    // Method getter getTotalSensor untuk mengambil total sensor
+    public Long getTotalSensor() 
+    {
+        return totalSensor; // Mengembalikan nilai totalSensor
     }
 
-    public void setTotalSensor(Long totalSensor) {
-        this.totalSensor = totalSensor;
+    // Method setter setTotalSensor untuk mengubah total sensor
+    public void setTotalSensor(Long totalSensor) 
+    {
+        this.totalSensor = totalSensor; // Inisialisasi atribut totalSensor dengan parameter
     }
 
-    public Long getTotalSensorAktif() {
-        return totalSensorAktif;
+    // Method getter getTotalSensorAktif untuk mengambil total sensor aktif
+    public Long getTotalSensorAktif() 
+    {
+        return totalSensorAktif; // Mengembalikan nilai totalSensorAktif
     }
 
-    public void setTotalSensorAktif(Long totalSensorAktif) {
-        this.totalSensorAktif = totalSensorAktif;
+    // Method setter setTotalSensorAktif untuk mengubah total sensor aktif
+    public void setTotalSensorAktif(Long totalSensorAktif) 
+    {
+        this.totalSensorAktif = totalSensorAktif; // Inisialisasi atribut totalSensorAktif dengan parameter
     }
 
-    public List<DataPendapatanHarianDto> getGrafikPendapatanHarian() {
-        return grafikPendapatanHarian;
+    // Method getter getGrafikPendapatanHarian untuk mengambil grafik pendapatan harian
+    public List<DataPendapatanHarianDto> getGrafikPendapatanHarian() 
+    {
+        return grafikPendapatanHarian; // Mengembalikan daftar grafikPendapatanHarian
     }
 
-    public void setGrafikPendapatanHarian(List<DataPendapatanHarianDto> grafikPendapatanHarian) {
-        this.grafikPendapatanHarian = grafikPendapatanHarian;
+    // Method setter setGrafikPendapatanHarian untuk mengubah grafik pendapatan harian
+    public void setGrafikPendapatanHarian(List<DataPendapatanHarianDto> grafikPendapatanHarian) 
+    {
+        this.grafikPendapatanHarian = grafikPendapatanHarian; // Inisialisasi atribut grafikPendapatanHarian dengan parameter
     }
 
-    public Long getTotalTransaksiLunas() {
-        return totalTransaksiLunas;
+    // Method getter getTotalTransaksiLunas untuk mengambil total transaksi lunas
+    public Long getTotalTransaksiLunas() 
+    {
+        return totalTransaksiLunas; // Mengembalikan totalTransaksiLunas
     }
 
-    public void setTotalTransaksiLunas(Long totalTransaksiLunas) {
-        this.totalTransaksiLunas = totalTransaksiLunas;
+    // Method setter setTotalTransaksiLunas untuk mengubah total transaksi lunas
+    public void setTotalTransaksiLunas(Long totalTransaksiLunas) 
+    {
+        this.totalTransaksiLunas = totalTransaksiLunas; // Inisialisasi atribut totalTransaksiLunas dengan parameter
     }
 
-    public BigDecimal getRataRataTarifTransaksi() {
-        return rataRataTarifTransaksi;
+    // Method getter getRataRataTarifTransaksi untuk mengambil rata-rata tarif transaksi
+    public BigDecimal getRataRataTarifTransaksi() 
+    {
+        return rataRataTarifTransaksi; // Mengembalikan rataRataTarifTransaksi
     }
 
-    public void setRataRataTarifTransaksi(BigDecimal rataRataTarifTransaksi) {
-        this.rataRataTarifTransaksi = rataRataTarifTransaksi;
+    // Method setter setRataRataTarifTransaksi untuk mengubah rata-rata tarif transaksi
+    public void setRataRataTarifTransaksi(BigDecimal rataRataTarifTransaksi) 
+    {
+        this.rataRataTarifTransaksi = rataRataTarifTransaksi; // Inisialisasi atribut rataRataTarifTransaksi dengan parameter
     }
 
-    public BigDecimal getRevenuePerSlot() {
-        return revenuePerSlot;
+    // Method getter getRevenuePerSlot untuk mengambil pendapatan per slot
+    public BigDecimal getRevenuePerSlot() 
+    {
+        return revenuePerSlot; // Mengembalikan revenuePerSlot
     }
 
-    public void setRevenuePerSlot(BigDecimal revenuePerSlot) {
-        this.revenuePerSlot = revenuePerSlot;
+    // Method setter setRevenuePerSlot untuk mengubah pendapatan per slot
+    public void setRevenuePerSlot(BigDecimal revenuePerSlot) 
+    {
+        this.revenuePerSlot = revenuePerSlot; // Inisialisasi atribut revenuePerSlot dengan parameter
     }
 
-    public Double getOccupancyRateSaatIni() {
-        return occupancyRateSaatIni;
+    // Method getter getOccupancyRateSaatIni untuk mengambil tingkat keterisian slot
+    public Double getOccupancyRateSaatIni() 
+    {
+        return occupancyRateSaatIni; // Mengembalikan occupancyRateSaatIni
     }
 
-    public void setOccupancyRateSaatIni(Double occupancyRateSaatIni) {
-        this.occupancyRateSaatIni = occupancyRateSaatIni;
+    // Method setter setOccupancyRateSaatIni untuk mengubah tingkat keterisian slot
+    public void setOccupancyRateSaatIni(Double occupancyRateSaatIni) 
+    {
+        this.occupancyRateSaatIni = occupancyRateSaatIni; // Inisialisasi atribut occupancyRateSaatIni dengan parameter
     }
 
-    public Long getTotalKendaraanHariIni() {
-        return totalKendaraanHariIni;
+    // Method getter getTotalKendaraanHariIni untuk mengambil volume kendaraan hari ini
+    public Long getTotalKendaraanHariIni() 
+    {
+        return totalKendaraanHariIni; // Mengembalikan totalKendaraanHariIni
     }
 
-    public void setTotalKendaraanHariIni(Long totalKendaraanHariIni) {
-        this.totalKendaraanHariIni = totalKendaraanHariIni;
+    // Method setter setTotalKendaraanHariIni untuk mengubah volume kendaraan hari ini
+    public void setTotalKendaraanHariIni(Long totalKendaraanHariIni) 
+    {
+        this.totalKendaraanHariIni = totalKendaraanHariIni; // Inisialisasi atribut totalKendaraanHariIni dengan parameter
     }
 }

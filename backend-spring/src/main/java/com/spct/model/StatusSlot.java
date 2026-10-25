@@ -1,10 +1,17 @@
-package com.spct.model;
+package com.spct.model; // Nama package dari modul model entitas sistem
 
-// Deklarasi Enum StatusSlot: merepresentasikan semua kemungkinan state dari sebuah slot parkir
+// Enum publik java dari StatusSlot: merepresentasikan status ketersediaan slot parkir
 public enum StatusSlot
 {
-    KOSONG,     // Slot tidak ada kendaraan dan bebas digunakan
-    DIPESAN,    // Slot sudah dialokasikan oleh sistem saat kendaraan baru masuk
-    TERISI,     // Slot sudah benar-benar terisi (sensor fisik mengkonfirmasi)
-    MAINTENANCE // Slot sedang dalam perbaikan / tidak tersedia
+    // Status KOSONG: slot bebas dan siap dialokasikan untuk kendaraan baru
+    KOSONG,
+    
+    // Status DIPESAN: slot sudah dialokasikan oleh sistem namun kendaraan masih dalam perjalanan
+    DIPESAN,
+    
+    // Status TERISI: kendaraan sudah terparkir dan dikonfirmasi oleh sensor fisik ultrasonik
+    TERISI,
+    
+    // Status MAINTENANCE: slot sedang dalam perbaikan atau dinonaktifkan sementara
+    MAINTENANCE
 }

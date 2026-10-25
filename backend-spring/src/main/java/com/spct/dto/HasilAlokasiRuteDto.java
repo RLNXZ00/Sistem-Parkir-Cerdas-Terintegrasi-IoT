@@ -1,115 +1,145 @@
-package com.spct.dto;
+package com.spct.dto; // Nama package dari modul data transfer object (DTO)
 
-import java.util.List; // Mengimpor List untuk menyimpan urutan node rute hasil Algoritma A*
+// Import koleksi List dari java util
+import java.util.List;
 
-// DTO (Data Transfer Object): Objek yang dikirim sebagai respons JSON ke Frontend Kiosk Terminal
-// Fungsinya: memisahkan data API publik dari data internal Entity JPA (prinsip enkapsulasi)
-// Setara dengan memilih kolom apa saja yang ditampilkan di TableModel Anda, bukan seluruh objek
-public class HasilAlokasiRuteDto // Kelas DTO untuk membungkus hasil alokasi slot dan rute yang akan dikirim ke Kiosk
+// Kelas publik java HasilAlokasiRuteDto untuk membungkus data respon alokasi slot dan rute A* ke terminal Kiosk
+public class HasilAlokasiRuteDto
 {
     // =====================================================================
-    // Deklarasi Atribut: Data yang akan dikirim ke Frontend Kiosk Terminal
+    // Deklarasi Atribut Hasil Alokasi Rute
     // =====================================================================
 
-    private String idSlotDialokasikan; // Nomor slot yang berhasil dialokasikan (misal: "B1-10")
-    private Integer lantaiSlot;         // Lantai dari slot yang dialokasikan (misal: 1)
-    private Double koordinatX;          // Koordinat X slot untuk rendering peta di Frontend Kiosk
-    private Double koordinatY;          // Koordinat Y slot untuk rendering peta di Frontend Kiosk
-    private List<TitikRuteDto> urutan;        // Array urutan node rute beserta koordinat X,Y
-    private Long idTransaksi;           // ID transaksi parkir yang baru dibuat (untuk referensi pembayaran saat keluar)
-    private String pesanStatus;         // Pesan status operasi (misal: "Alokasi berhasil" atau "Basement penuh")
+    // Deklarasi atribut idSlotDialokasikan bertipe String untuk nomor identitas slot terpilih
+    private String idSlotDialokasikan;
+
+    // Deklarasi atribut lantaiSlot bertipe Integer untuk nomor lantai slot parkir
+    private Integer lantaiSlot;
+
+    // Deklarasi atribut koordinatX bertipe Double untuk koordinat X slot pada peta denah
+    private Double koordinatX;
+
+    // Deklarasi atribut koordinatY bertipe Double untuk koordinat Y slot pada peta denah
+    private Double koordinatY;
+
+    // Deklarasi atribut urutan bertipe List<TitikRuteDto> untuk daftar titik koordinat rute navigasi
+    private List<TitikRuteDto> urutan;
+
+    // Deklarasi atribut idTransaksi bertipe Long untuk nomor tiket transaksi yang baru dibuat
+    private Long idTransaksi;
+
+    // Deklarasi atribut pesanStatus bertipe String untuk pesan deskripsi status operasi
+    private String pesanStatus;
 
     // =====================================================================
-    // Konstruktor LENGKAP (gaya penulisan Anda)
+    // Konstruktor Kelas HasilAlokasiRuteDto
     // =====================================================================
+
+    // Konstruktor dengan parameter lengkap
     public HasilAlokasiRuteDto(String idSlotDialokasikan, Integer lantaiSlot,
                                 Double koordinatX, Double koordinatY,
                                 List<TitikRuteDto> urutan, Long idTransaksi, String pesanStatus)
     {
-        this.idSlotDialokasikan = idSlotDialokasikan; // Menginisialisasi atribut idSlotDialokasikan
-        this.lantaiSlot = lantaiSlot;                 // Menginisialisasi atribut lantaiSlot
-        this.koordinatX = koordinatX;                 // Menginisialisasi atribut koordinatX
-        this.koordinatY = koordinatY;                 // Menginisialisasi atribut koordinatY
-        this.urutan = urutan;                         // Menginisialisasi atribut urutan (array rute)
-        this.idTransaksi = idTransaksi;               // Menginisialisasi atribut idTransaksi
-        this.pesanStatus = pesanStatus;               // Menginisialisasi atribut pesanStatus
+        this.idSlotDialokasikan = idSlotDialokasikan; // Inisialisasi atribut idSlotDialokasikan dengan parameter
+        this.lantaiSlot = lantaiSlot; // Inisialisasi atribut lantaiSlot dengan parameter
+        this.koordinatX = koordinatX; // Inisialisasi atribut koordinatX dengan parameter
+        this.koordinatY = koordinatY; // Inisialisasi atribut koordinatY dengan parameter
+        this.urutan = urutan; // Inisialisasi atribut urutan dengan parameter
+        this.idTransaksi = idTransaksi; // Inisialisasi atribut idTransaksi dengan parameter
+        this.pesanStatus = pesanStatus; // Inisialisasi atribut pesanStatus dengan parameter
     }
 
-    // Konstruktor kosong (diperlukan oleh Jackson untuk serialisasi/deserialisasi JSON)
-    public HasilAlokasiRuteDto() {}
-
+    // Konstruktor default tanpa parameter untuk serialisasi JSON
+    public HasilAlokasiRuteDto() 
+    {
+        // Konstruktor kosong untuk kebutuhan Jackson JSON serializer
+    }
 
     // =====================================================================
-    // Getter & Setter (gaya penulisan Anda)
+    // Method Setter & Getter Atribut
     // =====================================================================
 
-    public void setIdSlotDialokasikan(String idSlotDialokasikan) // Deklarasi method setter untuk idSlotDialokasikan
+    // Method setter setIdSlotDialokasikan untuk mengubah id slot dialokasikan
+    public void setIdSlotDialokasikan(String idSlotDialokasikan)
     {
-        this.idSlotDialokasikan = idSlotDialokasikan; // Mengubah nilai atribut idSlotDialokasikan
+        this.idSlotDialokasikan = idSlotDialokasikan; // Inisialisasi atribut idSlotDialokasikan dengan parameter
     }
 
-    public String getIdSlotDialokasikan() // Deklarasi method getter untuk idSlotDialokasikan
+    // Method getter getIdSlotDialokasikan untuk mengambil id slot dialokasikan
+    public String getIdSlotDialokasikan()
     {
-        return idSlotDialokasikan; // Mengembalikan nilai atribut idSlotDialokasikan
+        return idSlotDialokasikan; // Mengembalikan nilai dari atribut idSlotDialokasikan
     }
 
-    public void setLantaiSlot(Integer lantaiSlot) // Deklarasi method setter untuk lantaiSlot
+    // Method setter setLantaiSlot untuk mengubah nomor lantai slot
+    public void setLantaiSlot(Integer lantaiSlot)
     {
-        this.lantaiSlot = lantaiSlot;
+        this.lantaiSlot = lantaiSlot; // Inisialisasi atribut lantaiSlot dengan parameter
     }
 
-    public Integer getLantaiSlot() // Deklarasi method getter untuk lantaiSlot
+    // Method getter getLantaiSlot untuk mengambil nomor lantai slot
+    public Integer getLantaiSlot()
     {
-        return lantaiSlot; // Mengembalikan nilai atribut lantaiSlot
+        return lantaiSlot; // Mengembalikan nilai dari atribut lantaiSlot
     }
 
-    public void setKoordinatX(Double koordinatX) // Deklarasi method setter untuk koordinatX
+    // Method setter setKoordinatX untuk mengubah titik koordinat X
+    public void setKoordinatX(Double koordinatX)
     {
-        this.koordinatX = koordinatX;
+        this.koordinatX = koordinatX; // Inisialisasi atribut koordinatX dengan parameter
     }
 
-    public Double getKoordinatX() // Deklarasi method getter untuk koordinatX
+    // Method getter getKoordinatX untuk mengambil titik koordinat X
+    public Double getKoordinatX()
     {
-        return koordinatX; // Mengembalikan nilai atribut koordinatX
+        return koordinatX; // Mengembalikan nilai dari atribut koordinatX
     }
 
-    public void setKoordinatY(Double koordinatY) // Deklarasi method setter untuk koordinatY
+    // Method setter setKoordinatY untuk mengubah titik koordinat Y
+    public void setKoordinatY(Double koordinatY)
     {
-        this.koordinatY = koordinatY;
+        this.koordinatY = koordinatY; // Inisialisasi atribut koordinatY dengan parameter
     }
 
-    public Double getKoordinatY() // Deklarasi method getter untuk koordinatY
+    // Method getter getKoordinatY untuk mengambil titik koordinat Y
+    public Double getKoordinatY()
     {
-        return koordinatY; // Mengembalikan nilai atribut koordinatY
+        return koordinatY; // Mengembalikan nilai dari atribut koordinatY
     }
 
-    public void setUrutan(List<TitikRuteDto> urutan) // Deklarasi method setter untuk urutan
+    // Method setter setUrutan untuk mengubah daftar titik rute navigasi
+    public void setUrutan(List<TitikRuteDto> urutan)
     {
-        this.urutan = urutan;
+        this.urutan = urutan; // Inisialisasi atribut urutan dengan parameter
     }
 
-    public List<TitikRuteDto> getUrutan() // Deklarasi method getter untuk urutan (array rute)
+    // Method getter getUrutan untuk mengambil daftar titik rute navigasi
+    public List<TitikRuteDto> getUrutan()
     {
-        return urutan; // Mengembalikan nilai atribut urutan
+        return urutan; // Mengembalikan daftar titik dari atribut urutan
     }
 
-    public void setIdTransaksi(Long idTransaksi) // Deklarasi method setter untuk idTransaksi
+    // Method setter setIdTransaksi untuk mengubah id transaksi parkir
+    public void setIdTransaksi(Long idTransaksi)
     {
-        this.idTransaksi = idTransaksi;
+        this.idTransaksi = idTransaksi; // Inisialisasi atribut idTransaksi dengan parameter
     }
 
-    public Long getIdTransaksi() // Deklarasi method getter untuk idTransaksi
+    // Method getter getIdTransaksi untuk mengambil id transaksi parkir
+    public Long getIdTransaksi()
     {
-        return idTransaksi; // Mengembalikan nilai atribut idTransaksi
+        return idTransaksi; // Mengembalikan nilai dari atribut idTransaksi
     }
 
-    public void setPesanStatus(String pesanStatus) // Deklarasi method setter untuk pesanStatus
+    // Method setter setPesanStatus untuk mengubah pesan keterangan status
+    public void setPesanStatus(String pesanStatus)
     {
-        this.pesanStatus = pesanStatus; // Mengubah nilai atribut pesanStatus
+        this.pesanStatus = pesanStatus; // Inisialisasi atribut pesanStatus dengan parameter
     }
 
-    public String getPesanStatus() // Deklarasi method getter untuk pesanStatus
+    // Method getter getPesanStatus untuk mengambil pesan keterangan status
+    public String getPesanStatus()
     {
-        return pesanStatus; // Mengembalikan nilai atribut pesanStatus
+        return pesanStatus; // Mengembalikan nilai dari atribut pesanStatus
     }
 }

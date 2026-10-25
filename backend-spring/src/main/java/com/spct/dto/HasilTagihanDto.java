@@ -1,141 +1,182 @@
-package com.spct.dto;
+package com.spct.dto; // Nama package dari modul data transfer object (DTO)
 
+// Import enum StatusPembayaran dari package model
 import com.spct.model.StatusPembayaran;
+// Import tipe data BigDecimal untuk ketelitian nominal tagihan
 import java.math.BigDecimal;
+// Import tipe data LocalDateTime java untuk pencatatan waktu
 import java.time.LocalDateTime;
 
-// DTO (Data Transfer Object): Objek respons JSON yang dikirim ke Frontend Kiosk Terminal Keluar
-// Berisi detail tagihan saat kendaraan terdeteksi di gerbang keluar
+// Kelas publik java HasilTagihanDto untuk membungkus data respon tagihan parkir ke terminal Kiosk Keluar
 public class HasilTagihanDto 
 {
     // =====================================================================
-    // Deklarasi Atribut
+    // Deklarasi Atribut Hasil Tagihan
     // =====================================================================
 
-    private String status;                  // Status operasi: "SUKSES", "TRANSAKSI_TIDAK_DITEMUKAN"
-    private Long idTransaksi;               // ID transaksi aktif
-    private String platNomor;               // Plat nomor kendaraan
-    private LocalDateTime waktuMasuk;       // Timestamp kendaraan masuk
-    private LocalDateTime waktuKeluar;      // Timestamp kendaraan keluar (saat ini)
-    private Integer durasiTotalMenit;       // Total durasi parkir dalam menit
-    private BigDecimal nominalTagihan;      // Jumlah tagihan yang harus dibayar
-    private StatusPembayaran statusPembayaran; // Status saat ini (BELUM_LUNAS, GRACE_PERIOD_FREE, LUNAS)
-    private String pesanKeterangan;         // Pesan instruksi ke pengguna kios (misal: "Silakan tempelkan kartu E-Toll")
+    // Deklarasi atribut status bertipe String untuk status keberhasilan pengecekan tiket
+    private String status;
 
+    // Deklarasi atribut idTransaksi bertipe Long untuk nomor tiket transaksi
+    private Long idTransaksi;
+
+    // Deklarasi atribut platNomor bertipe String untuk nomor plat kendaraan
+    private String platNomor;
+
+    // Deklarasi atribut waktuMasuk bertipe LocalDateTime untuk waktu awal masuk
+    private LocalDateTime waktuMasuk;
+
+    // Deklarasi atribut waktuKeluar bertipe LocalDateTime untuk waktu keluar gerbang
+    private LocalDateTime waktuKeluar;
+
+    // Deklarasi atribut durasiTotalMenit bertipe Integer untuk total durasi parkir dalam menit
+    private Integer durasiTotalMenit;
+
+    // Deklarasi atribut nominalTagihan bertipe BigDecimal untuk jumlah rupiah yang harus dibayar
+    private BigDecimal nominalTagihan;
+
+    // Deklarasi atribut statusPembayaran bertipe enum StatusPembayaran untuk status tagihan
+    private StatusPembayaran statusPembayaran;
+
+    // Deklarasi atribut pesanKeterangan bertipe String untuk pesan instruksi pembayaran
+    private String pesanKeterangan;
 
     // =====================================================================
-    // Konstruktor
+    // Konstruktor Kelas HasilTagihanDto
     // =====================================================================
+
+    // Konstruktor dengan parameter lengkap
     public HasilTagihanDto(String status, Long idTransaksi, String platNomor, 
                            LocalDateTime waktuMasuk, LocalDateTime waktuKeluar, 
                            Integer durasiTotalMenit, BigDecimal nominalTagihan, 
                            StatusPembayaran statusPembayaran, String pesanKeterangan)
     {
-        this.status = status;
-        this.idTransaksi = idTransaksi;
-        this.platNomor = platNomor;
-        this.waktuMasuk = waktuMasuk;
-        this.waktuKeluar = waktuKeluar;
-        this.durasiTotalMenit = durasiTotalMenit;
-        this.nominalTagihan = nominalTagihan;
-        this.statusPembayaran = statusPembayaran;
-        this.pesanKeterangan = pesanKeterangan;
+        this.status = status; // Inisialisasi atribut status dengan parameter status
+        this.idTransaksi = idTransaksi; // Inisialisasi atribut idTransaksi dengan parameter idTransaksi
+        this.platNomor = platNomor; // Inisialisasi atribut platNomor dengan parameter platNomor
+        this.waktuMasuk = waktuMasuk; // Inisialisasi atribut waktuMasuk dengan parameter waktuMasuk
+        this.waktuKeluar = waktuKeluar; // Inisialisasi atribut waktuKeluar dengan parameter waktuKeluar
+        this.durasiTotalMenit = durasiTotalMenit; // Inisialisasi atribut durasiTotalMenit dengan parameter durasiTotalMenit
+        this.nominalTagihan = nominalTagihan; // Inisialisasi atribut nominalTagihan dengan parameter nominalTagihan
+        this.statusPembayaran = statusPembayaran; // Inisialisasi atribut statusPembayaran dengan parameter statusPembayaran
+        this.pesanKeterangan = pesanKeterangan; // Inisialisasi atribut pesanKeterangan dengan parameter pesanKeterangan
     }
 
-    public HasilTagihanDto() {}
-
+    // Konstruktor default tanpa parameter untuk Jackson
+    public HasilTagihanDto() 
+    {
+        // Konstruktor kosong untuk kebutuhan Jackson JSON serializer
+    }
 
     // =====================================================================
-    // Getter & Setter (gaya penulisan Anda)
+    // Method Setter & Getter Atribut
     // =====================================================================
 
-    public void setStatus(String status) // Setter status
+    // Method setter setStatus untuk mengubah status respon
+    public void setStatus(String status)
     {
-        this.status = status;
+        this.status = status; // Inisialisasi atribut status dengan parameter
     }
 
-    public String getStatus() // Getter status
+    // Method getter getStatus untuk mengambil status respon
+    public String getStatus()
     {
-        return status;
+        return status; // Mengembalikan nilai dari atribut status
     }
 
-    public void setIdTransaksi(Long idTransaksi) // Setter idTransaksi
+    // Method setter setIdTransaksi untuk mengubah id transaksi
+    public void setIdTransaksi(Long idTransaksi)
     {
-        this.idTransaksi = idTransaksi;
+        this.idTransaksi = idTransaksi; // Inisialisasi atribut idTransaksi dengan parameter
     }
 
-    public Long getIdTransaksi() // Getter idTransaksi
+    // Method getter getIdTransaksi untuk mengambil id transaksi
+    public Long getIdTransaksi()
     {
-        return idTransaksi;
+        return idTransaksi; // Mengembalikan nilai dari atribut idTransaksi
     }
 
-    public void setPlatNomor(String platNomor) // Setter platNomor
+    // Method setter setPlatNomor untuk mengubah nomor plat
+    public void setPlatNomor(String platNomor)
     {
-        this.platNomor = platNomor;
+        this.platNomor = platNomor; // Inisialisasi atribut platNomor dengan parameter
     }
 
-    public String getPlatNomor() // Getter platNomor
+    // Method getter getPlatNomor untuk mengambil nomor plat
+    public String getPlatNomor()
     {
-        return platNomor;
+        return platNomor; // Mengembalikan nilai dari atribut platNomor
     }
 
-    public void setWaktuMasuk(LocalDateTime waktuMasuk) // Setter waktuMasuk
+    // Method setter setWaktuMasuk untuk mengubah waktu masuk
+    public void setWaktuMasuk(LocalDateTime waktuMasuk)
     {
-        this.waktuMasuk = waktuMasuk;
+        this.waktuMasuk = waktuMasuk; // Inisialisasi atribut waktuMasuk dengan parameter
     }
 
-    public LocalDateTime getWaktuMasuk() // Getter waktuMasuk
+    // Method getter getWaktuMasuk untuk mengambil waktu masuk
+    public LocalDateTime getWaktuMasuk()
     {
-        return waktuMasuk;
+        return waktuMasuk; // Mengembalikan nilai dari atribut waktuMasuk
     }
 
-    public void setWaktuKeluar(LocalDateTime waktuKeluar) // Setter waktuKeluar
+    // Method setter setWaktuKeluar untuk mengubah waktu keluar
+    public void setWaktuKeluar(LocalDateTime waktuKeluar)
     {
-        this.waktuKeluar = waktuKeluar;
+        this.waktuKeluar = waktuKeluar; // Inisialisasi atribut waktuKeluar dengan parameter
     }
 
-    public LocalDateTime getWaktuKeluar() // Getter waktuKeluar
+    // Method getter getWaktuKeluar untuk mengambil waktu keluar
+    public LocalDateTime getWaktuKeluar()
     {
-        return waktuKeluar;
+        return waktuKeluar; // Mengembalikan nilai dari atribut waktuKeluar
     }
 
-    public void setDurasiTotalMenit(Integer durasiTotalMenit) // Setter durasiTotalMenit
+    // Method setter setDurasiTotalMenit untuk mengubah durasi parkir dalam menit
+    public void setDurasiTotalMenit(Integer durasiTotalMenit)
     {
-        this.durasiTotalMenit = durasiTotalMenit;
+        this.durasiTotalMenit = durasiTotalMenit; // Inisialisasi atribut durasiTotalMenit dengan parameter
     }
 
-    public Integer getDurasiTotalMenit() // Getter durasiTotalMenit
+    // Method getter getDurasiTotalMenit untuk mengambil durasi parkir dalam menit
+    public Integer getDurasiTotalMenit()
     {
-        return durasiTotalMenit;
+        return durasiTotalMenit; // Mengembalikan nilai dari atribut durasiTotalMenit
     }
 
-    public void setNominalTagihan(BigDecimal nominalTagihan) // Setter nominalTagihan
+    // Method setter setNominalTagihan untuk mengubah jumlah tagihan
+    public void setNominalTagihan(BigDecimal nominalTagihan)
     {
-        this.nominalTagihan = nominalTagihan;
+        this.nominalTagihan = nominalTagihan; // Inisialisasi atribut nominalTagihan dengan parameter
     }
 
-    public BigDecimal getNominalTagihan() // Getter nominalTagihan
+    // Method getter getNominalTagihan untuk mengambil jumlah tagihan
+    public BigDecimal getNominalTagihan()
     {
-        return nominalTagihan;
+        return nominalTagihan; // Mengembalikan nilai dari atribut nominalTagihan
     }
 
-    public void setStatusPembayaran(StatusPembayaran statusPembayaran) // Setter statusPembayaran
+    // Method setter setStatusPembayaran untuk mengubah status pembayaran
+    public void setStatusPembayaran(StatusPembayaran statusPembayaran)
     {
-        this.statusPembayaran = statusPembayaran;
+        this.statusPembayaran = statusPembayaran; // Inisialisasi atribut statusPembayaran dengan parameter
     }
 
-    public StatusPembayaran getStatusPembayaran() // Getter statusPembayaran
+    // Method getter getStatusPembayaran untuk mengambil status pembayaran
+    public StatusPembayaran getStatusPembayaran()
     {
-        return statusPembayaran;
+        return statusPembayaran; // Mengembalikan nilai dari atribut statusPembayaran
     }
 
-    public void setPesanKeterangan(String pesanKeterangan) // Setter pesanKeterangan
+    // Method setter setPesanKeterangan untuk mengubah pesan instruksi
+    public void setPesanKeterangan(String pesanKeterangan)
     {
-        this.pesanKeterangan = pesanKeterangan;
+        this.pesanKeterangan = pesanKeterangan; // Inisialisasi atribut pesanKeterangan dengan parameter
     }
 
-    public String getPesanKeterangan() // Getter pesanKeterangan
+    // Method getter getPesanKeterangan untuk mengambil pesan instruksi
+    public String getPesanKeterangan()
     {
-        return pesanKeterangan;
+        return pesanKeterangan; // Mengembalikan nilai dari atribut pesanKeterangan
     }
 }

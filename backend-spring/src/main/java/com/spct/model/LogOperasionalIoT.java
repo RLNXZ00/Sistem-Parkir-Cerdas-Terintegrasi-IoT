@@ -1,160 +1,174 @@
-package com.spct.model;
+package com.spct.model; // Nama package dari modul model entitas sistem
 
+// Import anotasi Jackson untuk serialisasi JSON
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+// Import pustaka persistensi database Jakarta JPA
 import jakarta.persistence.*;
+// Import pustaka tipe data waktu LocalDateTime java
 import java.time.LocalDateTime;
 
-
-
-// Deklarasi Entity: merepresentasikan tabel 'log_operasional_iot' di Database Relasional
-// Tabel ini bersifat Log/History: sangat besar, mencatat setiap perubahan sensor secara real-time
-@Entity
-@Table(name = "log_operasional_iot")
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+// Kelas entitas publik java LogOperasionalIoT untuk memetakan tabel log_operasional_iot di database relasional
+// Kelas ini merepresentasikan log aktivitas deteksi sensor IoT dan pencatatan anomali parkir
+@Entity // Menandai kelas ini sebagai entitas JPA
+@Table(name = "log_operasional_iot") // Memetakan kelas ke tabel log_operasional_iot
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // Mengabaikan atribut lazy proxy Hibernate pada serialisasi JSON
 public class LogOperasionalIoT
 {
     // =====================================================================
-    // Deklarasi Atribut: Kolom-kolom tabel 'log_operasional_iot'
+    // Deklarasi Atribut Kolom Tabel log_operasional_iot
     // =====================================================================
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-increment oleh database
-    @Column(name = "id_log")
-    private Long idLog; // ID unik log sebagai primary key (auto-increment)
+    @Id // Menandai atribut idLog sebagai Primary Key entitas
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Strategi auto-increment nomor urut log
+    @Column(name = "id_log") // Pemetaan nama kolom id_log di tabel
+    private Long idLog; // Deklarasi atribut idLog bertipe Long untuk identitas unik riwayat log
 
-    @Column(name = "waktu_kejadian", nullable = false)
-    private LocalDateTime waktuKejadian; // Timestamp presisi saat sensor mengirim perubahan status
+    @Column(name = "waktu_kejadian", nullable = false) // Pemetaan kolom waktu_kejadian dengan batasan not-null
+    private LocalDateTime waktuKejadian; // Deklarasi atribut waktuKejadian bertipe LocalDateTime untuk mencatat waktu persis kejadian
 
-    @Enumerated(EnumType.STRING) // Menyimpan nama Enum sebagai String di database
-    @Column(name = "jenis_kejadian", nullable = false)
-    private JenisKejadian jenisKejadian; // Kategori kejadian: normal atau anomali
+    @Enumerated(EnumType.STRING) // Menyimpan nilai enum JenisKejadian sebagai string teks
+    @Column(name = "jenis_kejadian", nullable = false) // Pemetaan kolom jenis_kejadian dengan batasan not-null
+    private JenisKejadian jenisKejadian; // Deklarasi atribut jenisKejadian bertipe enum JenisKejadian
 
-    @Enumerated(EnumType.STRING) // Menyimpan nama Enum sebagai String di database
-    @Column(name = "tingkat_keparahan", nullable = false)
-    private TingkatKeparahan tingkatKeparahan; // Level keparahan: INFO, WARNING, atau CRITICAL
+    @Enumerated(EnumType.STRING) // Menyimpan nilai enum TingkatKeparahan sebagai string teks
+    @Column(name = "tingkat_keparahan", nullable = false) // Pemetaan kolom tingkat_keparahan dengan batasan not-null
+    private TingkatKeparahan tingkatKeparahan; // Deklarasi atribut tingkatKeparahan bertipe enum TingkatKeparahan
 
-    @Enumerated(EnumType.STRING) // Menyimpan nama Enum sebagai String di database
-    @Column(name = "status_resolusi", nullable = false)
-    private StatusResolusi statusResolusi; // Status penanganan: belum ditangani atau sudah divalidasi petugas
+    @Enumerated(EnumType.STRING) // Menyimpan nilai enum StatusResolusi sebagai string teks
+    @Column(name = "status_resolusi", nullable = false) // Pemetaan kolom status_resolusi dengan batasan not-null
+    private StatusResolusi statusResolusi; // Deklarasi atribut statusResolusi bertipe enum StatusResolusi
 
-    // Deklarasi atribut jenisAnomali bertipe String untuk menyimpan hasil klasifikasi anomali dari petugas (misal: Salah Parkir, Benda Asing, Keberadaan Manusia)
-    @Column(name = "jenis_anomali", length = 100)
-    private String jenisAnomali; // Kategori anomali spesifik yang dipilih saat penanganan di lapangan
+    @Column(name = "jenis_anomali", length = 100) // Pemetaan kolom jenis_anomali klasifikasi petugas
+    private String jenisAnomali; // Deklarasi atribut jenisAnomali bertipe String untuk kategori detail anomali
 
-    @Column(name = "catatan_detail", length = 500)
-    private String catatanDetail; // Penjelasan detail kejadian (misal: "Slot B1-12: status DB=KOSONG, sensor=TERISI")
+    @Column(name = "catatan_detail", length = 500) // Pemetaan kolom catatan_detail keterangan kejadian
+    private String catatanDetail; // Deklarasi atribut catatanDetail bertipe String untuk catatan teknis kejadian
 
-    // Relasi Foreign Key ke SlotParkir (Many-to-One)
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "id_slot", nullable = false)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "kendaraanAktif"})
-    private SlotParkir slotTerkait;
-
+    @ManyToOne(fetch = FetchType.EAGER) // Relasi banyak-ke-satu dengan entitas SlotParkir secara instan
+    @JoinColumn(name = "id_slot", nullable = false) // Foreign key mengarah ke id_slot tabel slot_parkir
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "kendaraanAktif"}) // Mencegah sirkular referensi
+    private SlotParkir slotTerkait; // Deklarasi atribut slotTerkait bertipe objek SlotParkir tempat insiden terjadi
 
     // =====================================================================
-    // Konstruktor LENGKAP untuk CRUD/Database (gaya penulisan Anda)
+    // Konstruktor Kelas LogOperasionalIoT
     // =====================================================================
+
+    // Konstruktor berparameter untuk inisialisasi entitas log operasional baru
     public LogOperasionalIoT(SlotParkir slotTerkait, JenisKejadian jenisKejadian,
-                              TingkatKeparahan tingkatKeparahan, String catatanDetail)
+                             TingkatKeparahan tingkatKeparahan, String catatanDetail)
     {
-        this.slotTerkait = slotTerkait;             // Menginisialisasi relasi ke slot terkait
-        this.jenisKejadian = jenisKejadian;         // Menginisialisasi atribut jenisKejadian
-        this.tingkatKeparahan = tingkatKeparahan;   // Menginisialisasi atribut tingkatKeparahan
-        this.catatanDetail = catatanDetail;         // Menginisialisasi atribut catatanDetail
-        this.jenisAnomali = "-";                    // Menginisialisasi atribut jenisAnomali dengan nilai default tanda hubung strip
-        this.waktuKejadian = LocalDateTime.now();   // Mencatat waktu kejadian otomatis saat log dibuat
-        this.statusResolusi = StatusResolusi.BELUM_DITANGANI; // Default: semua log baru belum ditangani
+        this.slotTerkait = slotTerkait; // Inisialisasi atribut slotTerkait dengan parameter slotTerkait
+        this.jenisKejadian = jenisKejadian; // Inisialisasi atribut jenisKejadian dengan parameter jenisKejadian
+        this.tingkatKeparahan = tingkatKeparahan; // Inisialisasi atribut tingkatKeparahan dengan parameter tingkatKeparahan
+        this.catatanDetail = catatanDetail; // Inisialisasi atribut catatanDetail dengan parameter catatanDetail
+        this.jenisAnomali = "-"; // Inisialisasi nilai awal jenis anomali dengan tanda strip default
+        this.waktuKejadian = LocalDateTime.now(); // Inisialisasi atribut waktuKejadian dengan waktu sistem saat ini
+        this.statusResolusi = StatusResolusi.BELUM_DITANGANI; // Inisialisasi status resolusi awal BELUM_DITANGANI
     }
 
-    // Konstruktor kosong (wajib ada untuk JPA/Hibernate)
-    public LogOperasionalIoT() {}
-
+    // Konstruktor default tanpa parameter untuk JPA Hibernate
+    public LogOperasionalIoT() 
+    {
+        // Konstruktor kosong untuk instansiasi JPA Hibernate
+    }
 
     // =====================================================================
-    // Getter & Setter (gaya penulisan Anda)
+    // Method Setter & Getter Atribut
     // =====================================================================
 
-    public void setIdLog(Long idLog) // Deklarasi method setter untuk idLog
+    // Method setter setIdLog untuk mengubah nilai atribut idLog
+    public void setIdLog(Long idLog)
     {
-        this.idLog = idLog; // Mengubah nilai atribut idLog
+        this.idLog = idLog; // Inisialisasi atribut idLog dengan parameter
     }
 
-    public Long getIdLog() // Deklarasi method getter untuk idLog
+    // Method getter getIdLog untuk mengambil nilai atribut idLog
+    public Long getIdLog()
     {
-        return idLog; // Mengembalikan nilai atribut idLog
+        return idLog; // Mengembalikan nilai dari atribut idLog
     }
 
-    public void setWaktuKejadian(LocalDateTime waktuKejadian) // Deklarasi method setter untuk waktuKejadian
+    // Method setter setWaktuKejadian untuk mengubah nilai atribut waktuKejadian
+    public void setWaktuKejadian(LocalDateTime waktuKejadian)
     {
-        this.waktuKejadian = waktuKejadian; // Mengubah nilai atribut waktuKejadian
+        this.waktuKejadian = waktuKejadian; // Inisialisasi atribut waktuKejadian dengan parameter
     }
 
-    public LocalDateTime getWaktuKejadian() // Deklarasi method getter untuk waktuKejadian
+    // Method getter getWaktuKejadian untuk mengambil nilai atribut waktuKejadian
+    public LocalDateTime getWaktuKejadian()
     {
-        return waktuKejadian; // Mengembalikan nilai atribut waktuKejadian
+        return waktuKejadian; // Mengembalikan nilai dari atribut waktuKejadian
     }
 
-    public void setJenisKejadian(JenisKejadian jenisKejadian) // Deklarasi method setter untuk jenisKejadian
+    // Method setter setJenisKejadian untuk mengubah nilai atribut jenisKejadian
+    public void setJenisKejadian(JenisKejadian jenisKejadian)
     {
-        this.jenisKejadian = jenisKejadian; // Mengubah nilai atribut jenisKejadian
+        this.jenisKejadian = jenisKejadian; // Inisialisasi atribut jenisKejadian dengan parameter
     }
 
-    public JenisKejadian getJenisKejadian() // Deklarasi method getter untuk jenisKejadian
+    // Method getter getJenisKejadian untuk mengambil nilai atribut jenisKejadian
+    public JenisKejadian getJenisKejadian()
     {
-        return jenisKejadian; // Mengembalikan nilai atribut jenisKejadian
+        return jenisKejadian; // Mengembalikan nilai dari atribut jenisKejadian
     }
 
-    public void setTingkatKeparahan(TingkatKeparahan tingkatKeparahan) // Deklarasi method setter untuk tingkatKeparahan
+    // Method setter setTingkatKeparahan untuk mengubah nilai atribut tingkatKeparahan
+    public void setTingkatKeparahan(TingkatKeparahan tingkatKeparahan)
     {
-        this.tingkatKeparahan = tingkatKeparahan; // Mengubah nilai atribut tingkatKeparahan
+        this.tingkatKeparahan = tingkatKeparahan; // Inisialisasi atribut tingkatKeparahan dengan parameter
     }
 
-    public TingkatKeparahan getTingkatKeparahan() // Deklarasi method getter untuk tingkatKeparahan
+    // Method getter getTingkatKeparahan untuk mengambil nilai atribut tingkatKeparahan
+    public TingkatKeparahan getTingkatKeparahan()
     {
-        return tingkatKeparahan; // Mengembalikan nilai atribut tingkatKeparahan
+        return tingkatKeparahan; // Mengembalikan nilai dari atribut tingkatKeparahan
     }
 
-    public void setStatusResolusi(StatusResolusi statusResolusi) // Deklarasi method setter untuk statusResolusi
+    // Method setter setStatusResolusi untuk mengubah status penanganan resolusi anomali
+    public void setStatusResolusi(StatusResolusi statusResolusi)
     {
-        this.statusResolusi = statusResolusi; // Mengubah status resolusi
+        this.statusResolusi = statusResolusi; // Inisialisasi atribut statusResolusi dengan parameter
     }
 
-    public StatusResolusi getStatusResolusi() // Deklarasi method getter untuk statusResolusi
+    // Method getter getStatusResolusi untuk mengambil status penanganan resolusi anomali
+    public StatusResolusi getStatusResolusi()
     {
-        return statusResolusi; // Mengembalikan nilai atribut statusResolusi
+        return statusResolusi; // Mengembalikan nilai dari atribut statusResolusi
     }
 
-    public void setCatatanDetail(String catatanDetail) // Deklarasi method setter untuk catatanDetail
+    // Method setter setCatatanDetail untuk mengubah teks keterangan catatan teknis
+    public void setCatatanDetail(String catatanDetail)
     {
-        this.catatanDetail = catatanDetail; // Mengubah nilai atribut catatanDetail
+        this.catatanDetail = catatanDetail; // Inisialisasi atribut catatanDetail dengan parameter
     }
 
-    public String getCatatanDetail() // Deklarasi method getter untuk catatanDetail
+    // Method getter getCatatanDetail untuk mengambil teks keterangan catatan teknis
+    public String getCatatanDetail()
     {
-        return catatanDetail; // Mengembalikan nilai atribut catatanDetail
+        return catatanDetail; // Mengembalikan nilai dari atribut catatanDetail
     }
 
-    // Method setter setJenisAnomali(String) untuk mengisi atau memperbarui data jenis anomali
+    // Method setter setJenisAnomali untuk mengisi atau memperbarui data jenis anomali
     public void setJenisAnomali(String jenisAnomali)
     {
-        // Mengubah nilai atribut jenisAnomali dengan parameter jenisAnomali yang diberikan
-        this.jenisAnomali = jenisAnomali;
+        this.jenisAnomali = jenisAnomali; // Inisialisasi atribut jenisAnomali dengan parameter
     }
 
-    // Method getter getJenisAnomali() untuk mengambil nilai jenis anomali
+    // Method getter getJenisAnomali untuk mengambil data jenis anomali
     public String getJenisAnomali()
     {
-        // Mengembalikan nilai string dari atribut jenisAnomali
-        return this.jenisAnomali;
+        return this.jenisAnomali; // Mengembalikan nilai dari atribut jenisAnomali
     }
 
-    public void setSlotTerkait(SlotParkir slotTerkait) // Deklarasi method setter untuk slotTerkait
+    // Method setter setSlotTerkait untuk mengubah objek slot parkir terkait insiden
+    public void setSlotTerkait(SlotParkir slotTerkait)
     {
-        this.slotTerkait = slotTerkait; // Mengubah relasi objek SlotParkir
+        this.slotTerkait = slotTerkait; // Inisialisasi atribut slotTerkait dengan parameter
     }
 
-    public SlotParkir getSlotTerkait() // Deklarasi method getter untuk slotTerkait
+    // Method getter getSlotTerkait untuk mengambil objek slot parkir terkait insiden
+    public SlotParkir getSlotTerkait()
     {
-        return slotTerkait; // Mengembalikan objek SlotParkir yang terkait dengan log ini
+        return slotTerkait; // Mengembalikan objek slot parkir dari atribut slotTerkait
     }
 }

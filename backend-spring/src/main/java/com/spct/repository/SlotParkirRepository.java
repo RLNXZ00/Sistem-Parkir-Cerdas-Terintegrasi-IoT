@@ -1,45 +1,44 @@
-package com.spct.repository;
+package com.spct.repository; // Nama package dari modul repositori akses data sistem
 
+// Import enum JenisKendaraan dari package model
 import com.spct.model.JenisKendaraan;
+// Import entitas SlotParkir dari package model
 import com.spct.model.SlotParkir;
+// Import enum StatusSlot dari package model
 import com.spct.model.StatusSlot;
+// Import antarmuka JpaRepository dari Spring Data JPA
 import org.springframework.data.jpa.repository.JpaRepository;
+// Import anotasi Repository dari komponen Spring Framework
 import org.springframework.stereotype.Repository;
+// Import koleksi List dari java util
 import java.util.List;
+// Import kelas utilitas Optional dari java util
 import java.util.Optional;
 
-// Deklarasi Repository: pengganti PreparedStatement + ResultSet dari DataBaseConnection.java Anda
-// JpaRepository<SlotParkir, String> otomatis menyediakan: findAll(), findById(), save(), delete()
-// String = Tipe data dari Primary Key (idSlot berupa String seperti "B1-12")
-@Repository
+// Interface publik java SlotParkirRepository untuk operasi akses basis data tabel slot_parkir
+// Menyediakan kueri ketersediaan slot kosong, filter lantai, dan pemetaan graf A*
+@Repository // Menandai interface ini sebagai komponen Spring Repository
 public interface SlotParkirRepository extends JpaRepository<SlotParkir, String>
 {
     // =====================================================================
-    // Method Kueri Kustom (setara method-method aksi di TableDataGUI.java Anda)
-    // Spring Boot secara otomatis menerjemahkan nama method ini menjadi perintah SQL!
+    // Method Kueri Kustom Akses Data Slot Parkir
     // =====================================================================
 
-    // Mencari daftar slot kosong berdasarkan lantai, diurutkan berdasarkan koordinatX (terdekat dari gerbang)
-    // Setara: SELECT * FROM slot_parkir WHERE status_slot = ? AND lantai = ? ORDER BY koordinat_x ASC
-    List<SlotParkir> findByStatusSlotAndLantaiOrderByKoordinatXAsc(StatusSlot statusSlot, Integer lantai);
+    // Method findByStatusSlotAndLantaiOrderByKoordinatXAsc untuk mencari slot kosong per lantai terurut koordinat X terdekat
+    List<SlotParkir> findByStatusSlotAndLantaiOrderByKoordinatXAsc(StatusSlot statusSlot, Integer lantai); // Mengembalikan daftar List SlotParkir
 
-    // Mencari semua slot berdasarkan lantai (untuk keperluan tampilan peta Dashboard)
-    // Setara: SELECT * FROM slot_parkir WHERE lantai = ?
-    List<SlotParkir> findByLantai(Integer lantai);
+    // Method findByLantai untuk mencari semua slot pada suatu lantai tertentu
+    List<SlotParkir> findByLantai(Integer lantai); // Mengembalikan daftar seluruh slot pada lantai terkait
 
-    // Mencari slot kosong pada lantai tertentu yang diperuntukkan bagi jenis kendaraan tertentu (MOBIL/MOTOR)
-    // Setara: SELECT * FROM slot_parkir WHERE status_slot = ? AND lantai = ? AND jenis_kendaraan = ? ORDER BY koordinat_x ASC
-    List<SlotParkir> findByStatusSlotAndLantaiAndJenisKendaraanOrderByKoordinatXAsc(StatusSlot statusSlot, Integer lantai, JenisKendaraan jenisKendaraan);
+    // Method findByStatusSlotAndLantaiAndJenisKendaraanOrderByKoordinatXAsc untuk alokasi slot kosong sesuai jenis kendaraan
+    List<SlotParkir> findByStatusSlotAndLantaiAndJenisKendaraanOrderByKoordinatXAsc(StatusSlot statusSlot, Integer lantai, JenisKendaraan jenisKendaraan); // Mengembalikan slot sesuai peruntukan
 
-    // Mencari seluruh slot berdasarkan lantai dan jenis kendaraan (untuk tampilan peta per tab)
-    List<SlotParkir> findByLantaiAndJenisKendaraan(Integer lantai, JenisKendaraan jenisKendaraan);
+    // Method findByLantaiAndJenisKendaraan untuk mengambil denah slot per lantai dan kategori kendaraan
+    List<SlotParkir> findByLantaiAndJenisKendaraan(Integer lantai, JenisKendaraan jenisKendaraan); // Mengembalikan daftar denah visualisasi
 
+    // Method findByNodeId untuk mencari slot berdasarkan kode node graf navigasi A*
+    Optional<SlotParkir> findByNodeId(String nodeId); // Mengembalikan objek Optional pembungkus SlotParkir
 
-    // Mencari slot berdasarkan node_id (digunakan oleh Algoritma A* untuk memetakan koordinat)
-    // Setara: SELECT * FROM slot_parkir WHERE node_id = ?
-    Optional<SlotParkir> findByNodeId(String nodeId);
-
-    // Mencari semua slot berdasarkan status (untuk menghitung kapasitas tersisa di Dashboard)
-    // Setara: SELECT * FROM slot_parkir WHERE status_slot = ?
-    List<SlotParkir> findByStatusSlot(StatusSlot statusSlot);
+    // Method findByStatusSlot untuk mengambil slot berdasarkan status ketersediaan (KOSONG, DIPESAN, TERISI, MAINTENANCE)
+    List<SlotParkir> findByStatusSlot(StatusSlot statusSlot); // Mengembalikan daftar slot berdasarkan status
 }

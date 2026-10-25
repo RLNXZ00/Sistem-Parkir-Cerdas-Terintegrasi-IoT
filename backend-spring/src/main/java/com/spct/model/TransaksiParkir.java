@@ -1,194 +1,219 @@
-package com.spct.model;
+package com.spct.model; // Nama package dari modul model entitas sistem
 
+// Import pustaka penanganan properti serialisasi JSON Jackson
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+// Import pustaka persistensi database Jakarta JPA
 import jakarta.persistence.*;
+// Import tipe data BigDecimal untuk ketelitian perhitungan nominal rupiah
 import java.math.BigDecimal;
+// Import tipe data tanggal dan waktu LocalDateTime java
 import java.time.LocalDateTime;
 
-
-
-// Deklarasi Entity: merepresentasikan tabel 'transaksi_parkir' di Database Relasional
-// Tabel ini bersifat Transaksional: bertambah terus setiap ada kendaraan masuk/keluar
-@Entity
-@Table(name = "transaksi_parkir")
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+// Kelas entitas publik java TransaksiParkir untuk memetakan tabel transaksi_parkir di database relasional
+// Kelas ini merepresentasikan siklus penuh aktivitas parkir mulai dari gerbang masuk hingga gerbang keluar
+@Entity // Menandai kelas ini sebagai entitas JPA
+@Table(name = "transaksi_parkir") // Memetakan kelas ke tabel basis data transaksi_parkir
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // Mengabaikan atribut lazy loading proxy Hibernate
 public class TransaksiParkir
 {
     // =====================================================================
-    // Deklarasi Atribut: Kolom-kolom tabel 'transaksi_parkir'
+    // Deklarasi Atribut Kolom Tabel transaksi_parkir
     // =====================================================================
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-increment oleh database
-    @Column(name = "id_transaksi")
-    private Long idTransaksi; // ID unik transaksi sebagai primary key
+    @Id // Menandai atribut idTransaksi sebagai Primary Key entitas
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Menggunakan strategi penomoran otomatis auto-increment
+    @Column(name = "id_transaksi") // Pemetaan nama kolom id_transaksi
+    private Long idTransaksi; // Deklarasi atribut idTransaksi bertipe Long untuk identitas unik tiket parkir
 
-    @Column(name = "waktu_masuk", nullable = false)
-    private LocalDateTime waktuMasuk; // Timestamp saat kendaraan melewati gerbang masuk (dicatat oleh DeteksiPlatController)
+    @Column(name = "waktu_masuk", nullable = false) // Pemetaan kolom waktu_masuk dengan batasan not-null
+    private LocalDateTime waktuMasuk; // Deklarasi atribut waktuMasuk bertipe LocalDateTime saat kendaraan masuk gerbang
 
-    @Column(name = "waktu_keluar")
-    private LocalDateTime waktuKeluar; // Timestamp saat kendaraan melewati gerbang keluar (NULL jika masih di dalam)
+    @Column(name = "waktu_keluar") // Pemetaan kolom waktu_keluar kendaraan saat meninggalkan sistem
+    private LocalDateTime waktuKeluar; // Deklarasi atribut waktuKeluar bertipe LocalDateTime
 
-    @Column(name = "waktu_tiba_slot")
-    private LocalDateTime waktuTibaSlot; // Timestamp saat sensor konfirmasi kendaraan tiba di slot (dikirim via webhook IoT)
+    @Column(name = "waktu_tiba_slot") // Pemetaan kolom waktu konfirmasi sensor ketika kendaraan tiba di slot
+    private LocalDateTime waktuTibaSlot; // Deklarasi atribut waktuTibaSlot bertipe LocalDateTime
 
-    @Column(name = "menit_dihemat")
-    private Double menitDihemat; // Waktu tempuh nyata dari gerbang ke slot (menit) = basis kalkulasi CO2 real-time
+    @Column(name = "menit_dihemat") // Pemetaan kolom durasi waktu navigasi yang dihemat oleh rute optimal
+    private Double menitDihemat; // Deklarasi atribut menitDihemat bertipe Double untuk kalkulasi reduksi emisi CO2
 
-    @Column(name = "durasi_total_menit")
-    private Integer durasiTotalMenit; // Selisih waktu masuk dan keluar dalam satuan menit (dihitung saat keluar)
+    @Column(name = "durasi_total_menit") // Pemetaan kolom total durasi parkir dalam satuan menit
+    private Integer durasiTotalMenit; // Deklarasi atribut durasiTotalMenit bertipe Integer
 
-    @Column(name = "nominal_tagihan", precision = 10, scale = 2)
-    private BigDecimal nominalTagihan; // Jumlah uang yang harus dibayar (0 jika Grace Period < 10 menit)
+    @Column(name = "nominal_tagihan", precision = 10, scale = 2) // Pemetaan nominal total tagihan parkir
+    private BigDecimal nominalTagihan; // Deklarasi atribut nominalTagihan bertipe BigDecimal
 
-    @Enumerated(EnumType.STRING) // Menyimpan nama Enum sebagai String di database
-    @Column(name = "status_pembayaran", nullable = false)
-    private StatusPembayaran statusPembayaran; // State pembayaran saat ini (BELUM_LUNAS, LUNAS, dll)
+    @Enumerated(EnumType.STRING) // Menyimpan nilai enum StatusPembayaran sebagai string teks
+    @Column(name = "status_pembayaran", nullable = false) // Pemetaan kolom status pembayaran tiket
+    private StatusPembayaran statusPembayaran; // Deklarasi atribut statusPembayaran bertipe enum StatusPembayaran
 
-    @Enumerated(EnumType.STRING) // Menyimpan nama Enum sebagai String di database
-    @Column(name = "metode_pembayaran")
-    private MetodePembayaran metodePembayaran; // Metode yang digunakan saat membayar (bisa NULL sebelum bayar)
+    @Enumerated(EnumType.STRING) // Menyimpan nilai enum MetodePembayaran sebagai string teks
+    @Column(name = "metode_pembayaran") // Pemetaan kolom metode kanal pembayaran tiket
+    private MetodePembayaran metodePembayaran; // Deklarasi atribut metodePembayaran bertipe enum MetodePembayaran
 
-    // Relasi Foreign Key ke DataKendaraan
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "id_kendaraan", nullable = false)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-    private DataKendaraan kendaraan;
+    @ManyToOne(fetch = FetchType.EAGER) // Relasi banyak-ke-satu ke entitas DataKendaraan secara eager
+    @JoinColumn(name = "id_kendaraan", nullable = false) // Foreign key mengarah ke id_kendaraan
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // Mencegah siklus serialisasi JSON
+    private DataKendaraan kendaraan; // Deklarasi atribut kendaraan bertipe objek DataKendaraan
 
-    // Relasi Foreign Key ke SlotParkir
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "id_slot_dipilih")
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "kendaraanAktif"})
-    private SlotParkir slotDipilih;
-
+    @ManyToOne(fetch = FetchType.EAGER) // Relasi banyak-ke-satu ke entitas SlotParkir secara eager
+    @JoinColumn(name = "id_slot_dipilih") // Foreign key mengarah ke id_slot_dipilih
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "kendaraanAktif"}) // Mencegah siklus serialisasi JSON
+    private SlotParkir slotDipilih; // Deklarasi atribut slotDipilih bertipe objek SlotParkir yang dialokasikan
 
     // =====================================================================
-    // Konstruktor LENGKAP untuk CRUD/Database (gaya penulisan Anda)
+    // Konstruktor Kelas TransaksiParkir
     // =====================================================================
+
+    // Konstruktor dengan parameter kendaraan dan slotDipilih saat kendaraan masuk gerbang
     public TransaksiParkir(DataKendaraan kendaraan, SlotParkir slotDipilih)
     {
-        this.kendaraan = kendaraan;                        // Menginisialisasi relasi ke kendaraan
-        this.slotDipilih = slotDipilih;                    // Menginisialisasi relasi ke slot yang dialokasikan
-        this.waktuMasuk = LocalDateTime.now();             // Mencatat waktu masuk otomatis saat objek dibuat
-        this.statusPembayaran = StatusPembayaran.BELUM_LUNAS; // Default status awal adalah BELUM_LUNAS
-        this.nominalTagihan = BigDecimal.ZERO;             // Nominal tagihan dimulai dari 0 sebelum dihitung saat keluar
+        this.kendaraan = kendaraan; // Inisialisasi atribut kendaraan dengan parameter kendaraan
+        this.slotDipilih = slotDipilih; // Inisialisasi atribut slotDipilih dengan parameter slotDipilih
+        this.waktuMasuk = LocalDateTime.now(); // Inisialisasi waktu masuk dengan waktu sistem saat ini
+        this.statusPembayaran = StatusPembayaran.BELUM_LUNAS; // Inisialisasi status pembayaran tiket awal BELUM_LUNAS
+        this.nominalTagihan = BigDecimal.ZERO; // Inisialisasi nominal tagihan awal sebesar 0 rupiah
     }
 
-    // Konstruktor kosong (wajib ada untuk JPA/Hibernate)
-    public TransaksiParkir() {}
-
+    // Konstruktor default tanpa parameter untuk JPA Hibernate
+    public TransaksiParkir() 
+    {
+        // Konstruktor kosong untuk instansiasi JPA Hibernate
+    }
 
     // =====================================================================
-    // Getter & Setter (gaya penulisan Anda)
+    // Method Setter & Getter Atribut
     // =====================================================================
 
-    public void setIdTransaksi(Long idTransaksi) // Deklarasi method setter untuk idTransaksi
+    // Method setter setIdTransaksi untuk mengubah nilai atribut idTransaksi
+    public void setIdTransaksi(Long idTransaksi)
     {
-        this.idTransaksi = idTransaksi; // Mengubah nilai atribut idTransaksi
+        this.idTransaksi = idTransaksi; // Inisialisasi atribut idTransaksi dengan parameter
     }
 
-    public Long getIdTransaksi() // Deklarasi method getter untuk idTransaksi
+    // Method getter getIdTransaksi untuk mengambil nilai atribut idTransaksi
+    public Long getIdTransaksi()
     {
-        return idTransaksi; // Mengembalikan nilai atribut idTransaksi
+        return idTransaksi; // Mengembalikan nilai dari atribut idTransaksi
     }
 
-    public void setWaktuMasuk(LocalDateTime waktuMasuk) // Deklarasi method setter untuk waktuMasuk
+    // Method setter setWaktuMasuk untuk mengubah waktu masuk kendaraan
+    public void setWaktuMasuk(LocalDateTime waktuMasuk)
     {
-        this.waktuMasuk = waktuMasuk; // Mengubah nilai atribut waktuMasuk
+        this.waktuMasuk = waktuMasuk; // Inisialisasi atribut waktuMasuk dengan parameter
     }
 
-    public LocalDateTime getWaktuMasuk() // Deklarasi method getter untuk waktuMasuk
+    // Method getter getWaktuMasuk untuk mengambil waktu masuk kendaraan
+    public LocalDateTime getWaktuMasuk()
     {
-        return waktuMasuk; // Mengembalikan nilai atribut waktuMasuk
+        return waktuMasuk; // Mengembalikan nilai dari atribut waktuMasuk
     }
 
-    public void setWaktuKeluar(LocalDateTime waktuKeluar) // Deklarasi method setter untuk waktuKeluar
+    // Method setter setWaktuKeluar untuk mengubah waktu keluar kendaraan
+    public void setWaktuKeluar(LocalDateTime waktuKeluar)
     {
-        this.waktuKeluar = waktuKeluar; // Mengubah nilai atribut waktuKeluar
+        this.waktuKeluar = waktuKeluar; // Inisialisasi atribut waktuKeluar dengan parameter
     }
 
-    public LocalDateTime getWaktuKeluar() // Deklarasi method getter untuk waktuKeluar
+    // Method getter getWaktuKeluar untuk mengambil waktu keluar kendaraan
+    public LocalDateTime getWaktuKeluar()
     {
-        return waktuKeluar; // Mengembalikan nilai atribut waktuKeluar
+        return waktuKeluar; // Mengembalikan nilai dari atribut waktuKeluar
     }
 
-    public void setWaktuTibaSlot(LocalDateTime waktuTibaSlot) // Deklarasi method setter untuk waktuTibaSlot
+    // Method setter setWaktuTibaSlot untuk mencatat timestamp kedatangan fisik kendaraan di slot
+    public void setWaktuTibaSlot(LocalDateTime waktuTibaSlot)
     {
-        this.waktuTibaSlot = waktuTibaSlot; // Mencatat kapan kendaraan fisik tiba di slot (konfirmasi sensor)
+        this.waktuTibaSlot = waktuTibaSlot; // Inisialisasi atribut waktuTibaSlot dengan parameter
     }
 
-    public LocalDateTime getWaktuTibaSlot() // Deklarasi method getter untuk waktuTibaSlot
+    // Method getter getWaktuTibaSlot untuk mengambil timestamp kedatangan fisik kendaraan di slot
+    public LocalDateTime getWaktuTibaSlot()
     {
-        return waktuTibaSlot; // Mengembalikan timestamp kedatangan fisik di slot
+        return waktuTibaSlot; // Mengembalikan nilai dari atribut waktuTibaSlot
     }
 
-    public void setMenitDihemat(Double menitDihemat) // Deklarasi method setter untuk menitDihemat
+    // Method setter setMenitDihemat untuk menyimpan durasi menit penghematan waktu navigasi
+    public void setMenitDihemat(Double menitDihemat)
     {
-        this.menitDihemat = menitDihemat; // Menyimpan hasil kalkulasi penghematan waktu navigasi
+        this.menitDihemat = menitDihemat; // Inisialisasi atribut menitDihemat dengan parameter
     }
 
-    public Double getMenitDihemat() // Deklarasi method getter untuk menitDihemat
+    // Method getter getMenitDihemat untuk mengambil durasi menit penghematan waktu navigasi
+    public Double getMenitDihemat()
     {
-        return menitDihemat; // Mengembalikan durasi penghematan dalam menit untuk kalkulasi CO2
+        return menitDihemat; // Mengembalikan nilai dari atribut menitDihemat
     }
 
-    public void setDurasiTotalMenit(Integer durasiTotalMenit) // Deklarasi method setter untuk durasiTotalMenit
+    // Method setter setDurasiTotalMenit untuk mengubah total lama durasi parkir
+    public void setDurasiTotalMenit(Integer durasiTotalMenit)
     {
-        this.durasiTotalMenit = durasiTotalMenit; // Mengubah nilai atribut durasiTotalMenit
+        this.durasiTotalMenit = durasiTotalMenit; // Inisialisasi atribut durasiTotalMenit dengan parameter
     }
 
-    public Integer getDurasiTotalMenit() // Deklarasi method getter untuk durasiTotalMenit
+    // Method getter getDurasiTotalMenit untuk mengambil total lama durasi parkir
+    public Integer getDurasiTotalMenit()
     {
-        return durasiTotalMenit; // Mengembalikan nilai atribut durasiTotalMenit
+        return durasiTotalMenit; // Mengembalikan nilai dari atribut durasiTotalMenit
     }
 
-    public void setNominalTagihan(BigDecimal nominalTagihan) // Deklarasi method setter untuk nominalTagihan
+    // Method setter setNominalTagihan untuk mengubah jumlah tagihan tarif parkir
+    public void setNominalTagihan(BigDecimal nominalTagihan)
     {
-        this.nominalTagihan = nominalTagihan; // Mengubah nilai atribut nominalTagihan
+        this.nominalTagihan = nominalTagihan; // Inisialisasi atribut nominalTagihan dengan parameter
     }
 
-    public BigDecimal getNominalTagihan() // Deklarasi method getter untuk nominalTagihan
+    // Method getter getNominalTagihan untuk mengambil jumlah tagihan tarif parkir
+    public BigDecimal getNominalTagihan()
     {
-        return nominalTagihan; // Mengembalikan nilai atribut nominalTagihan
+        return nominalTagihan; // Mengembalikan nilai dari atribut nominalTagihan
     }
 
-    public void setStatusPembayaran(StatusPembayaran statusPembayaran) // Deklarasi method setter untuk statusPembayaran
+    // Method setter setStatusPembayaran untuk mengubah status pelunasan transaksi
+    public void setStatusPembayaran(StatusPembayaran statusPembayaran)
     {
-        this.statusPembayaran = statusPembayaran; // Mengubah nilai atribut statusPembayaran
+        this.statusPembayaran = statusPembayaran; // Inisialisasi atribut statusPembayaran dengan parameter
     }
 
-    public StatusPembayaran getStatusPembayaran() // Deklarasi method getter untuk statusPembayaran
+    // Method getter getStatusPembayaran untuk mengambil status pelunasan transaksi
+    public StatusPembayaran getStatusPembayaran()
     {
-        return statusPembayaran; // Mengembalikan nilai atribut statusPembayaran
+        return statusPembayaran; // Mengembalikan nilai dari atribut statusPembayaran
     }
 
-    public void setMetodePembayaran(MetodePembayaran metodePembayaran) // Deklarasi method setter untuk metodePembayaran
+    // Method setter setMetodePembayaran untuk mengubah metode bayar yang digunakan
+    public void setMetodePembayaran(MetodePembayaran metodePembayaran)
     {
-        this.metodePembayaran = metodePembayaran; // Mengubah nilai atribut metodePembayaran
+        this.metodePembayaran = metodePembayaran; // Inisialisasi atribut metodePembayaran dengan parameter
     }
 
-    public MetodePembayaran getMetodePembayaran() // Deklarasi method getter untuk metodePembayaran
+    // Method getter getMetodePembayaran untuk mengambil metode bayar yang digunakan
+    public MetodePembayaran getMetodePembayaran()
     {
-        return metodePembayaran; // Mengembalikan nilai atribut metodePembayaran
+        return metodePembayaran; // Mengembalikan nilai dari atribut metodePembayaran
     }
 
-    public void setKendaraan(DataKendaraan kendaraan) // Deklarasi method setter untuk kendaraan
+    // Method setter setKendaraan untuk menghubungkan objek entitas kendaraan
+    public void setKendaraan(DataKendaraan kendaraan)
     {
-        this.kendaraan = kendaraan; // Mengubah objek DataKendaraan yang terkait dengan transaksi ini
+        this.kendaraan = kendaraan; // Inisialisasi atribut kendaraan dengan parameter
     }
 
-    public DataKendaraan getKendaraan() // Deklarasi method getter untuk kendaraan
+    // Method getter getKendaraan untuk mengambil objek entitas kendaraan
+    public DataKendaraan getKendaraan()
     {
-        return kendaraan; // Mengembalikan objek DataKendaraan yang terkait dengan transaksi ini
+        return kendaraan; // Mengembalikan nilai dari atribut kendaraan
     }
 
-    public void setSlotDipilih(SlotParkir slotDipilih) // Deklarasi method setter untuk slotDipilih
+    // Method setter setSlotDipilih untuk menghubungkan objek entitas slot parkir
+    public void setSlotDipilih(SlotParkir slotDipilih)
     {
-        this.slotDipilih = slotDipilih; // Mengubah objek SlotParkir yang ditempati pada transaksi ini
+        this.slotDipilih = slotDipilih; // Inisialisasi atribut slotDipilih dengan parameter
     }
 
-    public SlotParkir getSlotDipilih() // Deklarasi method getter untuk slotDipilih
+    // Method getter getSlotDipilih untuk mengambil objek entitas slot parkir
+    public SlotParkir getSlotDipilih()
     {
-        return slotDipilih; // Mengembalikan objek SlotParkir yang ditempati pada transaksi ini
+        return slotDipilih; // Mengembalikan nilai dari atribut slotDipilih
     }
 }
