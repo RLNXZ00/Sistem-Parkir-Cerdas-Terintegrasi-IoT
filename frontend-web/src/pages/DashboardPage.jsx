@@ -306,8 +306,8 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Sub-header baris 2: Panel pemilih lantai — di bawah legenda, di atas grid slot */}
-              <div className="flex justify-start items-center px-1 py-2 border-b border-surface-variant/50 mb-0">
+              {/* Sub-header baris 2: Panel pemilih lantai — di bawah legenda, rata kanan */}
+              <div className="flex justify-end items-center px-1 py-2 border-b border-surface-variant/50 mb-0">
                 <div id="panel-lantai" className="floor-panel inline-flex items-center gap-1 p-1 rounded-lg border border-surface-variant bg-surface-container-lowest" role="tablist" aria-label="Pilih lantai">
                   <span className="material-symbols-outlined text-[18px] text-text-muted px-1.5">layers</span>
                   {lantaiTersedia.map(lt => {
