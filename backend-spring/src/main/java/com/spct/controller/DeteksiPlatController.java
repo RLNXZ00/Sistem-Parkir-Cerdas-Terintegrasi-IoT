@@ -64,7 +64,8 @@ public class DeteksiPlatController // Kelas controller untuk mengelola seluruh a
 
         // Default ke MOBIL jika tidak dikirim (simulasi kiosk sederhana)
         JenisKendaraan jenis;
-        try {
+        try 
+        {
             jenis = (jeniStr != null) ? JenisKendaraan.valueOf(jeniStr.toUpperCase()) : JenisKendaraan.MOBIL;
         } catch (IllegalArgumentException e) {
             jenis = JenisKendaraan.MOBIL;
