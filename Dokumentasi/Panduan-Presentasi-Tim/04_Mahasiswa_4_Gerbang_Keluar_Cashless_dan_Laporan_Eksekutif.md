@@ -11,30 +11,33 @@
 
 ---
 
-## 1. Pemetaan Narasi Use Case ke Source Code (Coding Implementation)
+## 1. Pemetaan Narasi Use Case ke Source Code Nyata Backend & Frontend
 
 ### A. PK-UC006, PK-UC007, PK-UC008: Alur Lengkap Gerbang Keluar & Pembayaran
 * **Narasi**: Pengendara tiba di gerbang keluar. Kamera membaca plat nomor. Sistem mencocokkan transaksi aktif, menghitung durasi total menit. Jika durasi < 10 menit (Drop-Off Grace Period), tagihan Rp 0 (Lunas). Jika > 10 menit, sistem menampilkan nominal tarif dan barcode QRIS dinamis di layar Kiosk. Setelah dibayar, status menjadi `LUNAS`, slot asal dikembalikan menjadi `KOSONG`, dan motor servo palang gerbang keluar terangkat otomatis.
 * **Implementasi Kode**:
-  - **Controller Gerbang Keluar**: [`KioskController.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/controller/KioskController.java#L85-L135)
-    Method `prosesKeluarKendaraan()` menghitung durasi dengan `ChronoUnit.MINUTES.between(waktuMasuk, waktuKeluar)`.
-  - **Aturan Grace Period & Tarif**: [`TarifParkirService.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/service/TarifParkirService.java)
-    Jika `durasiMenit <= 10`, tarif = Rp 0 dan status otomatis `LUNAS`. Jika lebih, tarif mobil Rp 4.000 (jam pertama) + Rp 2.000/jam berikutnya (pembulatan ke atas).
-  - **Controller Pelunasan & Pembebasan Slot**: [`KioskController.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/controller/KioskController.java#L140-L180)
-    Method `prosesPembayaran()` mengubah status `TransaksiParkir` menjadi `LUNAS`, membebaskan status `SlotParkir` menjadi `KOSONG`, dan mengembalikan sinyal trigger `bukaPalang: true`.
-  - **View (Kiosk)**: [`frontend-kiosk/src/pages/ExitScanPage.jsx`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/frontend-kiosk/src/pages/ExitScanPage.jsx#L45-L110)
+  - **Controller Deteksi Keluar**: [`DeteksiPlatController.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/controller/DeteksiPlatController.java)
+    Method `prosesKendaraanKeluar()` pada path `@PostMapping("/keluar")` menerima plat nomor dari kamera gerbang keluar dan mengembalikan DTO [`HasilDeteksiKeluarDto.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/dto/HasilDeteksiKeluarDto.java).
+  - **Controller Billing & Konfirmasi**: [`TransaksiPembayaranController.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/controller/TransaksiPembayaranController.java)
+    * `GET /api/pembayaran/tagihan?platNomor=...` $\rightarrow$ Menghitung tarif dan mengembalikan DTO [`HasilTagihanDto.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/dto/HasilTagihanDto.java).
+    * `POST /api/pembayaran/konfirmasi` $\rightarrow$ Menerima `idTransaksi` dan `metodePembayaran` (Enum: [`MetodePembayaran.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/model/MetodePembayaran.java) `QRIS`/`E_TOLL`).
+  - **Service Aturan Grace Period & Tarif**: [`TransaksiPembayaranService.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/service/TransaksiPembayaranService.java)
+    Jika `durasiMenit <= 10`, tarif otomatis Rp 0 dan status pembayaran menjadi `StatusPembayaran.GRACE_PERIOD`. Jika lebih, tarif mobil dihitung per jam dengan pembulatan ke atas. Setelah lunas, entitas [`Pembayaran.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/model/Pembayaran.java) dibuat dan status [`SlotParkir.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/model/SlotParkir.java) diubah kembali menjadi `KOSONG`.
+  - **View (Kiosk)**: [`frontend-kiosk/src/pages/ExitScanPage.jsx`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/frontend-kiosk/src/pages/ExitScanPage.jsx) & [`ExitSuccessPage.jsx`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/frontend-kiosk/src/pages/ExitSuccessPage.jsx)
     Menampilkan rincian stempel waktu masuk/keluar, total durasi, QRIS dinamis, dan simulator kartu E-Toll.
 
 ### B. PK-UC010: Analitik Bisnis & Ekspor Laporan Resmi (PDF/Excel)
 * **Narasi**: Manajemen RS / Direksi memantau pendapatan bulanan, tren okupansi, reduksi emisi karbon, dan mengekspor dokumen laporan bersertifikat (PDF bergrafik JFreeChart atau Excel XLSX) dengan pencatatan otomatis ke `log_audit_laporan`.
 * **Implementasi Kode**:
-  - **Model Audit**: [`LogAuditLaporan.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/model/LogAuditLaporan.java#L20-L45)
-    Mencatat siapa yang mengunduh laporan, jenis format (PDF/EXCEL), rentang tanggal, dan stempel waktu ekspor.
-  - **Controller Ekspor**: [`LaporanController.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/controller/LaporanController.java#L40-L90)
-    Endpoint `GET /api/laporan/ekspor/pdf` dan `GET /api/laporan/ekspor/excel`.
-  - **View Analitik**: [`frontend-web/src/pages/DashboardManagementPage.jsx`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/frontend-web/src/pages/DashboardManagementPage.jsx#L160-L225)
+  - **Model Audit**: [`LogAuditLaporan.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/model/LogAuditLaporan.java)
+    Mencatat siapa yang mengunduh laporan, jenis format (`PDF`/`EXCEL`), rentang tanggal, dan stempel waktu via [`LogAuditLaporanRepository.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/repository/LogAuditLaporanRepository.java).
+  - **Controller Analitik & Ekspor**:
+    * [`AnalitikLaporanController.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/controller/AnalitikLaporanController.java) $\rightarrow$ `GET /api/analitik/dashboard` menyajikan DTO [`DataDashboardDto.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/dto/DataDashboardDto.java).
+    * [`LaporanController.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/controller/LaporanController.java) $\rightarrow$ `GET /api/laporan/ekspor/pdf` & `GET /api/laporan/ekspor/excel`.
+  - **Service**: [`LaporanService.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/service/LaporanService.java), [`LaporanPdfService.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/service/LaporanPdfService.java), [`LaporanExcelService.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/service/LaporanExcelService.java).
+  - **View Analitik**: [`frontend-web/src/pages/DashboardManagementPage.jsx`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/frontend-web/src/pages/DashboardManagementPage.jsx)
     Visualisasi grafik garis Chart.js untuk pendapatan harian dan metrik imbal hasil okupansi (RevPAS).
-  - **View Laporan**: [`frontend-web/src/pages/ReportsPage.jsx`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/frontend-web/src/pages/ReportsPage.jsx#L80-L150)
+  - **View Laporan**: [`frontend-web/src/pages/ReportsPage.jsx`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/frontend-web/src/pages/ReportsPage.jsx)
     Formulir pemilihan filter rentang tanggal, ringkasan metrik, dan tombol unduh instan berkas PDF/Excel.
 
 ---
@@ -49,30 +52,51 @@
   public class TransaksiParkir {
       @Id
       @GeneratedValue(strategy = GenerationType.IDENTITY)
+      @Column(name = "id_transaksi")
       private Long idTransaksi;
-      private String nomorPlat;
+
+      @Column(name = "plat_nomor", nullable = false, length = 15)
+      private String platNomor;
+
+      @Column(name = "waktu_masuk", nullable = false)
       private LocalDateTime waktuMasuk;
+
+      @Column(name = "waktu_keluar")
       private LocalDateTime waktuKeluar;
-      private Long durasiMenit;
-      private Double biayaParkir;
+
+      @Column(name = "durasi_parkir_menit")
+      private Long durasiParkirMenit;
+
+      @Column(name = "biaya_total")
+      private BigDecimal biayaTotal;
+
       @Enumerated(EnumType.STRING)
+      @Column(name = "status_pembayaran", nullable = false)
       private StatusPembayaran statusPembayaran; // BELUM_LUNAS, LUNAS, GRACE_PERIOD
-      private String metodePembayaran; // QRIS, E_TOLL
   }
   ```
 
 ### 2. Controller (Billing & Report Streaming)
 - Tunjukkan method ekspor pada [`LaporanController.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/controller/LaporanController.java):
   ```java
-  @GetMapping("/ekspor/pdf")
-  public ResponseEntity<byte[]> eksporLaporanPdf(
-          @RequestParam String tanggalMulai, 
-          @RequestParam String tanggalSelesai) {
-      byte[] pdfBytes = laporanService.generatePdfReport(tanggalMulai, tanggalSelesai);
-      return ResponseEntity.ok()
-              .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=laporan-spct.pdf")
-              .contentType(MediaType.APPLICATION_PDF)
-              .body(pdfBytes);
+  @RestController
+  @RequestMapping("/api/laporan")
+  @CrossOrigin(origins = "*")
+  public class LaporanController {
+      @Autowired
+      private LaporanPdfService laporanPdfService;
+
+      @GetMapping("/ekspor/pdf")
+      public ResponseEntity<byte[]> eksporLaporanPdf(
+              @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tanggalMulai,
+              @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tanggalSelesai,
+              HttpServletRequest request) {
+          byte[] pdfBytes = laporanPdfService.generateLaporanPdf(tanggalMulai, tanggalSelesai, request);
+          return ResponseEntity.ok()
+                  .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=Laporan_SPCT.pdf")
+                  .contentType(MediaType.APPLICATION_PDF)
+                  .body(pdfBytes);
+      }
   }
   ```
 
@@ -100,16 +124,18 @@ Jelaskan strategi integrasi dan tata kelola Git tingkat lanjut yang diterapkan o
 ### [Menit 00:00 - 02:00] Transisi & Masuk ke Use Case PK-UC006, 007, 008
 > *"Terima kasih rekan saya [Nama Mahasiswa 3]. Sekarang kita tiba di fase pamungkas siklus perparkiran: Gerbang Keluar dan Pelaporan Eksekutif.
 >
-> Pengendara yang telah selesai melakukan aktivitasnya melajukan kendaraan menuju gerbang keluar. Pada Use Case PK-UC006, kamera ANPR keluar membaca plat nomor dan mengirimkan request ke `KioskController.java`. Backend secara cerdas menghitung selisih waktu masuk dan keluar.
+> Pengendara yang telah selesai melakukan aktivitasnya melajukan kendaraan menuju gerbang keluar. Pada Use Case PK-UC006, kamera ANPR keluar membaca plat nomor dan mengirimkan request ke `DeteksiPlatController.java` pada endpoint `POST /api/gate/keluar`. Selanjutnya, Kiosk memanggil `TransaksiPembayaranController.java` pada endpoint `GET /api/pembayaran/tagihan` yang dieksekusi oleh `TransaksiPembayaranService.java`.
 >
-> Di sini kami menerapkan aturan bisnis yang sangat manusiawi: **Grace Period Drop-Off 10 Menit**. Jika pengemudi hanya mengantar pasien lalu langsung keluar dalam tempo di bawah 10 menit, sistem menetapkan tagihan Rp 0 dengan status `GRACE_PERIOD / LUNAS`, dan palang gerbang langsung terbuka tanpa meminta uang sepeser pun.
+> Di sini kami menerapkan aturan bisnis yang sangat manusiawi: **Grace Period Drop-Off 10 Menit**. Jika pengemudi hanya mengantar pasien lalu langsung keluar dalam tempo di bawah 10 menit, sistem menetapkan tagihan Rp 0 dengan status `StatusPembayaran.GRACE_PERIOD`, dan palang gerbang langsung terbuka tanpa meminta uang sepeser pun.
 >
-> Namun, jika durasi melebihi 10 menit, Use Case PK-UC007 aktif pada layar Kiosk `ExitScanPage.jsx`. Sistem menyajikan barcode QRIS dinamis dan simulator E-Toll. Begitu pengendara memindai dan melunasi tagihan, sistem mengeksekusi dua hal krusial secara atomik: (1) Mengubah status transaksi menjadi `LUNAS`, dan (2) Membebaskan slot parkir yang ditinggalkan di database kembali berstatus `KOSONG` sehingga pengendara baru di gerbang masuk dapat langsung menempatinya. Palang pintu keluar kemudian terangkat otomatis via PK-UC008."*
+> Namun, jika durasi melebihi 10 menit, Use Case PK-UC007 aktif pada layar Kiosk `ExitScanPage.jsx`. Sistem menyajikan barcode QRIS dinamis dan simulator E-Toll. Begitu pengendara memindai dan melunasi tagihan melalui endpoint `POST /api/pembayaran/konfirmasi`, sistem mengeksekusi dua hal krusial secara atomik: (1) Mengubah status transaksi menjadi `StatusPembayaran.LUNAS`, mencatat record pada entitas Model `Pembayaran.java`, dan (2) Membebaskan slot parkir yang ditinggalkan pada tabel `slot_parkir` kembali berstatus `StatusSlot.KOSONG` sehingga pengendara baru di gerbang masuk dapat langsung menempatinya. Palang pintu keluar kemudian terangkat otomatis via PK-UC008."*
 
 ### [Menit 02:00 - 03:45] Masuk ke PK-UC010 & Analitik Manajemen
 > *"Bagi jajaran direksi dan manajemen rumah sakit, data adalah aset yang paling berharga. Melalui Use Case PK-UC010, kami menghadirkan Dashboard Manajemen Eksekutif di `DashboardManagementPage.jsx`.
 >
-> Menggunakan pustaka visualisasi Chart.js, manajemen dapat memantau grafik akumulasi pendapatan harian, rasio okupansi slot fisik, dan metrik RevPAS (*Revenue per Available Slot*). Ketika masa audit tiba, manajemen cukup menuju halaman `ReportsPage.jsx` untuk mengekspor laporan resmi berformat PDF bertanda tangan digital atau spreadsheet Excel XLSX. Setiap aksi unduhan ini dicatat ke dalam entitas Model `LogAuditLaporan.java` demi memenuhi standar kepatuhan tata kelola teknologi informasi."*
+> Menggunakan pustaka visualisasi Chart.js yang terhubung ke endpoint `GET /api/analitik/dashboard` di `AnalitikLaporanController.java`, manajemen dapat memantau grafik akumulasi pendapatan harian, rasio okupansi slot fisik, dan metrik RevPAS (*Revenue per Available Slot*).
+>
+> Ketika masa audit tiba, manajemen cukup menuju halaman `ReportsPage.jsx` untuk mengekspor laporan resmi berformat PDF bertanda tangan digital via `LaporanPdfService.java` atau spreadsheet Excel XLSX via `LaporanExcelService.java`. Setiap aksi unduhan ini dicatat secara otomatis ke dalam entitas Model `LogAuditLaporan.java` via `LogAuditLaporanRepository.java` demi memenuhi standar kepatuhan tata kelola teknologi informasi."*
 
 ### [Menit 03:45 - 05:00] Penjelasan Git Network Graph & Penutupan Tim
 > *"Bapak dan Ibu dosen penguji yang kami hormati, keberhasilan implementasi seluruh Use Case dari hulu ke hilir ini tidak lepas dari disiplin version control yang kami terapkan di GitHub.
@@ -130,4 +156,4 @@ Jelaskan strategi integrasi dan tata kelola Git tingkat lanjut yang diterapkan o
 
 ### Pertanyaan 2: "Bagaimana sistem menjamin keamanan saat ekspor file PDF/Excel jika diakses secara bersamaan oleh banyak user?"
 **Kunci Jawaban Mahasiswa 4**:
-> *"Pembuatan berkas laporan pada `LaporanService.java` diolah secara murni di dalam memori (*in-memory streaming*) menggunakan byte array buffer tanpa menulis berkas sementara (*temporary file*) ke penyimpanan fisik hard drive server. Pendekatan ini membuat proses pembuatan dokumen bersifat *stateless* dan *thread-safe*, sehingga tidak terjadi konflik tumpang tindih nama berkas antar-permintaan pengguna yang bersamaan."*
+> *"Pembuatan berkas laporan pada `LaporanPdfService.java` dan `LaporanExcelService.java` diolah secara murni di dalam memori (*in-memory streaming*) menggunakan byte array buffer tanpa menulis berkas sementara (*temporary file*) ke penyimpanan fisik hard drive server. Pendekatan ini membuat proses pembuatan dokumen bersifat *stateless* dan *thread-safe*, sehingga tidak terjadi konflik tumpang tindih nama berkas antar-permintaan pengguna yang bersamaan."*
