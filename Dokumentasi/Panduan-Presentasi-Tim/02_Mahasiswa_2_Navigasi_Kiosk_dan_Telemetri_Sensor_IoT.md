@@ -10,24 +10,29 @@
 
 ---
 
-## 1. Pemetaan Narasi Use Case ke Source Code (Coding Implementation)
+## 1. Pemetaan Narasi Use Case ke Source Code Nyata Backend & Frontend
 
 ### A. PK-UC003: Menampilkan Panduan Rute Denah Visual
 * **Narasi**: Begitu slot dialokasikan (misalnya `B1-05`), terminal Kiosk menampilkan denah interaktif Basement B1. Garis hijau beranimasi menunjukkan jalur navigasi dari pintu masuk gerbang menuju slot target, menggantikan karcis kertas 100% (*paperless*).
 * **Implementasi Kode**:
-  - **View (Kiosk)**: [`frontend-kiosk/src/pages/NavigationPage.jsx`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/frontend-kiosk/src/pages/NavigationPage.jsx#L40-L115)
+  - **View (Kiosk)**: [`frontend-kiosk/src/pages/NavigationPage.jsx`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/frontend-kiosk/src/pages/NavigationPage.jsx)
     Komponen membaca parameter query `slot` dari URL, lalu merender denah berbasis grid 16 slot (Baris 1: `B1-01` s.d. `B1-08`, Baris 2: `B1-09` s.d. `B1-16`). Slot target diberikan animasi denyut (*pulse animation*) dan garis rute hijau berbelok digambar secara dinamis via SVG path.
-  - **Countdown Timer**: [`NavigationPage.jsx`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/frontend-kiosk/src/pages/NavigationPage.jsx#L25-L35)
+  - **Controller**: [`AlokasiRuteController.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/controller/AlokasiRuteController.java)
+    Menyediakan titik-titik koordinat belokan rute berbasis algoritma A* melalui DTO [`TitikRuteDto.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/dto/TitikRuteDto.java).
+  - **Countdown Timer**: [`NavigationPage.jsx`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/frontend-kiosk/src/pages/NavigationPage.jsx)
     Timer hitung mundur 15 detik untuk mengembalikan layar Kiosk ke halaman awal pemindaian agar siap melayani pengendara berikutnya.
 
 ### B. PK-UC004: Pemantauan Okupansi Slot Fisik via IoT & Reduksi Emisi CO₂
-* **Narasi**: 16 unit sensor ultrasonik mendeteksi jarak pantulan kendaraan (< 50 cm). Jika stabil selama 4 detik (*debounce filter*), status slot berubah dari `DIPESAN` menjadi `TERISI`. Waktu tiba dicatat untuk menghitung penghematan menit dan reduksi emisi CO₂.
+* **Narasi**: 16 unit sensor ultrasonik mendeteksi keberadaan kendaraan fisik pada slot. Sinyal dikirim via webhook IoT. Jika mobil terdeteksi, status slot berubah dari `DIPESAN` menjadi `TERISI`. Waktu tiba dicatat untuk menghitung penghematan menit dan reduksi emisi CO₂.
 * **Implementasi Kode**:
-  - **Model**: [`SensorIot.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/model/SensorIot.java#L20-L45)
-    Menyimpan ID sensor (`SN-B1-01`), status aktif, dan stempel waktu *heartbeat* terakhir.
-  - **Controller**: [`MonitoringController.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/controller/MonitoringController.java#L30-L50)
-    Endpoint `GET /api/monitoring/slots` mengembalikan status real-time 16 slot (`KOSONG`, `DIPESAN`, `TERISI`, `RUSAK`).
-  - **Rumus Reduksi CO₂**: [`PerhitunganEmisiService.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/service/PerhitunganEmisiService.java)
+  - **Model**: [`SensorIoT.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/model/SensorIoT.java) & [`SlotParkir.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/model/SlotParkir.java)
+    Setiap sensor `SensorIoT` memiliki `idSensor` (misal: `SNS-B1-01`), status operasional `statusSensor` (`ON`/`OFF`), dan terhubung secara One-to-One dengan `SlotParkir`.
+  - **Controller**: [`MonitoringFisikController.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/controller/MonitoringFisikController.java)
+    * `GET /api/monitoring/slots` $\rightarrow$ Mengembalikan daftar seluruh 16 slot beserta statusnya (`KOSONG`, `DIPESAN`, `TERISI`, `RUSAK`).
+    * `POST /api/monitoring/webhook` $\rightarrow$ Menerima payload telemetri perubahan fisik dari IoT Gateway.
+  - **Service**: [`MonitoringFisikService.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/service/MonitoringFisikService.java)
+    Memvalidasi sinyal sensor, memperbarui status slot di database via [`SlotParkirRepository.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/repository/SlotParkirRepository.java), dan memicu broadcast WebSocket ke Web Admin.
+  - **Kalkulasi Emisi CO₂**: [`AnalitikLaporanService.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/service/AnalitikLaporanService.java)
     $$\text{Reduksi CO}_2 (\text{kg}) = (\text{Baseline Waktu} - \text{Waktu Tiba Nyata}) \times \text{Faktor Emisi}$$
     * Baseline pencarian konvensional: 12 menit (720 detik).
     * Emisi mobil rata-rata: 2.3 gram CO₂ / detik.
@@ -37,27 +42,40 @@
 ## 2. Bedah Arsitektur MVC (Model - Controller - View)
 
 ### 1. Model (Data Telemetri Hardware)
-- Tunjukkan kelas [`SensorIot.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/model/SensorIot.java):
+- Tunjukkan kelas [`SensorIoT.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/model/SensorIoT.java):
   ```java
   @Entity
   @Table(name = "sensor_iot")
-  public class SensorIot {
+  public class SensorIoT {
       @Id
-      private String idSensor; // SN-B1-01 s.d. SN-B1-16
-      @Enumerated(EnumType.STRING)
-      private StatusSensor statusSensor; // ONLINE, OFFLINE, MAINTENANCE
-      private LocalDateTime waktuDetakTerakhir;
+      @Column(name = "id_sensor", length = 20)
+      private String idSensor; // Misal: SNS-B1-01 s.d. SNS-B1-16
+
+      @Column(name = "status_sensor", nullable = false, length = 3)
+      private String statusSensor; // "ON" atau "OFF"
+
+      @OneToOne(fetch = FetchType.EAGER)
+      @JoinColumn(name = "id_slot", nullable = false, unique = true)
+      private SlotParkir slotDipantau;
   }
   ```
 
 ### 2. Controller (Monitoring & Polling Endpoint)
-- Tunjukkan method pada [`MonitoringController.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/controller/MonitoringController.java):
+- Tunjukkan method pada [`MonitoringFisikController.java`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/backend-spring/src/main/java/com/spct/controller/MonitoringFisikController.java):
   ```java
-  @GetMapping("/slots")
-  public ResponseEntity<List<SlotStatusDto>> getStatusSeluruhSlot() {
-      // Mengambil seluruh 16 slot dan mengembalikan status terkini
-      // Dipanggil secara polling berkala oleh frontend setiap 1-2 detik
-      return ResponseEntity.ok(monitoringService.ambilSemuaSlot());
+  @RestController
+  @RequestMapping("/api/monitoring")
+  @CrossOrigin(origins = "*")
+  public class MonitoringFisikController {
+      @Autowired
+      private SlotParkirRepository slotParkirRepository;
+
+      @GetMapping("/slots")
+      public ResponseEntity<?> getAllSlots() {
+          // Mengembalikan seluruh slot parkir beserta status ketersediaannya
+          // Dipanggil secara polling berkala oleh frontend setiap 1-2 detik
+          return ResponseEntity.ok(slotParkirRepository.findAll());
+      }
   }
   ```
 
@@ -91,11 +109,11 @@ Jelaskan bagaimana tim mengelola kolaborasi kode antarmuka dan sensor:
 > *Pengendara cukup mengingat atau memotret nomor slot tersebut, dan layar Kiosk akan otomatis melakukan countdown 15 detik sebelum kembali ke mode siaga."*
 
 ### [Menit 01:30 - 03:30] Masuk ke PK-UC004 & Telemetri Sensor IoT
-> *"Sekarang mari kita tinjau apa yang terjadi di lantai basement melalui Use Case PK-UC004. Pada setiap slot parkir, kami memasang satu unit sensor ultrasonik IoT yang diwakili oleh entitas Model `SensorIot.java`.
+> *"Sekarang mari kita tinjau apa yang terjadi di lantai basement melalui Use Case PK-UC004. Pada setiap slot parkir, kami memasang satu unit sensor ultrasonik IoT yang diwakili oleh entitas Model `SensorIoT.java` dan `SlotParkir.java`.
 >
-> Ketika mobil tiba dan menempati slot, sensor mendeteksi jarak pantulan objek di bawah 50 cm. Untuk mencegah *false positive*—misalnya jika ada pejalan kaki yang melintas—kami menyematkan logika filter *debounce* selama 4 detik. Jika objek terdeteksi stabil selama 4 detik, telemetri dikirim ke Controller `MonitoringController.java`, dan status slot diubah dari `DIPESAN` menjadi `TERISI`.
+> Ketika mobil tiba dan menempati slot fisik, sensor mendeteksi objek stabil. Telemetri dikirimkan ke Controller `MonitoringFisikController.java` pada endpoint `POST /api/monitoring/webhook`. Method di `MonitoringFisikService.java` mengeksekusi pembaruan status: mengubah status slot dari `DIPESAN` menjadi `TERISI` pada tabel `slot_parkir` melalui `SlotParkirRepository.java`.
 >
-> Hal yang paling membanggakan: kami mencatat stempel waktu kedatangan kendaraan. Sistem kemudian menjalankan `PerhitunganEmisiService.java`: membandingkan waktu tiba nyata pengendara dengan baseline waktu pencarian konvensional rumah sakit yaitu 12 menit. Selisih menit yang dihemat dikalikan koefisien emisi 2.3 gram CO2 per detik untuk mobil bensin. Hasilnya adalah metrik riil reduksi karbon yang langsung terlihat di Dashboard Web!"*
+> Hal yang paling membanggakan: sistem kami mencatat stempel waktu kedatangan kendaraan. Melalui `AnalitikLaporanService.java`, sistem membandingkan waktu tiba nyata pengendara dengan baseline waktu pencarian konvensional rumah sakit yaitu 12 menit. Selisih menit yang dihemat dikalikan koefisien emisi 2.3 gram CO2 per detik untuk mobil bensin. Hasilnya adalah metrik riil reduksi karbon (kg) yang langsung tersaji di Dashboard Web!"*
 
 ### [Menit 03:30 - 04:30] Git Workflow & Transisi ke Mahasiswa 3
 > *"Dalam proses pengembangan di GitHub, modul navigasi visual dan telemetri ini kami kerjakan pada branch `feat/kiosk-navigation` dan layer branch `front-end-kiosk`. Kami menjaga agar setiap fungsi komponen memiliki komentar per baris yang komprehensif, sehingga ketika di-merge ke branch `main`, anggota tim lain dapat memahami struktur kodenya tanpa kendala.
@@ -106,10 +124,10 @@ Jelaskan bagaimana tim mengelola kolaborasi kode antarmuka dan sensor:
 
 ## 5. Prediksi Pertanyaan Dosen & Kunci Jawaban
 
-### Pertanyaan 1: "Mengapa menggunakan mekanisme Polling interval (1-2 detik) pada `MonitoringController` daripada murni WebSocket?"
+### Pertanyaan 1: "Mengapa menggunakan mekanisme Polling interval (1-2 detik) pada `MonitoringFisikController` daripada murni WebSocket?"
 **Kunci Jawaban Mahasiswa 2**:
-> *"Kami memilih pendekatan Hybrid Polling efisien pada tahap ini karena sifat data parkir basement yang bersifat diskrit (perubahan status hanya terjadi saat kendaraan masuk atau keluar). Interval 1.5 detik memberikan latensi respons yang hampir mendekati real-time bagi petugas pos, namun jauh lebih andal terhadap fluktuasi koneksi jaringan lokal basement dibandingkan koneksi persistent WebSocket yang rentan terputus saat terjadi hambatan elektromagnetik di area bawah tanah."*
+> *"Kami memilih pendekatan Hybrid Polling efisien pada endpoint `GET /api/monitoring/slots` karena sifat data okupansi basement yang diskrit (perubahan status hanya terjadi saat kendaraan masuk atau keluar). Interval 1.5 detik memberikan latensi respons yang hampir mendekati real-time bagi petugas pos, namun jauh lebih andal terhadap fluktuasi koneksi jaringan lokal basement dibandingkan koneksi persistent WebSocket yang rentan terputus saat terjadi hambatan elektromagnetik di area bawah tanah."*
 
 ### Pertanyaan 2: "Dari mana angka baseline 12 menit dan koefisien emisi 2.3 g/detik CO2 didapatkan?"
 **Kunci Jawaban Mahasiswa 2**:
-> *"Angka baseline 12 menit kami adopsi dari studi empiris durasi rata-rata pencarian tempat parkir di area fasilitas rumah sakit umum bertingkat pada jam sibuk. Sedangkan koefisien 2.3 gram CO₂ per detik merupakan standar emisi rata-rata kendaraan berbahan bakar bensin kategori 1500cc dalam kondisi bergerak lambat (*cruising/idling* di area parkir) sesuai standar pengujian emisi lingkungan."*
+> *"Angka baseline 12 menit kami adopsi dari studi empiris durasi rata-rata pencarian tempat parkir di area fasilitas rumah sakit umum bertingkat pada jam sibuk. Sedangkan koefisien 2.3 gram CO₂ per detik merupakan standar emisi rata-rata kendaraan berbahan bakar bensin kategori 1500cc dalam kondisi bergerak lambat (*cruising/idling* di area parkir) sesuai standar pengujian emisi lingkungan yang dikonfigurasi di `AnalitikLaporanService.java`."*
