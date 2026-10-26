@@ -98,3 +98,18 @@ Sebelum dipanggil dosen ke depan kelas, pastikan seluruh layanan berikut sudah b
 - [ ] **Tab GitHub Terbuka**: Buka tab peramban yang menampilkan halaman **Network Graph** repositori GitHub:
   `https://github.com/RLNXZ00/Sistem-Parkir-Cerdas-Terintegrasi-IoT/network`
   sehingga dosen dapat langsung melihat alur merge commit dari branch ke `main` secara visual.
+
+---
+
+## 5. Visualisasi Alur Program: Diagram Sequence (Draw.io Ready)
+
+Untuk mempermudah penjelasan alur logika teknis MVC dan query database dari tiap mahasiswa, tim telah menyediakan **4 Diagram Sequence Lengkap** dalam format Mermaid yang siap di-copy langsung ke Draw.io:
+
+👉 **[Buka Dokumen: `05_Diagram_Sequence_Alur_Program_4_Mahasiswa.md`](file:///d:/Proyek%20Perangkat%20Lunak/Aplikasi/Desktop/Sistem%20Parkir%20Cerdas%20Terintegrasi%20IoT/Dokumentasi/Panduan-Presentasi-Tim/05_Diagram_Sequence_Alur_Program_4_Mahasiswa.md)**
+
+*Diagram mencakup:*
+1. **Mahasiswa 1**: Alur Gerbang Masuk, ANPR, Registrasi Kendaraan & Alokasi Slot Otomatis (PK-UC001 & PK-UC002)
+2. **Mahasiswa 2**: Alur Navigasi Kiosk & Telemetri Sensor Ultrasonik IoT ke WebSocket (PK-UC003 & PK-UC004)
+3. **Mahasiswa 3**: Alur Deteksi Anomali Penyerobotan Slot & Command Center Resolusi Insiden (PK-UC005 & PK-UC009)
+4. **Mahasiswa 4**: Alur Gerbang Keluar, Hitung Tarif, Pembayaran Cashless QRIS & Ekspor PDF/Excel (PK-UC006, 007, 008, 010)
+
