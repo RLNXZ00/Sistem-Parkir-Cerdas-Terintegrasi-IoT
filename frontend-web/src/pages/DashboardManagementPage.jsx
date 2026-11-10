@@ -300,6 +300,14 @@ export default function DashboardManagementPage() {
     // Batalkan eksekusi jika data analitik belum siap atau elemen canvas grafik belum terpasang di DOM
     if (!data || !chartRef.current) return;
 
+    // Hancurkan instance chart yang sedang berjalan sebelumnya untuk mencegah memory leak dan glitch rendering
+    if (chartInstanceRef.current) {
+      chartInstanceRef.current.destroy();
+    }
+
+    // Inisialisasi daftar nama 12 bulan kalender standar untuk periode Tahunan (Jan s.d. Des)
+    const DEFAULT_BULAN_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
     // Menentukan array titik data aktif berdasarkan filter periode
     let activeChartData = [];
     // Label dataset untuk tooltip Chart.js
@@ -307,27 +315,56 @@ export default function DashboardManagementPage() {
 
     // Pemilihan dataset berdasarkan pilihan filter periode pendapatan
     if (revenuePeriod === 'TAHUNAN') {
-      // Periode Tahunan: Mengambil data rekapitulasi 12 bulan (Jan - Des)
-      activeChartData = data.grafikPendapatanBulanan || [];
+      // Periode Tahunan: Mengambil data rekapitulasi 12 bulan (Jan - Des) dari backend
+      const rawData = data.grafikPendapatanBulanan;
+      if (Array.isArray(rawData) && rawData.length > 0) {
+        activeChartData = rawData;
+      } else {
+        // Fallback: Bentuk 12 titik data bulan secara lengkap agar grafik pertumbuhan tetap tampil persis seperti bulanan
+        activeChartData = DEFAULT_BULAN_NAMES.map((bln, idx) => ({
+          hari: idx + 1,
+          labelTanggal: bln,
+          nominal: 0
+        }));
+      }
       activeDatasetLabel = 'Pendapatan Bulanan (Rp)';
     } else if (revenuePeriod === 'SEMUA') {
-      // Periode Semua: Mengambil data histori kumulatif database all-time
-      activeChartData = data.grafikPendapatanSemua || [];
+      // Periode Semua: Mengambil data histori kumulatif database all-time dari backend
+      const rawData = data.grafikPendapatanSemua;
+      if (Array.isArray(rawData) && rawData.length > 0) {
+        activeChartData = rawData;
+      } else {
+        // Fallback: Bentuk titik data historis multi-periode agar grafik pertumbuhan tetap tampil rapi
+        const defaultPeriods = ['Jun 26', 'Jul 26', 'Agu 26', 'Sep 26', 'Okt 26', 'Nov 26'];
+        activeChartData = defaultPeriods.map((prd, idx) => ({
+          hari: idx + 1,
+          labelTanggal: prd,
+          nominal: 0
+        }));
+      }
       activeDatasetLabel = 'Pendapatan Historis (Rp)';
     } else {
-      // Periode Bulanan (default): Mengambil data harian tanggal 1 s.d. hari ini
-      activeChartData = data.grafikPendapatanHarian || [];
+      // Periode Bulanan (default): Mengambil data harian tanggal 1 s.d. hari ini dari backend
+      const rawData = data.grafikPendapatanHarian;
+      if (Array.isArray(rawData) && rawData.length > 0) {
+        activeChartData = rawData;
+      } else {
+        // Fallback harian bulan berjalan (minimal 10 hari)
+        const todayDate = new Date().getDate();
+        activeChartData = Array.from({ length: Math.max(todayDate, 10) }, (_, i) => ({
+          hari: i + 1,
+          labelTanggal: `Tgl ${i + 1}`,
+          nominal: 0
+        }));
+      }
       activeDatasetLabel = 'Pendapatan Harian (Rp)';
     }
-
-    // Batalkan eksekusi jika data aktif kosong
-    if (activeChartData.length === 0) return;
 
     // Petakan label sumbu X berdasarkan properti labelTanggal atau nomor hari
     const labels = activeChartData.map(item => {
       // Jika periode bulanan, tampilkan format 'Tgl X'
       if (revenuePeriod === 'BULANAN') {
-        return `Tgl ${item.hari}`;
+        return item.labelTanggal && item.labelTanggal.startsWith('Tgl') ? item.labelTanggal : `Tgl ${item.hari}`;
       }
       // Jika periode tahunan atau semua, gunakan labelTanggal (misal: "Jan", "Feb" atau "Okt 26")
       return item.labelTanggal || `P-${item.hari}`;
@@ -335,11 +372,6 @@ export default function DashboardManagementPage() {
 
     // Petakan nilai numerik nominal pendapatan untuk sumbu Y
     const values = activeChartData.map(item => item.nominal || 0);
-
-    // Hancurkan instance chart yang sedang berjalan sebelumnya untuk mencegah memory leak dan glitch rendering
-    if (chartInstanceRef.current) {
-      chartInstanceRef.current.destroy();
-    }
 
     // Deteksi apakah tema aktif saat ini adalah tema cerah (light mode) dengan memeriksa kelas dokumen
     const isLightChart = isLight;
@@ -474,8 +506,8 @@ export default function DashboardManagementPage() {
   const pendapatanHariIniVal = safeData.pendapatanHariIni ?? safeData.pendapatanTotal ?? 0;
   // Nilai pendapatan bulanan dengan fallback ke pendapatan total atau nol
   const pendapatanBulananVal = safeData.pendapatanBulanan ?? safeData.pendapatanTotal ?? 0;
-  // Nilai pendapatan tahunan dengan fallback ke nol
-  const pendapatanTahunanVal = safeData.pendapatanTahunan ?? 0;
+  // Nilai pendapatan tahunan dengan fallback ke pendapatan total atau nol
+  const pendapatanTahunanVal = safeData.pendapatanTahunan ?? safeData.pendapatanTotal ?? 0;
   // Nilai pendapatan all-time sepanjang masa dengan fallback ke nol
   const pendapatanTotalVal = safeData.pendapatanTotal ?? 0;
 
@@ -490,8 +522,8 @@ export default function DashboardManagementPage() {
   const activeTrxLunasCount = revenuePeriod === 'BULANAN'
     ? (safeData.totalTransaksiLunas || 0)
     : revenuePeriod === 'TAHUNAN'
-    ? (safeData.totalTransaksiLunasTahunan || 0)
-    : (safeData.totalTransaksiLunasSemua || 0);
+    ? (safeData.totalTransaksiLunasTahunan ?? safeData.totalTransaksiLunas ?? 0)
+    : (safeData.totalTransaksiLunasSemua ?? safeData.totalTransaksiLunas ?? 0);
 
   // Perhitungan tarif rata-rata per kendaraan sesuai transaksi lunas periode aktif
   const activeAvgFeeVal = activeTrxLunasCount > 0
