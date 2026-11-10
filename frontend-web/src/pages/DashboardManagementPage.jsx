@@ -42,6 +42,32 @@ export default function DashboardManagementPage() {
   // Inisialisasi state isLoadingNodeMap bertipe boolean bernilai awal false untuk menandai status pemuatan data denah spasial
   const [isLoadingNodeMap, setIsLoadingNodeMap] = useState(false);
 
+  // Inisialisasi state isLight bertipe boolean untuk mendeteksi mode tema terang (light theme) secara adaptif
+  const [isLight, setIsLight] = useState(() => {
+    // Mengecek apakah objek window dan document tersedia di peramban
+    if (typeof document !== 'undefined') {
+      // Mengembalikan true jika kelas CSS root mengandung 'light-theme' atau preferensi localStorage bernilai 'light'
+      return document.documentElement.classList.contains('light-theme') || localStorage.getItem('spct_theme') === 'light';
+    }
+    // Nilai default adalah false (tema gelap default)
+    return false;
+  });
+
+  // Hook useEffect untuk mengamati perubahan kelas tema pada elemen root HTML secara dinamis
+  useEffect(() => {
+    // Memastikan objek document tersedia di peramban
+    if (typeof document === 'undefined') return;
+    // Inisialisasi pengamat mutasi DOM untuk mendeteksi penambahan atau penghapusan kelas 'light-theme'
+    const observer = new MutationObserver(() => {
+      // Memperbarui nilai state isLight saat atribut class pada elemen <html> berubah
+      setIsLight(document.documentElement.classList.contains('light-theme'));
+    });
+    // Menjalankan observasi pada atribut elemen root HTML
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    // Membersihkan observer saat komponen di-unmount
+    return () => observer.disconnect();
+  }, []);
+
   // Inisialisasi ref chartRef untuk mereferensikan elemen HTML5 canvas grafik pendapatan
   const chartRef = useRef(null);
   // Inisialisasi ref chartInstanceRef untuk menyimpan instance aktif objek grafik Chart.js agar dapat dihancurkan saat update
@@ -93,13 +119,13 @@ export default function DashboardManagementPage() {
   // Deklarasi fungsi pembantu extractSlotId untuk mengekstrak kode identifikasi slot dari objek log telemetri
   const extractSlotId = (log) => {
     // Jika objek log memiliki relasi slotTerkait dan idSlot, kembalikan idSlot tersebut
-    if (log.slotTerkait && log.slotTerkait.idSlot) return log.slotTerkait.idSlot;
+    if (log.slotTerkait && log.slotTerkait.idSlot) return log.slotTerkait.idSlot.replace(/^M(\d+)/, "B$1");
     // Jika terdapat teks pada field catatanDetail, lakukan pencarian pola kode slot menggunakan ekspresi reguler (regex)
     if (log.catatanDetail) {
       // Cari kemunculan pola Slot B1-xx pada teks catatan detail
-      const match = log.catatanDetail.match(/Slot\s+(B1-\d{2})/i);
+      const match = log.catatanDetail.match(/Slot\s+([BM]1-\d{2})/i);
       // Jika pola ditemukan, kembalikan kode slot dalam format huruf kapital
-      if (match) return match[1].toUpperCase();
+      if (match) return match[1].toUpperCase().replace(/^M/, "B");
     }
     // Kembalikan null jika kode slot tidak dapat diekstraksi dari objek log
     return null;
@@ -222,13 +248,13 @@ export default function DashboardManagementPage() {
     }
 
     // Deteksi apakah tema aktif saat ini adalah tema cerah (light mode) dengan memeriksa kelas dokumen
-    const isLight = document.documentElement.classList.contains('light-theme');
+    const isLightChart = isLight;
     // Tentukan warna garis grid grafik yang adaptif terhadap tema aktif
-    const gridColor = isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)';
+    const gridColor = isLightChart ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)';
     // Tentukan warna batas lingkaran titik grafik (point border) adaptif tema
-    const pointBorder = isLight ? '#ffffff' : '#050B14';
+    const pointBorder = isLightChart ? '#ffffff' : '#050B14';
     // Tentukan warna teks label penanda (tick) sumbu adaptif tema
-    const tickColor = isLight ? '#64748b' : '#94A3B8';
+    const tickColor = isLightChart ? '#64748b' : '#94A3B8';
 
     // Dapatkan konteks 2 dimensi (2D context) dari elemen canvas HTML5
     const ctx = chartRef.current.getContext('2d');
@@ -264,11 +290,11 @@ export default function DashboardManagementPage() {
         plugins: {
           legend: { display: false }, // Sembunyikan legenda default untuk tampilan yang lebih bersih
           tooltip: {
-            backgroundColor: isLight ? '#ffffff' : '#0F172A', // Warna latar kotak tooltip adaptif tema
-            borderColor: isLight ? '#cbd5e1' : '#334155', // Warna border tooltip
+            backgroundColor: isLightChart ? '#ffffff' : '#0F172A', // Warna latar kotak tooltip adaptif tema
+            borderColor: isLightChart ? '#cbd5e1' : '#334155', // Warna border tooltip
             borderWidth: 1, // Ketebalan border tooltip
-            titleColor: isLight ? '#0f172a' : '#ffffff', // Warna teks judul tooltip
-            bodyColor: isLight ? '#0f172a' : '#ffffff', // Warna teks isi tooltip
+            titleColor: isLightChart ? '#0f172a' : '#ffffff', // Warna teks judul tooltip
+            bodyColor: isLightChart ? '#0f172a' : '#ffffff', // Warna teks isi tooltip
             titleFont: { family: 'Space Grotesk', size: 12 }, // Konfigurasi font judul tooltip
             bodyFont: { family: 'Space Grotesk', size: 13, weight: 'bold' }, // Konfigurasi font isi tooltip
             callbacks: {
@@ -306,7 +332,7 @@ export default function DashboardManagementPage() {
         chartInstanceRef.current.destroy();
       }
     };
-  }, [data]); // Efek samping dieksekusi ulang setiap kali state data diperbarui
+  }, [data, isLight]); // Efek samping dieksekusi ulang setiap kali state data diperbarui
 
   // Jika aplikasi masih dalam fase pemuatan awal data analitik, tampilkan indikator loading
   if (isLoading) {
@@ -795,7 +821,7 @@ export default function DashboardManagementPage() {
                             <div>
                               <div className="flex items-center gap-2">
                                 <span className={`font-mono font-bold text-sm ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                                  {slotId ? `Slot ${slotId}` : 'Hardware Node'}
+                                  {slotId ? `Slot ${slotId.replace(/^M(\d+)/, 'B$1')}` : 'Hardware Node'}
                                 </span>
                                 {/* Lencana jenis kejadian anomali */}
                                 <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
@@ -940,7 +966,7 @@ export default function DashboardManagementPage() {
                                     : 'border border-slate-700/80 border-dashed text-slate-400 hover:border-sky-400 hover:text-slate-200 bg-[#08101E]/40'
                               } ${isSelected ? 'ring-2 ring-sky-500 scale-105 z-20' : ''}`}
                             >
-                              <span className="font-bold tracking-wider">{slotId}</span>
+                              <span className="font-bold tracking-wider">{slotId.replace(/^M(\d+)/, "B$1")}</span>
                               {/* Lencana angka jumlah anomali aktif jika ada */}
                               {hasAnomaly && (
                                 <span className="text-[10px] bg-red-600 text-white font-bold px-1.5 py-0.2 rounded-full absolute -top-2 -right-2 shadow-md">
@@ -974,7 +1000,7 @@ export default function DashboardManagementPage() {
                                     : 'border border-slate-700/80 border-dashed text-slate-400 hover:border-sky-400 hover:text-slate-200 bg-[#08101E]/40'
                               } ${isSelected ? 'ring-2 ring-sky-500 scale-105 z-20' : ''}`}
                             >
-                              <span className="font-bold tracking-wider">{slotId}</span>
+                              <span className="font-bold tracking-wider">{slotId.replace(/^M(\d+)/, "B$1")}</span>
                               {/* Lencana angka jumlah anomali aktif jika ada */}
                               {hasAnomaly && (
                                 <span className="text-[10px] bg-red-600 text-white font-bold px-1.5 py-0.2 rounded-full absolute -top-2 -right-2 shadow-md">
@@ -994,7 +1020,7 @@ export default function DashboardManagementPage() {
                         <div className="flex items-center gap-2">
                           <span className={`material-symbols-outlined ${isLight ? 'text-sky-600' : 'text-sky-400'}`}>info</span>
                           <h3 className={`font-mono text-base font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                            Detail Insiden Node: <span className={isLight ? 'text-sky-600' : 'text-sky-300'}>{selectedSlotNode || 'Pilih Slot'}</span>
+                            Detail Insiden Node: <span className={isLight ? 'text-sky-600' : 'text-sky-300'}>{(selectedSlotNode || 'Pilih Slot').replace(/^M(\d+)/, 'B$1')}</span>
                           </h3>
                         </div>
                         {/* Lencana status anomali slot terpilih */}
@@ -1037,7 +1063,7 @@ export default function DashboardManagementPage() {
                         // Tampilan status normal jika tidak terdapat catatan anomali pada slot
                         <div className={`text-xs py-4 text-center font-mono flex items-center justify-center gap-2 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                           <span className={`material-symbols-outlined text-lg ${isLight ? 'text-emerald-600' : 'text-emerald-400'}`}>verified</span>
-                          <span>Slot {selectedSlotNode} tidak memiliki catatan kesalahan atau anomali pada 10 log IoT terbaru.</span>
+                          <span>Slot {(selectedSlotNode || '').replace(/^M(\d+)/, 'B$1')} tidak memiliki catatan kesalahan atau anomali pada 10 log IoT terbaru.</span>
                         </div>
                       )}
                     </div>

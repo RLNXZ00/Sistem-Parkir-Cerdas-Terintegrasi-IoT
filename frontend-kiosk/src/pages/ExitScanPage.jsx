@@ -202,7 +202,7 @@ export default function ExitScanPage({ jenis = 'MOBIL' }) {
               </span>
               {/* Informasi kode slot parkir kendaraan yang akan keluar */}
               <span className="text-xs font-mono text-slate-400">
-                Posisi Slot: <strong className="text-emerald-400 font-bold">{kendaraanTerdepan.idSlot}</strong>
+                Posisi Slot: <strong className="text-emerald-400 font-bold">{kendaraanTerdepan.idSlot ? kendaraanTerdepan.idSlot.replace(/^M(\d+)/, "B$1") : "-"}</strong>
               </span>
             </div>
           ) : (
@@ -248,7 +248,7 @@ export default function ExitScanPage({ jenis = 'MOBIL' }) {
               {isScanning 
                 ? "Memproses Pembayaran..." 
                 : kendaraanTerdepan 
-                  ? `Keluar: ${kendaraanTerdepan.platNomor} (${kendaraanTerdepan.idSlot})`
+                  ? `Keluar: ${kendaraanTerdepan.platNomor} (${kendaraanTerdepan.idSlot ? kendaraanTerdepan.idSlot.replace(/^M(\d+)/, "B$1") : "-"})`
                   : "Tidak Ada Kendaraan di Parkiran"
               }
             </span>
