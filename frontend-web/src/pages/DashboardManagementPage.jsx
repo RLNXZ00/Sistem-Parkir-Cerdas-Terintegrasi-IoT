@@ -7,11 +7,20 @@ import Chart from 'chart.js/auto';
 // Import hook useLanguage dari '../context/LanguageContext' untuk dukungan multi-bahasa (internasionalisasi i18n)
 import { useLanguage } from '../context/LanguageContext';
 
-// Deklarasi konstanta DEFAULT_SLOTS berisi daftar 16 kode slot parkir standar pada Basement Lantai 1
-const DEFAULT_SLOTS = [
+// Deklarasi konstanta DEFAULT_MOBIL_SLOTS berisi daftar 16 kode slot parkir mobil pada Basement Lantai 1
+const DEFAULT_MOBIL_SLOTS = [
   'B1-01', 'B1-02', 'B1-03', 'B1-04', 'B1-05', 'B1-06', 'B1-07', 'B1-08',
   'B1-09', 'B1-10', 'B1-11', 'B1-12', 'B1-13', 'B1-14', 'B1-15', 'B1-16'
 ];
+
+// Deklarasi konstanta DEFAULT_MOTOR_SLOTS berisi daftar 16 kode slot parkir motor pada Basement Lantai 1
+const DEFAULT_MOTOR_SLOTS = [
+  'M1-01', 'M1-02', 'M1-03', 'M1-04', 'M1-05', 'M1-06', 'M1-07', 'M1-08',
+  'M1-09', 'M1-10', 'M1-11', 'M1-12', 'M1-13', 'M1-14', 'M1-15', 'M1-16'
+];
+
+// Alias DEFAULT_SLOTS untuk kompatibilitas bawaan
+const DEFAULT_SLOTS = DEFAULT_MOBIL_SLOTS;
 
 // Deklarasi fungsi komponen publik DashboardManagementPage sebagai modul pengawasan analitik eksekutif
 export default function DashboardManagementPage() {
@@ -41,6 +50,29 @@ export default function DashboardManagementPage() {
   const [selectedSlotNode, setSelectedSlotNode] = useState(null);
   // Inisialisasi state isLoadingNodeMap bertipe boolean bernilai awal false untuk menandai status pemuatan data denah spasial
   const [isLoadingNodeMap, setIsLoadingNodeMap] = useState(false);
+
+  // Inisialisasi state anomaliFilter bertipe string ('ALL' | 'MOBIL' | 'MOTOR') untuk filter daftar riwayat log anomali
+  const [anomaliFilter, setAnomaliFilter] = useState('ALL');
+  // Inisialisasi state nodeMapCategory bertipe string ('MOBIL' | 'MOTOR') untuk tab denah visual peta node sensor
+  const [nodeMapCategory, setNodeMapCategory] = useState('MOBIL');
+
+  // Membaca preferensi target efisiensi dari pengaturan sistem lokal jika tersedia di peramban
+  const [systemSettings] = useState(() => {
+    // Mengecek apakah objek window dan localStorage tersedia
+    if (typeof window !== 'undefined') {
+      try {
+        // Mengambil string konfigurasi dari localStorage dengan kunci spct_system_settings
+        const saved = localStorage.getItem('spct_system_settings');
+        // Jika data konfigurasi ditemukan, parsing JSON dan kembalikan objeknya
+        if (saved) return JSON.parse(saved);
+      } catch (e) {
+        // Mencatat pesan kegagalan jika parsing preferensi gagal
+        console.error('Gagal membaca preferensi sistem:', e);
+      }
+    }
+    // Nilai default target reduksi persentase emisi karbon 65%
+    return { targetReduksiPersen: 65, baselineWaktuMenit: 12 };
+  });
 
   // Inisialisasi state isLight bertipe boolean untuk mendeteksi mode tema terang (light theme) secara adaptif
   const [isLight, setIsLight] = useState(() => {
@@ -118,17 +150,41 @@ export default function DashboardManagementPage() {
 
   // Deklarasi fungsi pembantu extractSlotId untuk mengekstrak kode identifikasi slot dari objek log telemetri
   const extractSlotId = (log) => {
-    // Jika objek log memiliki relasi slotTerkait dan idSlot, kembalikan idSlot tersebut
-    if (log.slotTerkait && log.slotTerkait.idSlot) return log.slotTerkait.idSlot.replace(/^M(\d+)/, "B$1");
+    // Jika objek log memiliki relasi slotTerkait dan idSlot, kembalikan idSlot asli
+    if (log.slotTerkait && log.slotTerkait.idSlot) return log.slotTerkait.idSlot;
     // Jika terdapat teks pada field catatanDetail, lakukan pencarian pola kode slot menggunakan ekspresi reguler (regex)
     if (log.catatanDetail) {
-      // Cari kemunculan pola Slot B1-xx pada teks catatan detail
+      // Cari kemunculan pola Slot B1-xx atau M1-xx pada teks catatan detail
       const match = log.catatanDetail.match(/Slot\s+([BM]1-\d{2})/i);
       // Jika pola ditemukan, kembalikan kode slot dalam format huruf kapital
-      if (match) return match[1].toUpperCase().replace(/^M/, "B");
+      if (match) return match[1].toUpperCase();
+    }
+    // Jika unitId mencerminkan kode sensor slot seperti SNS-B1-xx atau SNS-M1-xx
+    if (log.unitId && log.unitId.startsWith('SNS-')) {
+      return log.unitId.replace('SNS-', '');
     }
     // Kembalikan null jika kode slot tidak dapat diekstraksi dari objek log
     return null;
+  };
+
+  // Deklarasi fungsi getLogVehicleType untuk mengklasifikasikan rekaman log berdasarkan kategori kendaraan
+  const getLogVehicleType = (log) => {
+    // Ekstrak kode slot terkait atau id unit hardware
+    const rawSlot = (log.slotTerkait?.idSlot || extractSlotId(log) || '').toUpperCase();
+    // Ekstrak teks deskripsi insiden dalam huruf kecil
+    const detail = (log.catatanDetail || '').toLowerCase();
+    // Ekstrak pengenal perangkat keras
+    const unit = (log.unitId || '').toUpperCase();
+    // Jika mengandung awalan M atau kata kunci motor, kategorikan sebagai MOTOR
+    if (rawSlot.startsWith('M') || detail.includes('motor') || unit.includes('MOT') || unit.startsWith('SNS-M')) {
+      return 'MOTOR';
+    }
+    // Jika mengandung awalan B atau kata kunci mobil, kategorikan sebagai MOBIL
+    if (rawSlot.startsWith('B') || detail.includes('mobil') || unit.includes('MOB') || unit.startsWith('SNS-B')) {
+      return 'MOBIL';
+    }
+    // Kategori default hardware umum
+    return 'GENERAL';
   };
 
   // Deklarasi fungsi openAnomaliListModal untuk memicu pemuatan data dan membuka modal daftar 10 riwayat anomali
@@ -214,9 +270,15 @@ export default function DashboardManagementPage() {
       // Jika ditemukan slot dengan anomali, jadikan slot tersebut terpilih secara otomatis
       if (firstErrorSlot) {
         setSelectedSlotNode(firstErrorSlot);
+        // Sesuaikan kategori denah dengan slot anomali pertama jika diawali M
+        if (firstErrorSlot.startsWith('M')) {
+          setNodeMapCategory('MOTOR');
+        } else {
+          setNodeMapCategory('MOBIL');
+        }
       } else {
-        // Jika tidak ada anomali, pilih slot standar pertama 'B1-01' sebagai default visualisasi
-        setSelectedSlotNode('B1-01');
+        // Jika tidak ada anomali, pilih slot standar pertama sesuai tab aktif
+        setSelectedSlotNode(nodeMapCategory === 'MOTOR' ? 'M1-01' : 'B1-01');
       }
     } catch (e) {
       // Cetak pesan kesalahan ke konsol jika pemuatan data denah spasial gagal
@@ -376,12 +438,14 @@ export default function DashboardManagementPage() {
   // Nilai pendapatan bulanan dengan fallback ke pendapatan total atau nol
   const pendapatanBulananVal = safeData.pendapatanBulanan ?? safeData.pendapatanTotal ?? 0;
 
-  // Menghitung total slot fisik mobil di Basement Lantai 1 (default 16 slot)
-  const totalSlotMobil = (safeData.slotTerisiSaatIni + safeData.slotKosongSaatIni) || 16;
+  // Menghitung kapasitas total slot mobil di Basement Lantai 1
+  const mobilTotal = safeData.slotMobilTotal || 16;
+  // Menghitung jumlah slot mobil yang sedang terisi saat ini
+  const mobilTerisi = safeData.slotMobilTerisi != null ? safeData.slotMobilTerisi : (safeData.slotTerisiSaatIni != null ? Math.min(safeData.slotTerisiSaatIni, mobilTotal) : 1);
   // Menghitung persentase okupansi zona mobil dibatasi maksimal 100%
-  const pctMobil = Math.min(100, Math.round((safeData.slotTerisiSaatIni / totalSlotMobil) * 100));
+  const pctMobil = Math.min(100, Math.round((mobilTerisi / mobilTotal) * 100));
   // Menentukan status kepadatan zona mobil berdasarkan ambang batas persentase
-  const statusMobil = pctMobil > 80 ? 'Padat' : (pctMobil >= 50 ? 'Sedang' : 'Normal');
+  const statusMobil = pctMobil > 80 ? (lang === 'en' ? 'Crowded' : 'Padat') : (pctMobil >= 50 ? (lang === 'en' ? 'Moderate' : 'Sedang') : 'Normal');
   // Menentukan kelas warna teks Tailwind berdasarkan tingkat kepadatan zona mobil
   const colorMobil = pctMobil > 80 ? 'text-alert-anomaly' : (pctMobil >= 50 ? 'text-warning-reserved' : 'text-eco-success');
   // Menentukan kelas warna border kontainer berdasarkan tingkat kepadatan zona mobil
@@ -389,18 +453,33 @@ export default function DashboardManagementPage() {
   // Menentukan kelas warna latar progress bar berdasarkan tingkat kepadatan zona mobil
   const barBgMobil = pctMobil > 80 ? 'bg-alert-anomaly' : (pctMobil >= 50 ? 'bg-warning-reserved' : 'bg-eco-success');
 
+  // Menghitung kapasitas total slot motor di Basement Lantai 1 (kalkulasi dinamis dari database)
+  const motorTotal = safeData.slotMotorTotal || 16;
+  // Menghitung jumlah slot motor yang sedang terisi saat ini dari telemetri sensor
+  const motorTerisi = safeData.slotMotorTerisi != null ? safeData.slotMotorTerisi : 2;
+  // Menghitung persentase okupansi zona motor dibatasi maksimal 100%
+  const pctMotor = Math.min(100, Math.round((motorTerisi / motorTotal) * 100));
+  // Menentukan status kepadatan zona motor berdasarkan ambang batas persentase
+  const statusMotor = pctMotor > 80 ? (lang === 'en' ? 'Crowded' : 'Padat') : (pctMotor >= 50 ? (lang === 'en' ? 'Moderate' : 'Sedang') : 'Normal');
+  // Menentukan kelas warna teks Tailwind berdasarkan tingkat kepadatan zona motor
+  const colorMotor = pctMotor > 80 ? 'text-alert-anomaly' : (pctMotor >= 50 ? 'text-warning-reserved' : 'text-eco-success');
+  // Menentukan kelas warna border kontainer berdasarkan tingkat kepadatan zona motor
+  const borderColorMotor = pctMotor > 80 ? 'border-alert-anomaly' : (pctMotor >= 50 ? 'border-warning-reserved' : 'border-eco-success');
+  // Menentukan kelas warna latar progress bar berdasarkan tingkat kepadatan zona motor
+  const barBgMotor = pctMotor > 80 ? 'bg-alert-anomaly' : (pctMotor >= 50 ? 'bg-warning-reserved' : 'bg-eco-success');
+
   // Menentukan total transaksi lunas yang tercatat di database
   const totalTransaksiLunasVal = safeData.totalTransaksiLunas ?? 0;
   // Menghitung tarif rata-rata per transaksi lunas (Average Fee per Vehicle)
   const avgFeeVal = safeData.rataRataTarifTransaksi ?? (totalTransaksiLunasVal > 0 ? Math.round(pendapatanBulananVal / totalTransaksiLunasVal) : 0);
   // Menghitung imbal hasil pendapatan per kapasitas slot fisik (Revenue per Available Slot - RevPAS)
-  const revenuePerSlotVal = safeData.revenuePerSlot ?? (totalSlotMobil > 0 ? Math.round(pendapatanBulananVal / totalSlotMobil) : 0);
+  const revenuePerSlotVal = safeData.revenuePerSlot ?? (mobilTotal > 0 ? Math.round(pendapatanBulananVal / mobilTotal) : 0);
 
   // Deklarasi array konfigurasi kartu informasi kepadatan zona parkir (Zona Mobil dan Zona Motor)
   const ZONES = [
     { 
-      name: 'Zona Mobil', 
-      desc: `Basement Lantai 1 (${safeData.slotTerisiSaatIni} dari ${totalSlotMobil} Slot)`, 
+      name: lang === 'en' ? 'Car Zone' : 'Zona Mobil', 
+      desc: `Basement Lantai 1 (${mobilTerisi} dari ${mobilTotal} Slot)`, 
       pct: pctMobil, 
       colorClass: colorMobil, 
       status: statusMobil, 
@@ -408,13 +487,13 @@ export default function DashboardManagementPage() {
       barBg: barBgMobil
     },
     { 
-      name: 'Zona Motor', 
-      desc: 'Basement Lantai 1 (Dalam Perencanaan)', 
-      pct: 42, 
-      colorClass: 'text-warning-reserved', 
-      status: 'Normal', 
-      borderColor: 'border-warning-reserved',
-      barBg: 'bg-warning-reserved'
+      name: lang === 'en' ? 'Motorcycle Zone' : 'Zona Motor', 
+      desc: `Basement Lantai 1 (${motorTerisi} dari ${motorTotal} Slot)`, 
+      pct: pctMotor, 
+      colorClass: colorMotor, 
+      status: statusMotor, 
+      borderColor: borderColorMotor,
+      barBg: barBgMotor
     },
   ];
 
@@ -437,7 +516,7 @@ export default function DashboardManagementPage() {
     { 
       label: t('mgmt.co2Reduction', 'CO2 Dicegah'), 
       value: `${safeData.reduksiCo2Kg} kg`, 
-      sub: `${safeData.persentaseCo2}% vs Benchmark`, 
+      sub: `${safeData.persentaseCo2}% vs Target ${systemSettings?.targetReduksiPersen || 65}%`, 
       icon: 'eco', 
       color: 'text-secondary' 
     },
@@ -457,10 +536,12 @@ export default function DashboardManagementPage() {
   // Menghitung persentase keaktifan sensor (health percentage)
   const sensorPct = totalSensor > 0 ? Math.round((sensorAktif / totalSensor) * 100) : 100;
 
-  // Membagi 16 slot standar menjadi 2 baris denah (Baris 1: B1-01 s.d. B1-08)
-  const row1Slots = DEFAULT_SLOTS.slice(0, 8);
-  // Baris 2 denah (B1-09 s.d. B1-16)
-  const row2Slots = DEFAULT_SLOTS.slice(8, 16);
+  // Menentukan daftar slot denah aktif berdasarkan tab kategori kendaraan yang dipilih
+  const activeGridSlots = nodeMapCategory === 'MOTOR' ? DEFAULT_MOTOR_SLOTS : DEFAULT_MOBIL_SLOTS;
+  // Membagi slot denah aktif menjadi 2 baris (Baris 1: 8 slot pertama)
+  const row1Slots = activeGridSlots.slice(0, 8);
+  // Baris 2 denah (8 slot berikutnya)
+  const row2Slots = activeGridSlots.slice(8, 16);
 
   // Mengembalikan elemen antarmuka JSX halaman pengawasan manajemen eksekutif
   return (
@@ -780,6 +861,50 @@ export default function DashboardManagementPage() {
 
               {/* Badan Konten Modal (Daftar Log Anomali Kronologis) */}
               <div className={`p-6 overflow-y-auto flex-1 flex flex-col gap-3 ${isLight ? 'bg-white' : ''}`}>
+                
+                {/* Bilah Tombol Filter Kategori Kendaraan: Semua, Mobil, dan Motor */}
+                <div className={`flex items-center gap-2 p-2.5 rounded-xl border mb-1 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#08101E] border-slate-700/60'}`}>
+                  <span className={`text-xs font-mono font-semibold ml-1 mr-1 flex items-center gap-1 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                    <span className="material-symbols-outlined text-[15px]">filter_alt</span>
+                    Filter:
+                  </span>
+                  <button 
+                    type="button"
+                    onClick={() => setAnomaliFilter('ALL')}
+                    className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                      anomaliFilter === 'ALL'
+                        ? (isLight ? 'bg-sky-600 text-white shadow-sm' : 'bg-primary text-on-primary shadow-sm')
+                        : (isLight ? 'bg-slate-200/80 text-slate-700 hover:bg-slate-300' : 'bg-slate-800 text-slate-300 hover:bg-slate-700')
+                    }`}
+                  >
+                    Semua ({anomaliList.length})
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setAnomaliFilter('MOBIL')}
+                    className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      anomaliFilter === 'MOBIL'
+                        ? (isLight ? 'bg-sky-600 text-white shadow-sm' : 'bg-primary text-on-primary shadow-sm')
+                        : (isLight ? 'bg-slate-200/80 text-slate-700 hover:bg-slate-300' : 'bg-slate-800 text-slate-300 hover:bg-slate-700')
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[15px]">directions_car</span>
+                    Mobil ({anomaliList.filter(l => getLogVehicleType(l) !== 'MOTOR').length})
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setAnomaliFilter('MOTOR')}
+                    className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      anomaliFilter === 'MOTOR'
+                        ? (isLight ? 'bg-sky-600 text-white shadow-sm' : 'bg-primary text-on-primary shadow-sm')
+                        : (isLight ? 'bg-slate-200/80 text-slate-700 hover:bg-slate-300' : 'bg-slate-800 text-slate-300 hover:bg-slate-700')
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[15px]">two_wheeler</span>
+                    Motor ({anomaliList.filter(l => getLogVehicleType(l) === 'MOTOR').length})
+                  </button>
+                </div>
+
                 {/* Kondisi jika data log masih dalam proses pengambilan */}
                 {isLoadingAnomali ? (
                   <div className={`flex items-center justify-center py-12 font-mono animate-pulse ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -792,69 +917,90 @@ export default function DashboardManagementPage() {
                     <span>Tidak ada catatan anomali di database.</span>
                   </div>
                 ) : (
-                  // Daftar kartu log anomali hasil mapping data
+                  // Daftar kartu log anomali hasil pemfilteran kategori kendaraan
                   <div className="flex flex-col gap-3">
-                    {anomaliList.map((log) => {
-                      // Evaluasi status kegawatan insiden log
-                      const isCritical = log.tingkatKeparahan === 'CRITICAL' || log.jenisKejadian?.includes('ANOMALI');
-                      // Format stempel waktu kejadian ke format tanggal dan jam lokal Indonesia
-                      const tanggal = log.waktuKejadian ? new Date(log.waktuKejadian).toLocaleString('id-ID', {
-                        day: '2-digit', month: 'short', year: 'numeric',
-                        hour: '2-digit', minute: '2-digit', second: '2-digit'
-                      }) : '-';
-                      // Ekstrak kode slot terkait insiden
-                      const slotId = extractSlotId(log);
+                    {anomaliList
+                      .filter(log => {
+                        if (anomaliFilter === 'ALL') return true;
+                        const type = getLogVehicleType(log);
+                        if (anomaliFilter === 'MOBIL') return type === 'MOBIL' || type === 'GENERAL';
+                        if (anomaliFilter === 'MOTOR') return type === 'MOTOR';
+                        return true;
+                      })
+                      .map((log) => {
+                        // Evaluasi status kegawatan insiden log
+                        const isCritical = log.tingkatKeparahan === 'CRITICAL' || log.jenisKejadian?.includes('ANOMALI');
+                        // Format stempel waktu kejadian ke format tanggal dan jam lokal Indonesia
+                        const tanggal = log.waktuKejadian ? new Date(log.waktuKejadian).toLocaleString('id-ID', {
+                          day: '2-digit', month: 'short', year: 'numeric',
+                          hour: '2-digit', minute: '2-digit', second: '2-digit'
+                        }) : '-';
+                        // Ekstrak kode slot terkait insiden
+                        const slotId = extractSlotId(log);
+                        // Ekstrak jenis kendaraan dari log
+                        const vehicleType = getLogVehicleType(log);
 
-                      return (
-                        <div 
-                          key={log.idLog} 
-                          className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-3 ${
-                            isCritical 
-                              ? (isLight ? 'bg-red-50/80 border-red-200' : 'bg-red-950/20 border-red-500/40') 
-                              : (isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/60 border-slate-700/50')
-                          }`}
-                        >
-                          <div className="flex items-start gap-3">
-                            <span className={`material-symbols-outlined text-xl mt-0.5 ${isCritical ? 'text-red-500' : (isLight ? 'text-sky-600' : 'text-sky-400')}`}>
-                              {isCritical ? 'report' : 'info'}
-                            </span>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className={`font-mono font-bold text-sm ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                                  {slotId ? `Slot ${slotId.replace(/^M(\d+)/, 'B$1')}` : 'Hardware Node'}
-                                </span>
-                                {/* Lencana jenis kejadian anomali */}
-                                <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
-                                  isCritical 
-                                    ? (isLight ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-red-900/40 text-red-300 border border-red-700/40')
-                                    : (isLight ? 'bg-slate-200 text-slate-700 border border-slate-300' : 'bg-slate-800 text-slate-300')
-                                }`}>
-                                  {log.jenisKejadian}
-                                </span>
+                        return (
+                          <div 
+                            key={log.idLog} 
+                            className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+                              isCritical 
+                                ? (isLight ? 'bg-red-50/80 border-red-200' : 'bg-red-950/20 border-red-500/40') 
+                                : (isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/60 border-slate-700/50')
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <span className={`material-symbols-outlined text-xl mt-0.5 ${isCritical ? 'text-red-500' : (isLight ? 'text-sky-600' : 'text-sky-400')}`}>
+                                {isCritical ? 'report' : 'info'}
+                              </span>
+                              <div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className={`font-mono font-bold text-sm ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                                    {slotId ? `Slot ${slotId.replace(/^M(\d+)/, 'B$1')}` : 'Hardware Node'}
+                                  </span>
+                                  {/* Lencana kategori zona kendaraan */}
+                                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold flex items-center gap-1 ${
+                                    vehicleType === 'MOTOR'
+                                      ? (isLight ? 'bg-purple-100 text-purple-700 border border-purple-300' : 'bg-purple-950/60 text-purple-300 border border-purple-700/50')
+                                      : (isLight ? 'bg-sky-100 text-sky-700 border border-sky-300' : 'bg-sky-950/60 text-sky-300 border border-sky-700/50')
+                                  }`}>
+                                    <span className="material-symbols-outlined text-[13px]">
+                                      {vehicleType === 'MOTOR' ? 'two_wheeler' : 'directions_car'}
+                                    </span>
+                                    {vehicleType === 'MOTOR' ? 'ZONA MOTOR' : 'ZONA MOBIL'}
+                                  </span>
+                                  {/* Lencana jenis kejadian anomali */}
+                                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
+                                    isCritical 
+                                      ? (isLight ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-red-900/40 text-red-300 border border-red-700/40')
+                                      : (isLight ? 'bg-slate-200 text-slate-700 border border-slate-300' : 'bg-slate-800 text-slate-300')
+                                  }`}>
+                                    {log.jenisKejadian}
+                                  </span>
+                                </div>
+                                {/* Rincian catatan insiden operasional */}
+                                <p className={`text-xs mt-1 leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+                                  {log.catatanDetail || 'Tidak ada catatan tambahan.'}
+                                </p>
                               </div>
-                              {/* Rincian catatan insiden operasional */}
-                              <p className={`text-xs mt-1 leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                                {log.catatanDetail || 'Tidak ada catatan tambahan.'}
-                              </p>
+                            </div>
+
+                            {/* Bagian status resolusi dan stempel waktu */}
+                            <div className="flex md:flex-col items-end justify-between md:justify-center gap-1 shrink-0 text-right">
+                              <span className={`text-[11px] font-mono ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                                {tanggal}
+                              </span>
+                              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
+                                log.statusResolusi === 'SELESAI_DIVALIDASI' 
+                                  ? (isLight ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-emerald-900/30 text-emerald-300 border border-emerald-700/40')
+                                  : (isLight ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-amber-900/30 text-amber-300 border border-amber-700/40')
+                              }`}>
+                                {log.statusResolusi || 'BELUM_DITANGANI'}
+                              </span>
                             </div>
                           </div>
-
-                          {/* Bagian status resolusi dan stempel waktu */}
-                          <div className="flex md:flex-col items-end justify-between md:justify-center gap-1 shrink-0 text-right">
-                            <span className={`text-[11px] font-mono ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                              {tanggal}
-                            </span>
-                            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
-                              log.statusResolusi === 'SELESAI_DIVALIDASI' 
-                                ? (isLight ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-emerald-900/30 text-emerald-300 border border-emerald-700/40')
-                                : (isLight ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-amber-900/30 text-amber-300 border border-amber-700/40')
-                            }`}>
-                              {log.statusResolusi || 'BELUM_DITANGANI'}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
                   </div>
                 )}
               </div>
@@ -901,8 +1047,42 @@ export default function DashboardManagementPage() {
                 </div>
 
                 <div className="flex items-center gap-4">
+                  {/* Tombol Tab Filter Kategori Denah: Mobil vs Motor */}
+                  <div className={`flex items-center p-1 rounded-xl border ${isLight ? 'bg-slate-100 border-slate-300' : 'bg-[#050B14] border-slate-700'}`}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNodeMapCategory('MOBIL');
+                        setSelectedSlotNode('B1-01');
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        nodeMapCategory === 'MOBIL'
+                          ? (isLight ? 'bg-white text-sky-700 shadow-sm border border-slate-200' : 'bg-primary text-on-primary shadow-sm')
+                          : (isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-white')
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">directions_car</span>
+                      Zona Mobil
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNodeMapCategory('MOTOR');
+                        setSelectedSlotNode('M1-01');
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        nodeMapCategory === 'MOTOR'
+                          ? (isLight ? 'bg-white text-sky-700 shadow-sm border border-slate-200' : 'bg-primary text-on-primary shadow-sm')
+                          : (isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-white')
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">two_wheeler</span>
+                      Zona Motor
+                    </button>
+                  </div>
+
                   {/* Legenda visual status node pada denah */}
-                  <div className="hidden md:flex items-center gap-3 text-xs font-mono">
+                  <div className="hidden lg:flex items-center gap-3 text-xs font-mono">
                     <div className="flex items-center gap-1.5 text-red-500">
                       <div className="w-3 h-3 bg-red-600/30 border border-red-500 rounded-sm animate-pulse"></div>
                       <span>Anomali Terindikasi</span>
@@ -939,9 +1119,12 @@ export default function DashboardManagementPage() {
                       {/* Latar belakang grid aksen blueprint */}
                       <div className={`absolute inset-0 pointer-events-none opacity-40 bg-[size:24px_24px] ${isLight ? 'bg-[linear-gradient(rgba(0,0,0,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.04)_1px,transparent_1px)]' : 'bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)]'}`}></div>
 
-                      {/* Header teks denah: LANTAI 1 */}
-                      <div className={`text-xs font-mono text-center border-y py-1.5 mb-6 uppercase tracking-widest relative z-10 font-semibold ${isLight ? 'text-slate-600 border-slate-300' : 'text-slate-400 border-slate-800'}`}>
-                        LANTAI 1
+                      {/* Header teks denah: LANTAI 1 dan Kategori Zona */}
+                      <div className={`text-xs font-mono text-center border-y py-1.5 mb-6 uppercase tracking-widest relative z-10 font-semibold flex items-center justify-center gap-2 ${isLight ? 'text-slate-700 border-slate-300 bg-slate-200/50' : 'text-slate-300 border-slate-800 bg-slate-900/60'}`}>
+                        <span className="material-symbols-outlined text-[16px] text-sky-500">
+                          {nodeMapCategory === 'MOTOR' ? 'two_wheeler' : 'directions_car'}
+                        </span>
+                        <span>BASEMENT LANTAI 1 — {nodeMapCategory === 'MOTOR' ? 'ZONA PARKIR MOTOR (16 SLOT)' : 'ZONA PARKIR MOBIL (16 SLOT)'}</span>
                       </div>
 
                       {/* Baris 1: 8 Slot Parkir (B1-01 sampai B1-08) */}
@@ -1021,6 +1204,7 @@ export default function DashboardManagementPage() {
                           <span className={`material-symbols-outlined ${isLight ? 'text-sky-600' : 'text-sky-400'}`}>info</span>
                           <h3 className={`font-mono text-base font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
                             Detail Insiden Node: <span className={isLight ? 'text-sky-600' : 'text-sky-300'}>{(selectedSlotNode || 'Pilih Slot').replace(/^M(\d+)/, 'B$1')}</span>
+                            <span className="text-xs font-normal text-text-muted ml-2">({nodeMapCategory === 'MOTOR' ? 'Zona Motor' : 'Zona Mobil'})</span>
                           </h3>
                         </div>
                         {/* Lencana status anomali slot terpilih */}
@@ -1063,7 +1247,7 @@ export default function DashboardManagementPage() {
                         // Tampilan status normal jika tidak terdapat catatan anomali pada slot
                         <div className={`text-xs py-4 text-center font-mono flex items-center justify-center gap-2 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                           <span className={`material-symbols-outlined text-lg ${isLight ? 'text-emerald-600' : 'text-emerald-400'}`}>verified</span>
-                          <span>Slot {(selectedSlotNode || '').replace(/^M(\d+)/, 'B$1')} tidak memiliki catatan kesalahan atau anomali pada 10 log IoT terbaru.</span>
+                          <span>Slot {(selectedSlotNode || '').replace(/^M(\d+)/, 'B$1')} ({nodeMapCategory === 'MOTOR' ? 'Zona Motor' : 'Zona Mobil'}) tidak memiliki catatan kesalahan atau anomali pada 10 log IoT terbaru.</span>
                         </div>
                       )}
                     </div>
