@@ -385,7 +385,7 @@ export default function DashboardPage() {
                               {isAnomali && (
                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-surface-container-high border border-alert-anomaly p-3 rounded shadow-lg hidden group-hover:block z-50 text-left">
                                   <p className="text-xs text-alert-anomaly font-bold mb-1">ANOMALI SLOT</p>
-                                  <p className="text-xs text-on-surface-variant font-mono">Slot: {slot.idSlot}</p>
+                                  <p className="text-xs text-on-surface-variant font-mono">Slot: {slot.idSlot.replace(/^M(\d+)/, "B$1")}</p>
                                   {slot.kendaraanAktif && (
                                     <p className="text-xs text-on-surface-variant font-mono">Plat: {slot.kendaraanAktif.platNomor}</p>
                                   )}
@@ -458,7 +458,7 @@ export default function DashboardPage() {
                           : 'bg-red-950/30 border-red-600/60 text-red-400 shadow-[0_0_6px_rgba(239,68,68,0.3)]'
                           }`}
                       >
-                        {s.idSensor.replace('SNS-', '')}
+                        {s.idSensor.replace('SNS-', '').replace(/^M(\d+)/, 'B$1')}
                       </span>
                     );
                   })}

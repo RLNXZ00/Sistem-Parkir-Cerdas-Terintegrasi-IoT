@@ -21,6 +21,9 @@ export default function NavigationPage() {
   // Mengambil daftar titik koordinat rute graf dari data alokasi rute algoritma A*
   const ruteKoordinat = slotData?.urutan || [];
 
+  // Fungsi format pembantu untuk menampilkan kode slot parkir motor tetap berawalan 'B' (contoh: B1-01)
+  const formatSlotDisplay = (id) => (id ? id.replace(/^M(\d+)/, 'B$1') : '');
+
   // Inisialisasi state elapsedSeconds bertipe number dengan nilai awal 0 untuk menghitung waktu tempuh perjalanan
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   // Inisialisasi state isParked bertipe boolean dengan nilai awal false untuk status kedatangan kendaraan di slot
@@ -198,7 +201,7 @@ export default function NavigationPage() {
 
           {/* Kotak informasi plat kendaraan dan target slot tujuan */}
           <div className="text-slate-100 font-medium flex items-center bg-sky-900/40 border border-sky-500/30 px-5 py-1.5 rounded-full shadow-[0_0_15px_rgba(14,165,233,0.2)]">
-            <span className="tracking-wider text-sm">Plat: <strong className="text-sky-300">{platNomor || "D 1234 SPCT"}</strong> | Slot: <strong className="text-green-400">{targetSlot}</strong></span>
+            <span className="tracking-wider text-sm">Plat: <strong className="text-sky-300">{platNomor || "D 1234 SPCT"}</strong> | Slot: <strong className="text-green-400">{formatSlotDisplay(targetSlot)}</strong></span>
           </div>
 
           {/* Tombol navigasi untuk kembali ke halaman gerbang masuk */}
@@ -253,7 +256,7 @@ export default function NavigationPage() {
                   fontFamily="Space Grotesk" 
                   fontWeight="bold"
                 >
-                  {slot.id}
+                  {formatSlotDisplay(slot.id)}
                 </text>
               </g>
             ))}
@@ -295,7 +298,7 @@ export default function NavigationPage() {
             <div className="flex items-center gap-4">
               <span className="material-symbols-outlined text-3xl text-emerald-400">check_circle</span>
               <div>
-                <div className="text-lg font-bold">KENDARAAN TELAH TIBA DI SLOT {targetSlot}!</div>
+                <div className="text-lg font-bold">KENDARAAN TELAH TIBA DI SLOT {formatSlotDisplay(targetSlot)}!</div>
                 <div className="text-xs text-emerald-200/80">
                   Waktu tempuh aktual: <strong>{elapsedSeconds} detik</strong> ({formatTime(elapsedSeconds)} menit) telah dicatat ke database & diakumulasikan ke metrik reduksi CO2.
                 </div>
@@ -316,7 +319,7 @@ export default function NavigationPage() {
             <div className="bg-green-500/20 border border-green-400/50 text-green-300 py-2.5 px-6 rounded-2xl flex items-center justify-between shadow-[0_0_20px_rgba(74,222,128,0.2)] backdrop-blur-xl">
               <div className="flex items-center gap-3">
                 <span className="material-symbols-outlined text-2xl animate-bounce" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_forward</span>
-                <span className="text-lg font-bold tracking-wider">SILAKAN IKUTI RUTE HIJAU MENUJU {targetSlot}</span>
+                <span className="text-lg font-bold tracking-wider">SILAKAN IKUTI RUTE HIJAU MENUJU {formatSlotDisplay(targetSlot)}</span>
               </div>
               <div className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-1.5 rounded-lg border border-slate-700/80">
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>

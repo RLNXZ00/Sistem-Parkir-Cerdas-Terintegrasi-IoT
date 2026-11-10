@@ -80,7 +80,7 @@ export default function AllocatingSlotPage() {
             // Jika berhasil menemukan slot, tampilkan kode slot dengan ukuran besar 140px:
             <>
               <h1 className="text-[140px] leading-none font-extrabold tracking-tighter text-green-400 drop-shadow-[0_0_30px_rgba(74,222,128,0.6)] animate-pulse">
-                {slot ? slot.idSlot : "..."}
+                {slot ? slot.idSlot.replace(/^M(\d+)/, "B$1") : "..."}
               </h1>
               <h2 className="text-2xl text-slate-300 tracking-[0.2em] uppercase font-light">
                 SLOT PARKIR ANDA
