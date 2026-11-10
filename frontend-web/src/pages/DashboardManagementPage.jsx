@@ -22,6 +22,9 @@ const DEFAULT_MOTOR_SLOTS = [
 // Alias DEFAULT_SLOTS untuk kompatibilitas bawaan
 const DEFAULT_SLOTS = DEFAULT_MOBIL_SLOTS;
 
+// Deklarasi konstanta CURRENT_CALENDAR_YEAR untuk label kalender tahun berjalan
+const CURRENT_CALENDAR_YEAR = new Date().getFullYear();
+
 // Deklarasi fungsi komponen publik DashboardManagementPage sebagai modul pengawasan analitik eksekutif
 export default function DashboardManagementPage() {
   // Destrukturisasi fungsi translasi t dan variabel kode bahasa aktif lang dari LanguageContext
@@ -58,8 +61,6 @@ export default function DashboardManagementPage() {
 
   // Inisialisasi state revenuePeriod bertipe string ('BULANAN' | 'TAHUNAN' | 'SEMUA') untuk filter periode kartu pendapatan
   const [revenuePeriod, setRevenuePeriod] = useState('BULANAN');
-  // Tahun kalender saat ini untuk label tampilan
-  const currentYear = currentYear;
 
   // Membaca preferensi target efisiensi dari pengaturan sistem lokal jika tersedia di peramban
   const [systemSettings] = useState(() => {
@@ -714,13 +715,13 @@ export default function DashboardManagementPage() {
               <div className="flex justify-between items-center mb-2">
                 <span className="text-xs text-text-muted font-mono">
                   {revenuePeriod === 'BULANAN' && 'Rekapitulasi transaksi lunas bulan kalender berjalan'}
-                  {revenuePeriod === 'TAHUNAN' && `Rekapitulasi riil 12 bulan kalender tahun ${currentYear}`}
+                  {revenuePeriod === 'TAHUNAN' && `Rekapitulasi riil 12 bulan kalender tahun ${CURRENT_CALENDAR_YEAR}`}
                   {revenuePeriod === 'SEMUA' && 'Rekapitulasi seluruh riwayat transaksi lunas sejak sistem beroperasi'}
                 </span>
                 {/* Lencana penanda periode aktif */}
                 <span className="px-2.5 py-1 bg-eco-success/20 text-eco-success rounded text-xs font-mono font-bold border border-eco-success/30">
                   {revenuePeriod === 'BULANAN' && `Bulan Berjalan (${safeData.grafikPendapatanHarian?.length || 1} Hari)`}
-                  {revenuePeriod === 'TAHUNAN' && `Tahun ${currentYear} (12 Bulan)`}
+                  {revenuePeriod === 'TAHUNAN' && `Tahun ${CURRENT_CALENDAR_YEAR} (12 Bulan)`}
                   {revenuePeriod === 'SEMUA' && `Histori Database (${activeTrxLunasCount} Trx)`}
                 </span>
               </div>
@@ -739,7 +740,7 @@ export default function DashboardManagementPage() {
             {/* Catatan kaki metodologi perhitungan pendapatan sesuai filter aktif */}
             <div className="text-right text-[11px] text-text-muted font-mono mt-2">
               {revenuePeriod === 'BULANAN' && '*Pertumbuhan pendapatan akumulatif harian dari tanggal 1 s.d. hari ini'}
-              {revenuePeriod === 'TAHUNAN' && `*Rekapitulasi pendapatan riil per bulan pada tahun berjalan ${currentYear}`}
+              {revenuePeriod === 'TAHUNAN' && `*Rekapitulasi pendapatan riil per bulan pada tahun berjalan ${CURRENT_CALENDAR_YEAR}`}
               {revenuePeriod === 'SEMUA' && '*Akumulasi pendapatan riil seluruh transaksi lunas sejak sistem beroperasi'}
             </div>
           </div>
