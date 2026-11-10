@@ -8,6 +8,10 @@ import com.spct.dto.DataDashboardDto.DataOkupansiJamDto;
 import com.spct.model.StatusResolusi;
 // Import enum StatusSlot dari package model
 import com.spct.model.StatusSlot;
+// Import enum JenisKendaraan dari package model
+import com.spct.model.JenisKendaraan;
+// Import entitas SlotParkir dari package model
+import com.spct.model.SlotParkir;
 // Import repositori DataKendaraanRepository dari package repository
 import com.spct.repository.DataKendaraanRepository;
 // Import repositori LogOperasionalIoTRepository dari package repository
@@ -124,6 +128,22 @@ public class AnalitikLaporanService
         // Mengambil total slot terisi real-time
         Long slotTerisi = (long) slotParkirRepository.findByStatusSlot(StatusSlot.TERISI).size();
 
+        // Mengambil daftar slot parkir kategori Mobil di Lantai 1
+        List<SlotParkir> slotMobilLantai1 = slotParkirRepository.findByLantaiAndJenisKendaraan(1, JenisKendaraan.MOBIL);
+        // Menghitung kapasitas total slot mobil Lantai 1
+        Long slotMobilTotal = (long) (slotMobilLantai1 != null ? slotMobilLantai1.size() : 16);
+        // Menghitung jumlah slot mobil Lantai 1 yang sedang terisi atau dipesan
+        Long slotMobilTerisi = slotMobilLantai1 != null ? slotMobilLantai1.stream()
+            .filter(s -> s.getStatusSlot() == StatusSlot.TERISI || s.getStatusSlot() == StatusSlot.DIPESAN).count() : 0L;
+
+        // Mengambil daftar slot parkir kategori Motor di Lantai 1
+        List<SlotParkir> slotMotorLantai1 = slotParkirRepository.findByLantaiAndJenisKendaraan(1, JenisKendaraan.MOTOR);
+        // Menghitung kapasitas total slot motor Lantai 1
+        Long slotMotorTotal = (long) (slotMotorLantai1 != null ? slotMotorLantai1.size() : 16);
+        // Menghitung jumlah slot motor Lantai 1 yang sedang terisi atau dipesan
+        Long slotMotorTerisi = slotMotorLantai1 != null ? slotMotorLantai1.stream()
+            .filter(s -> s.getStatusSlot() == StatusSlot.TERISI || s.getStatusSlot() == StatusSlot.DIPESAN).count() : 0L;
+
         // Mengambil total unit perangkat keras sensor IoT
         Long totalSensor = sensorIoTRepository.count();
         // Mengambil kuantitas unit sensor yang sedang berstatus aktif (ON)
@@ -206,6 +226,12 @@ public class AnalitikLaporanService
         dto.setOccupancyRateSaatIni(occupancyRateSaatIni);
         // Mengisi metrik total kendaraan masuk hari ini
         dto.setTotalKendaraanHariIni(totalKendaraanHariIni);
+
+        // Mengisi metrik okupansi khusus zona mobil dan motor di Lantai 1
+        dto.setSlotMobilTerisi(slotMobilTerisi);
+        dto.setSlotMobilTotal(slotMobilTotal);
+        dto.setSlotMotorTerisi(slotMotorTerisi);
+        dto.setSlotMotorTotal(slotMotorTotal);
 
         // Mengembalikan objek DTO data dashboard lengkap
         return dto;

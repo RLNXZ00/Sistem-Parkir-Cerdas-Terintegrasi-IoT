@@ -69,6 +69,18 @@ public class DataDashboardDto
     // Deklarasi atribut totalKendaraanHariIni bertipe Long untuk volume kendaraan masuk khusus hari ini
     private Long totalKendaraanHariIni;
 
+    // Deklarasi atribut slotMobilTerisi bertipe Long untuk jumlah slot mobil terisi di Lantai 1
+    private Long slotMobilTerisi;
+
+    // Deklarasi atribut slotMobilTotal bertipe Long untuk kapasitas total slot mobil di Lantai 1
+    private Long slotMobilTotal;
+
+    // Deklarasi atribut slotMotorTerisi bertipe Long untuk jumlah slot motor terisi di Lantai 1
+    private Long slotMotorTerisi;
+
+    // Deklarasi atribut slotMotorTotal bertipe Long untuk kapasitas total slot motor di Lantai 1
+    private Long slotMotorTotal;
+
     // =====================================================================
     // Inner Class: DataPendapatanHarianDto
     // =====================================================================
@@ -466,5 +478,45 @@ public class DataDashboardDto
     public void setTotalKendaraanHariIni(Long totalKendaraanHariIni) 
     {
         this.totalKendaraanHariIni = totalKendaraanHariIni; // Inisialisasi atribut totalKendaraanHariIni dengan parameter
+    }
+
+    // Method getter getSlotMobilTerisi untuk mengambil jumlah slot mobil terisi
+    public Long getSlotMobilTerisi() {
+        return slotMobilTerisi; // Mengembalikan slotMobilTerisi
+    }
+
+    // Method setter setSlotMobilTerisi untuk mengubah jumlah slot mobil terisi
+    public void setSlotMobilTerisi(Long slotMobilTerisi) {
+        this.slotMobilTerisi = slotMobilTerisi; // Inisialisasi atribut slotMobilTerisi dengan parameter
+    }
+
+    // Method getter getSlotMobilTotal untuk mengambil kapasitas total slot mobil
+    public Long getSlotMobilTotal() {
+        return slotMobilTotal; // Mengembalikan slotMobilTotal
+    }
+
+    // Method setter setSlotMobilTotal untuk mengubah kapasitas total slot mobil
+    public void setSlotMobilTotal(Long slotMobilTotal) {
+        this.slotMobilTotal = slotMobilTotal; // Inisialisasi atribut slotMobilTotal dengan parameter
+    }
+
+    // Method getter getSlotMotorTerisi untuk mengambil jumlah slot motor terisi
+    public Long getSlotMotorTerisi() {
+        return slotMotorTerisi; // Mengembalikan slotMotorTerisi
+    }
+
+    // Method setter setSlotMotorTerisi untuk mengubah jumlah slot motor terisi
+    public void setSlotMotorTerisi(Long slotMotorTerisi) {
+        this.slotMotorTerisi = slotMotorTerisi; // Inisialisasi atribut slotMotorTerisi dengan parameter
+    }
+
+    // Method getter getSlotMotorTotal untuk mengambil kapasitas total slot motor
+    public Long getSlotMotorTotal() {
+        return slotMotorTotal; // Mengembalikan slotMotorTotal
+    }
+
+    // Method setter setSlotMotorTotal untuk mengubah kapasitas total slot motor
+    public void setSlotMotorTotal(Long slotMotorTotal) {
+        this.slotMotorTotal = slotMotorTotal; // Inisialisasi atribut slotMotorTotal dengan parameter
     }
 }
