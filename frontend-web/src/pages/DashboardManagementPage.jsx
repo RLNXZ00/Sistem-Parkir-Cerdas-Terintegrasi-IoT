@@ -440,6 +440,8 @@ export default function DashboardManagementPage() {
 
   // Menghitung kapasitas total slot mobil di Basement Lantai 1
   const mobilTotal = safeData.slotMobilTotal || 16;
+  // Menghitung total slot fisik mobil di Basement Lantai 1 (variabel alias untuk kompatibilitas tampilan)
+  const totalSlotMobil = mobilTotal;
   // Menghitung jumlah slot mobil yang sedang terisi saat ini
   const mobilTerisi = safeData.slotMobilTerisi != null ? safeData.slotMobilTerisi : (safeData.slotTerisiSaatIni != null ? Math.min(safeData.slotTerisiSaatIni, mobilTotal) : 1);
   // Menghitung persentase okupansi zona mobil dibatasi maksimal 100%
@@ -508,7 +510,7 @@ export default function DashboardManagementPage() {
     },
     { 
       label: t('mgmt.totalTransactions', 'Total Kendaraan'), 
-      value: safeData.totalKendaraan.toLocaleString('id-ID'), 
+      value: (safeData.totalKendaraan ?? 0).toLocaleString('id-ID'), 
       sub: `${safeData.totalKendaraanHariIni || 0} ${lang === 'en' ? 'Vehicles Today' : 'Masuk Hari Ini'}`, 
       icon: 'directions_car', 
       color: 'text-primary' 
@@ -662,7 +664,7 @@ export default function DashboardManagementPage() {
                   {pctMobil}%
                 </span>
                 <span className="text-text-muted font-mono text-xs">
-                  Okupansi Fisik Saat Ini ({safeData.slotTerisiSaatIni}/{totalSlotMobil} Slot)
+                  Okupansi Fisik Saat Ini ({safeData.slotTerisiSaatIni || 0}/{mobilTotal} Slot)
                 </span>
               </div>
               {/* Batang kemajuan (progress bar) persentase okupansi zona parkir */}
