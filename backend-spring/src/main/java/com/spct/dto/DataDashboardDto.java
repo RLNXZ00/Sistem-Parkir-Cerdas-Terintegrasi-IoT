@@ -21,6 +21,15 @@ public class DataDashboardDto
     // Deklarasi atribut pendapatanBulanan bertipe BigDecimal untuk pendapatan bulan berjalan
     private BigDecimal pendapatanBulanan;
 
+    // Deklarasi atribut pendapatanTahunan bertipe BigDecimal untuk pendapatan tahun berjalan
+    private BigDecimal pendapatanTahunan;
+
+    // Deklarasi atribut totalTransaksiLunasTahunan bertipe Long untuk total transaksi lunas tahun berjalan
+    private Long totalTransaksiLunasTahunan;
+
+    // Deklarasi atribut totalTransaksiLunasSemua bertipe Long untuk total transaksi lunas sepanjang masa
+    private Long totalTransaksiLunasSemua;
+
     // Deklarasi atribut persentasePendapatan bertipe Double untuk rasio pertumbuhan pendapatan
     private Double persentasePendapatan;
 
@@ -53,6 +62,12 @@ public class DataDashboardDto
 
     // Deklarasi atribut grafikPendapatanHarian bertipe List<DataPendapatanHarianDto> untuk data pendapatan harian
     private List<DataPendapatanHarianDto> grafikPendapatanHarian;
+
+    // Deklarasi atribut grafikPendapatanBulanan bertipe List<DataPendapatanHarianDto> untuk data pendapatan 12 bulan
+    private List<DataPendapatanHarianDto> grafikPendapatanBulanan;
+
+    // Deklarasi atribut grafikPendapatanSemua bertipe List<DataPendapatanHarianDto> untuk data pendapatan all-time
+    private List<DataPendapatanHarianDto> grafikPendapatanSemua;
 
     // Deklarasi atribut totalTransaksiLunas bertipe Long untuk jumlah transaksi sukses lunas
     private Long totalTransaksiLunas;
@@ -518,5 +533,65 @@ public class DataDashboardDto
     // Method setter setSlotMotorTotal untuk mengubah kapasitas total slot motor
     public void setSlotMotorTotal(Long slotMotorTotal) {
         this.slotMotorTotal = slotMotorTotal; // Inisialisasi atribut slotMotorTotal dengan parameter
+    }
+
+    // Method getter getPendapatanTahunan untuk mengambil nominal pendapatan tahun berjalan
+    public BigDecimal getPendapatanTahunan() 
+    {
+        return pendapatanTahunan; // Mengembalikan nilai pendapatanTahunan
+    }
+
+    // Method setter setPendapatanTahunan untuk mengubah nominal pendapatan tahun berjalan
+    public void setPendapatanTahunan(BigDecimal pendapatanTahunan) 
+    {
+        this.pendapatanTahunan = pendapatanTahunan; // Inisialisasi atribut pendapatanTahunan dengan parameter
+    }
+
+    // Method getter getTotalTransaksiLunasTahunan untuk mengambil kuantitas transaksi lunas tahun berjalan
+    public Long getTotalTransaksiLunasTahunan() 
+    {
+        return totalTransaksiLunasTahunan; // Mengembalikan totalTransaksiLunasTahunan
+    }
+
+    // Method setter setTotalTransaksiLunasTahunan untuk mengubah kuantitas transaksi lunas tahun berjalan
+    public void setTotalTransaksiLunasTahunan(Long totalTransaksiLunasTahunan) 
+    {
+        this.totalTransaksiLunasTahunan = totalTransaksiLunasTahunan; // Inisialisasi atribut totalTransaksiLunasTahunan dengan parameter
+    }
+
+    // Method getter getTotalTransaksiLunasSemua untuk mengambil kuantitas transaksi lunas sepanjang masa
+    public Long getTotalTransaksiLunasSemua() 
+    {
+        return totalTransaksiLunasSemua; // Mengembalikan totalTransaksiLunasSemua
+    }
+
+    // Method setter setTotalTransaksiLunasSemua untuk mengubah kuantitas transaksi lunas sepanjang masa
+    public void setTotalTransaksiLunasSemua(Long totalTransaksiLunasSemua) 
+    {
+        this.totalTransaksiLunasSemua = totalTransaksiLunasSemua; // Inisialisasi atribut totalTransaksiLunasSemua dengan parameter
+    }
+
+    // Method getter getGrafikPendapatanBulanan untuk mengambil daftar grafik pendapatan 12 bulan
+    public List<DataPendapatanHarianDto> getGrafikPendapatanBulanan() 
+    {
+        return grafikPendapatanBulanan; // Mengembalikan daftar grafikPendapatanBulanan
+    }
+
+    // Method setter setGrafikPendapatanBulanan untuk mengubah daftar grafik pendapatan 12 bulan
+    public void setGrafikPendapatanBulanan(List<DataPendapatanHarianDto> grafikPendapatanBulanan) 
+    {
+        this.grafikPendapatanBulanan = grafikPendapatanBulanan; // Inisialisasi atribut grafikPendapatanBulanan dengan parameter
+    }
+
+    // Method getter getGrafikPendapatanSemua untuk mengambil daftar grafik pendapatan sepanjang masa
+    public List<DataPendapatanHarianDto> getGrafikPendapatanSemua() 
+    {
+        return grafikPendapatanSemua; // Mengembalikan daftar grafikPendapatanSemua
+    }
+
+    // Method setter setGrafikPendapatanSemua untuk mengubah daftar grafik pendapatan sepanjang masa
+    public void setGrafikPendapatanSemua(List<DataPendapatanHarianDto> grafikPendapatanSemua) 
+    {
+        this.grafikPendapatanSemua = grafikPendapatanSemua; // Inisialisasi atribut grafikPendapatanSemua dengan parameter
     }
 }

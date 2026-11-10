@@ -56,6 +56,11 @@ export default function DashboardManagementPage() {
   // Inisialisasi state nodeMapCategory bertipe string ('MOBIL' | 'MOTOR') untuk tab denah visual peta node sensor
   const [nodeMapCategory, setNodeMapCategory] = useState('MOBIL');
 
+  // Inisialisasi state revenuePeriod bertipe string ('BULANAN' | 'TAHUNAN' | 'SEMUA') untuk filter periode kartu pendapatan
+  const [revenuePeriod, setRevenuePeriod] = useState('BULANAN');
+  // Tahun kalender saat ini untuk label tampilan
+  const currentYear = currentYear;
+
   // Membaca preferensi target efisiensi dari pengaturan sistem lokal jika tersedia di peramban
   const [systemSettings] = useState(() => {
     // Mengecek apakah objek window dan localStorage tersedia
@@ -289,20 +294,46 @@ export default function DashboardManagementPage() {
     }
   };
 
-  // Hook useEffect untuk merender atau memperbarui visualisasi grafik garis Chart.js saat data analitik berubah
+  // Hook useEffect untuk merender atau memperbarui visualisasi grafik garis Chart.js saat data analitik atau filter periode berubah
   useEffect(() => {
     // Batalkan eksekusi jika data analitik belum siap atau elemen canvas grafik belum terpasang di DOM
     if (!data || !chartRef.current) return;
 
-    // Ambil array histori pendapatan harian dari payload analitik, atau array kosong jika undefined
-    const dailyData = data.grafikPendapatanHarian || [];
-    // Batalkan eksekusi jika data harian kosong
-    if (dailyData.length === 0) return;
+    // Menentukan array titik data aktif berdasarkan filter periode
+    let activeChartData = [];
+    // Label dataset untuk tooltip Chart.js
+    let activeDatasetLabel = 'Pendapatan Harian (Rp)';
 
-    // Petakan label sumbu X menjadi teks tanggal 'Tgl X'
-    const labels = dailyData.map(item => `Tgl ${item.hari}`);
-    // Petakan nilai numerik nominal pendapatan harian untuk sumbu Y
-    const values = dailyData.map(item => item.nominal || 0);
+    // Pemilihan dataset berdasarkan pilihan filter periode pendapatan
+    if (revenuePeriod === 'TAHUNAN') {
+      // Periode Tahunan: Mengambil data rekapitulasi 12 bulan (Jan - Des)
+      activeChartData = data.grafikPendapatanBulanan || [];
+      activeDatasetLabel = 'Pendapatan Bulanan (Rp)';
+    } else if (revenuePeriod === 'SEMUA') {
+      // Periode Semua: Mengambil data histori kumulatif database all-time
+      activeChartData = data.grafikPendapatanSemua || [];
+      activeDatasetLabel = 'Pendapatan Historis (Rp)';
+    } else {
+      // Periode Bulanan (default): Mengambil data harian tanggal 1 s.d. hari ini
+      activeChartData = data.grafikPendapatanHarian || [];
+      activeDatasetLabel = 'Pendapatan Harian (Rp)';
+    }
+
+    // Batalkan eksekusi jika data aktif kosong
+    if (activeChartData.length === 0) return;
+
+    // Petakan label sumbu X berdasarkan properti labelTanggal atau nomor hari
+    const labels = activeChartData.map(item => {
+      // Jika periode bulanan, tampilkan format 'Tgl X'
+      if (revenuePeriod === 'BULANAN') {
+        return `Tgl ${item.hari}`;
+      }
+      // Jika periode tahunan atau semua, gunakan labelTanggal (misal: "Jan", "Feb" atau "Okt 26")
+      return item.labelTanggal || `P-${item.hari}`;
+    });
+
+    // Petakan nilai numerik nominal pendapatan untuk sumbu Y
+    const values = activeChartData.map(item => item.nominal || 0);
 
     // Hancurkan instance chart yang sedang berjalan sebelumnya untuk mencegah memory leak dan glitch rendering
     if (chartInstanceRef.current) {
@@ -331,9 +362,9 @@ export default function DashboardManagementPage() {
     chartInstanceRef.current = new Chart(ctx, {
       type: 'line', // Menentukan jenis visualisasi berupa diagram garis kontinu
       data: {
-        labels: labels, // Label sumbu horizontal berupa deretan tanggal
+        labels: labels, // Label sumbu horizontal berupa deretan label tanggal/bulan
         datasets: [{
-          label: 'Pendapatan Harian (Rp)', // Label dataset untuk keterangan tooltip
+          label: activeDatasetLabel, // Label dataset untuk keterangan tooltip
           data: values, // Deretan data nominal pendapatan
           borderColor: '#10b981', // Warna garis kurva hijau emerald
           borderWidth: 2.5, // Ketebalan garis kurva 2.5 piksel
@@ -394,7 +425,7 @@ export default function DashboardManagementPage() {
         chartInstanceRef.current.destroy();
       }
     };
-  }, [data, isLight]); // Efek samping dieksekusi ulang setiap kali state data diperbarui
+  }, [data, isLight, revenuePeriod]); // Efek samping dieksekusi ulang setiap kali state data, tema, atau periode filter berubah
 
   // Jika aplikasi masih dalam fase pemuatan awal data analitik, tampilkan indikator loading
   if (isLoading) {
@@ -430,18 +461,44 @@ export default function DashboardManagementPage() {
     occupancyRateSaatIni: 0,
     totalKendaraanHariIni: 0,
     grafikOkupansiPerJam: [],
-    grafikPendapatanHarian: []
+    grafikPendapatanHarian: [],
+    pendapatanTahunan: 0,
+    totalTransaksiLunasTahunan: 0,
+    totalTransaksiLunasSemua: 0,
+    grafikPendapatanBulanan: [],
+    grafikPendapatanSemua: []
   };
 
   // Nilai pendapatan harian dengan fallback ke pendapatan total atau nol
   const pendapatanHariIniVal = safeData.pendapatanHariIni ?? safeData.pendapatanTotal ?? 0;
   // Nilai pendapatan bulanan dengan fallback ke pendapatan total atau nol
   const pendapatanBulananVal = safeData.pendapatanBulanan ?? safeData.pendapatanTotal ?? 0;
+  // Nilai pendapatan tahunan dengan fallback ke nol
+  const pendapatanTahunanVal = safeData.pendapatanTahunan ?? 0;
+  // Nilai pendapatan all-time sepanjang masa dengan fallback ke nol
+  const pendapatanTotalVal = safeData.pendapatanTotal ?? 0;
+
+  // Nilai nominal pendapatan aktif yang ditampilkan pada kartu utama sesuai filter periode aktif
+  const activeRevenueDisplayVal = revenuePeriod === 'BULANAN'
+    ? pendapatanBulananVal
+    : revenuePeriod === 'TAHUNAN'
+    ? pendapatanTahunanVal
+    : pendapatanTotalVal;
+
+  // Kuantitas transaksi lunas yang mendasari periode aktif
+  const activeTrxLunasCount = revenuePeriod === 'BULANAN'
+    ? (safeData.totalTransaksiLunas || 0)
+    : revenuePeriod === 'TAHUNAN'
+    ? (safeData.totalTransaksiLunasTahunan || 0)
+    : (safeData.totalTransaksiLunasSemua || 0);
+
+  // Perhitungan tarif rata-rata per kendaraan sesuai transaksi lunas periode aktif
+  const activeAvgFeeVal = activeTrxLunasCount > 0
+    ? Math.round(Number(activeRevenueDisplayVal) / activeTrxLunasCount)
+    : 0;
 
   // Menghitung kapasitas total slot mobil di Basement Lantai 1
   const mobilTotal = safeData.slotMobilTotal || 16;
-  // Menghitung total slot fisik mobil di Basement Lantai 1 (variabel alias untuk kompatibilitas tampilan)
-  const totalSlotMobil = mobilTotal;
   // Menghitung jumlah slot mobil yang sedang terisi saat ini
   const mobilTerisi = safeData.slotMobilTerisi != null ? safeData.slotMobilTerisi : (safeData.slotTerisiSaatIni != null ? Math.min(safeData.slotTerisiSaatIni, mobilTotal) : 1);
   // Menghitung persentase okupansi zona mobil dibatasi maksimal 100%
@@ -600,23 +657,77 @@ export default function DashboardManagementPage() {
 
         {/* Grid Grafik Pendapatan Harian dan Analisis Dampak Finansial (Financial Impact) */}
         <div className="grid grid-cols-12 gap-4">
-          {/* Kolom Kiri: Kartu Grafik Analitik Pendapatan Bulanan */}
+          {/* Kolom Kiri: Kartu Grafik Analitik Pendapatan dengan Filter Periode */}
           <div className="col-span-12 md:col-span-8 bg-bg-surface rounded-xl p-5 border border-outline-variant/30 flex flex-col justify-between">
             <div>
-              {/* Header kartu grafik dan lencana jumlah hari berjalan */}
-              <div className="flex justify-between items-start mb-2">
+              {/* Header kartu analitik pendapatan dan kontrol filter periode */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3">
+                {/* Judul dinamis kartu dan ikon pembayaran */}
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-eco-success">payments</span>
-                  <h2 className="text-xl font-semibold text-on-surface">Pendapatan Bulanan</h2>
+                  <h2 className="text-xl font-semibold text-on-surface">
+                    {revenuePeriod === 'BULANAN' && 'Pendapatan Bulanan'}
+                    {revenuePeriod === 'TAHUNAN' && 'Pendapatan Tahunan'}
+                    {revenuePeriod === 'SEMUA' && 'Pendapatan Sepanjang Waktu'}
+                  </h2>
                 </div>
-                {/* Lencana penanda bulan berjalan dan jumlah titik hari aktif */}
+
+                {/* Kontrol Tombol Pil Filter Periode: Bulanan | Tahunan | Semua */}
+                <div className="flex items-center gap-1 bg-surface-container-highest/60 p-1 rounded-lg border border-outline-variant/30">
+                  <button
+                    type="button"
+                    onClick={() => setRevenuePeriod('BULANAN')}
+                    className={`px-3 py-1 rounded text-xs font-mono font-bold transition-all ${
+                      revenuePeriod === 'BULANAN'
+                        ? 'bg-eco-success text-bg-base shadow-sm'
+                        : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                    }`}
+                  >
+                    Bulanan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRevenuePeriod('TAHUNAN')}
+                    className={`px-3 py-1 rounded text-xs font-mono font-bold transition-all ${
+                      revenuePeriod === 'TAHUNAN'
+                        ? 'bg-eco-success text-bg-base shadow-sm'
+                        : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                    }`}
+                  >
+                    Tahunan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRevenuePeriod('SEMUA')}
+                    className={`px-3 py-1 rounded text-xs font-mono font-bold transition-all ${
+                      revenuePeriod === 'SEMUA'
+                        ? 'bg-eco-success text-bg-base shadow-sm'
+                        : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                    }`}
+                  >
+                    Semua
+                  </button>
+                </div>
+              </div>
+
+              {/* Sub-header: Keterangan konteks rentang dan lencana penanda aktif */}
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs text-text-muted font-mono">
+                  {revenuePeriod === 'BULANAN' && 'Rekapitulasi transaksi lunas bulan kalender berjalan'}
+                  {revenuePeriod === 'TAHUNAN' && `Rekapitulasi riil 12 bulan kalender tahun ${currentYear}`}
+                  {revenuePeriod === 'SEMUA' && 'Rekapitulasi seluruh riwayat transaksi lunas sejak sistem beroperasi'}
+                </span>
+                {/* Lencana penanda periode aktif */}
                 <span className="px-2.5 py-1 bg-eco-success/20 text-eco-success rounded text-xs font-mono font-bold border border-eco-success/30">
-                  Bulan Berjalan ({safeData.grafikPendapatanHarian?.length || 1} Hari)
+                  {revenuePeriod === 'BULANAN' && `Bulan Berjalan (${safeData.grafikPendapatanHarian?.length || 1} Hari)`}
+                  {revenuePeriod === 'TAHUNAN' && `Tahun ${currentYear} (12 Bulan)`}
+                  {revenuePeriod === 'SEMUA' && `Histori Database (${activeTrxLunasCount} Trx)`}
                 </span>
               </div>
-              {/* Teks angka besar akumulasi pendapatan kotor bulan berjalan */}
+
+              {/* Teks angka besar akumulasi pendapatan kotor sesuai periode aktif */}
               <div className="text-[44px] font-bold text-eco-success tracking-tighter leading-none mb-4 font-mono">
-                Rp {Number(pendapatanBulananVal).toLocaleString('id-ID')}
+                Rp {Number(activeRevenueDisplayVal).toLocaleString('id-ID')}
               </div>
             </div>
 
@@ -625,9 +736,11 @@ export default function DashboardManagementPage() {
               {/* Elemen canvas yang direferensikan ke chartRef */}
               <canvas ref={chartRef}></canvas>
             </div>
-            {/* Catatan kaki metodologi perhitungan pendapatan harian */}
+            {/* Catatan kaki metodologi perhitungan pendapatan sesuai filter aktif */}
             <div className="text-right text-[11px] text-text-muted font-mono mt-2">
-              *Pertumbuhan pendapatan akumulatif harian dari tanggal 1 s.d. hari ini
+              {revenuePeriod === 'BULANAN' && '*Pertumbuhan pendapatan akumulatif harian dari tanggal 1 s.d. hari ini'}
+              {revenuePeriod === 'TAHUNAN' && `*Rekapitulasi pendapatan riil per bulan pada tahun berjalan ${currentYear}`}
+              {revenuePeriod === 'SEMUA' && '*Akumulasi pendapatan riil seluruh transaksi lunas sejak sistem beroperasi'}
             </div>
           </div>
 
@@ -643,11 +756,11 @@ export default function DashboardManagementPage() {
               <span className="font-mono text-sm text-on-surface-variant block mb-1">Avg Fee per Vehicle</span>
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl text-primary font-bold">
-                  Rp {Number(avgFeeVal).toLocaleString('id-ID')}
+                  Rp {Number(activeAvgFeeVal).toLocaleString('id-ID')}
                 </span>
                 {/* Indikator transaksi lunas yang mendasari perhitungan rata-rata */}
-                <span className="text-eco-success font-mono text-xs flex items-center gap-1" title="Rata-rata pembayaran per transaksi lunas di bulan berjalan">
-                  <span className="material-symbols-outlined text-[16px]">info</span>{totalTransaksiLunasVal} Transaksi Lunas
+                <span className="text-eco-success font-mono text-xs flex items-center gap-1" title="Rata-rata pembayaran per transaksi lunas pada periode aktif">
+                  <span className="material-symbols-outlined text-[16px]">info</span>{activeTrxLunasCount} Transaksi Lunas
                 </span>
               </div>
             </div>

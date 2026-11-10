@@ -39,8 +39,14 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 // Import koleksi ArrayList dari java util
 import java.util.ArrayList;
+// Import entitas TransaksiParkir dari package model
+import com.spct.model.TransaksiParkir;
 // Import koleksi List dari java util
 import java.util.List;
+// Import koleksi Map dari java util
+import java.util.Map;
+// Import koleksi LinkedHashMap dari java util
+import java.util.LinkedHashMap;
 
 // Kelas layanan publik java AnalitikLaporanService untuk mengagregasi data analitik finansial, okupansi denah, dan metrik reduksi CO2
 @Service // Menandai kelas ini sebagai Spring Service Bean
@@ -116,6 +122,20 @@ public class AnalitikLaporanService
         // Jika pendapatan bulanan null, inisialisasi dengan ZERO
         if (pendapatanBulanan == null) { pendapatanBulanan = BigDecimal.ZERO; }
 
+        // 4. Pendapatan Tahunan (Tanggal 1 Januari s.d. tanggal hari ini di tahun berjalan)
+        LocalDate awalTahunDate = LocalDate.of(hariIni.getYear(), 1, 1);
+        LocalDateTime awalTahun = awalTahunDate.atStartOfDay();
+        LocalDateTime akhirTahun = akhirHariIni;
+        BigDecimal pendapatanTahunan = transaksiParkirRepository
+            .hitungTotalPendapatanDalamRentangWaktu(awalTahun, akhirTahun);
+        // Jika pendapatan tahunan null, inisialisasi dengan ZERO
+        if (pendapatanTahunan == null) { pendapatanTahunan = BigDecimal.ZERO; }
+
+        // 5. Pendapatan Total Sepanjang Masa (All-Time dari awal operasional sistem riil di database)
+        BigDecimal pendapatanTotal = transaksiParkirRepository.hitungTotalPendapatanSepanjangMasa();
+        // Jika pendapatan total null, inisialisasi dengan ZERO
+        if (pendapatanTotal == null) { pendapatanTotal = BigDecimal.ZERO; }
+
         // Agregasi volume total kendaraan yang pernah terdaftar di sistem
         Long totalKendaraan = dataKendaraanRepository.count();
 
@@ -162,12 +182,26 @@ public class AnalitikLaporanService
         // Menyusun titik data okupansi kendaraan per jam untuk grafik Chart.js
         List<DataOkupansiJamDto> grafikOkupansi = susunGrafikOkupansiPerJam(awalHariIni, akhirHariIni);
 
-        // Menyusun titik data pertumbuhan pendapatan harian tanggal 1 s.d. hari ini
+        // Menyusun titik data pertumbuhan pendapatan harian tanggal 1 s.d. hari ini (Periode Bulanan)
         List<DataDashboardDto.DataPendapatanHarianDto> grafikPendapatanHarian = susunGrafikPendapatanHarian(awalBulanDate, hariIni);
+
+        // Menyusun titik data rekapitulasi pendapatan 12 bulan pada tahun berjalan (Periode Tahunan)
+        List<DataDashboardDto.DataPendapatanHarianDto> grafikPendapatanBulanan = susunGrafikPendapatanBulanan(hariIni.getYear());
+
+        // Menyusun titik data rekapitulasi pendapatan historis all-time (Periode Semua)
+        List<DataDashboardDto.DataPendapatanHarianDto> grafikPendapatanSemua = susunGrafikPendapatanSemua();
 
         // Menghitung total transaksi lunas bulan berjalan
         Long totalTransaksiLunasBulanIni = transaksiParkirRepository.countTransaksiLunasDalamRentangWaktu(awalBulan, akhirBulan);
         if (totalTransaksiLunasBulanIni == null) { totalTransaksiLunasBulanIni = 0L; }
+
+        // Menghitung total transaksi lunas tahun berjalan
+        Long totalTransaksiLunasTahunan = transaksiParkirRepository.countTransaksiLunasDalamRentangWaktu(awalTahun, akhirTahun);
+        if (totalTransaksiLunasTahunan == null) { totalTransaksiLunasTahunan = 0L; }
+
+        // Menghitung total transaksi lunas sepanjang masa riil di basis data
+        Long totalTransaksiLunasSemua = transaksiParkirRepository.countTransaksiLunasSepanjangMasa();
+        if (totalTransaksiLunasSemua == null) { totalTransaksiLunasSemua = 0L; }
 
         // Inisialisasi tarif rata-rata per transaksi
         BigDecimal rataRataTarifTransaksi = BigDecimal.ZERO;
@@ -232,6 +266,17 @@ public class AnalitikLaporanService
         dto.setSlotMobilTotal(slotMobilTotal);
         dto.setSlotMotorTerisi(slotMotorTerisi);
         dto.setSlotMotorTotal(slotMotorTotal);
+
+        // Menetapkan pendapatan total riil all-time ke DTO
+        dto.setPendapatanTotal(pendapatanTotal);
+        // Menetapkan pendapatan tahunan riil ke DTO
+        dto.setPendapatanTahunan(pendapatanTahunan);
+        // Menetapkan total transaksi lunas tahunan dan sepanjang masa
+        dto.setTotalTransaksiLunasTahunan(totalTransaksiLunasTahunan);
+        dto.setTotalTransaksiLunasSemua(totalTransaksiLunasSemua);
+        // Menetapkan grafik pendapatan 12 bulan dan all-time
+        dto.setGrafikPendapatanBulanan(grafikPendapatanBulanan);
+        dto.setGrafikPendapatanSemua(grafikPendapatanSemua);
 
         // Mengembalikan objek DTO data dashboard lengkap
         return dto;
@@ -314,6 +359,139 @@ public class AnalitikLaporanService
         }
 
         // Mengembalikan daftar titik data grafik pendapatan harian
+        return hasil;
+    }
+
+    // =====================================================================
+    // Method Pendukung: Menyusun Data Rekapitulasi Pendapatan 12 Bulan (Tahunan)
+    // =====================================================================
+
+    // Method susunGrafikPendapatanBulanan untuk menyusun grafik agregasi pendapatan 12 bulan dalam setahun
+    private List<DataDashboardDto.DataPendapatanHarianDto> susunGrafikPendapatanBulanan(int tahun)
+    {
+        // Instansiasi list data pendapatan bulanan
+        List<DataDashboardDto.DataPendapatanHarianDto> hasil = new ArrayList<>();
+        // Array label singkatan nama bulan kalender
+        String[] namaBulan = {"Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"};
+
+        // Melakukan iterasi 12 bulan kalender dari Januari hingga Desember
+        for (int b = 1; b <= 12; b++)
+        {
+            // Menentukan tanggal 1 pada bulan ke-b
+            LocalDate awalBulanTgl = LocalDate.of(tahun, b, 1);
+            // Menentukan batas awal waktu bulan jam 00:00:00
+            LocalDateTime awalBulanWaktu = awalBulanTgl.atStartOfDay();
+            // Menentukan batas akhir waktu bulan pada hari terakhir jam 23:59:59
+            LocalDateTime akhirBulanWaktu = awalBulanTgl.withDayOfMonth(awalBulanTgl.lengthOfMonth()).atTime(LocalTime.MAX);
+
+            // Menghitung akumulasi pendapatan lunas pada bulan tersebut langsung dari basis data
+            BigDecimal nominalBulan = transaksiParkirRepository.hitungTotalPendapatanDalamRentangWaktu(awalBulanWaktu, akhirBulanWaktu);
+            // Jika bernilai null, inisialisasi dengan BigDecimal.ZERO
+            if (nominalBulan == null) { nominalBulan = BigDecimal.ZERO; }
+
+            // Menambahkan titik data bulanan ke dalam list hasil
+            hasil.add(new DataDashboardDto.DataPendapatanHarianDto(
+                b, // Nomor urut bulan (1..12)
+                namaBulan[b - 1], // Label nama bulan (misal: "Jan", "Feb", dst.)
+                nominalBulan // Akumulasi nominal pendapatan riil
+            ));
+        }
+
+        // Mengembalikan daftar lengkap titik data grafik pendapatan 12 bulan
+        return hasil;
+    }
+
+    // =====================================================================
+    // Method Pendukung: Menyusun Data Rekapitulasi Pendapatan All-Time (Semua)
+    // =====================================================================
+
+    // Method susunGrafikPendapatanSemua untuk menyusun grafik akumulasi pendapatan sepanjang masa riil sistem
+    private List<DataDashboardDto.DataPendapatanHarianDto> susunGrafikPendapatanSemua()
+    {
+        // Instansiasi list data pendapatan all-time
+        List<DataDashboardDto.DataPendapatanHarianDto> hasil = new ArrayList<>();
+
+        // Mengambil seluruh rekaman transaksi berstatus lunas yang diurutkan kronologis waktu naik
+        List<TransaksiParkir> semuaTransaksiLunas = transaksiParkirRepository.findTransaksiLunasSepanjangMasa();
+
+        // Jika basis data belum memiliki transaksi lunas sama sekali
+        if (semuaTransaksiLunas == null || semuaTransaksiLunas.isEmpty())
+        {
+            // Tambahkan titik data default tahun berjalan sebesar 0 rupiah
+            LocalDate hariIni = LocalDate.now();
+            hasil.add(new DataDashboardDto.DataPendapatanHarianDto(
+                hariIni.getYear(),
+                String.valueOf(hariIni.getYear()),
+                BigDecimal.ZERO
+            ));
+            return hasil; // Kembalikan list dengan data default
+        }
+
+        // Map agregasi untuk mengelompokkan total rupiah per label periode (LinkedHashMap mempertahankan urutan kronologis)
+        Map<String, BigDecimal> agregasiPeriode = new LinkedHashMap<>();
+
+        // Menentukan waktu transaksi pertama dan terakhir
+        LocalDateTime waktuPertama = semuaTransaksiLunas.get(0).getWaktuKeluar() != null
+            ? semuaTransaksiLunas.get(0).getWaktuKeluar() : semuaTransaksiLunas.get(0).getWaktuMasuk();
+
+        // Hitung selisih tahun antara transaksi pertama dengan waktu sistem saat ini
+        int selisihTahun = LocalDate.now().getYear() - (waktuPertama != null ? waktuPertama.getYear() : LocalDate.now().getYear());
+
+        // Jika rentang data berada dalam lingkup <= 2 tahun, tampilkan agregasi per bulan (misal: "Okt 25", "Nov 26")
+        if (selisihTahun <= 2)
+        {
+            // Formatter label bulan dan 2 digit tahun (misal: "Okt 26")
+            DateTimeFormatter formatterBulanTahun = DateTimeFormatter.ofPattern("MMM yy");
+
+            // Mengelompokkan setiap transaksi ke bulan-tahun yang sesuai
+            for (TransaksiParkir t : semuaTransaksiLunas)
+            {
+                // Ambil waktu keluar atau waktu masuk transaksi
+                LocalDateTime waktuBayar = t.getWaktuKeluar() != null ? t.getWaktuKeluar() : t.getWaktuMasuk();
+                // Jika waktu bernilai null, abaikan baris
+                if (waktuBayar == null) { continue; }
+                // Format label periode
+                String labelPeriode = waktuBayar.format(formatterBulanTahun);
+                // Ambil nominal tagihan transaksi lunas
+                BigDecimal tagihan = (t.getNominalTagihan() != null) ? t.getNominalTagihan() : BigDecimal.ZERO;
+
+                // Akumulasikan ke dalam map agregasi
+                agregasiPeriode.put(labelPeriode, agregasiPeriode.getOrDefault(labelPeriode, BigDecimal.ZERO).add(tagihan));
+            }
+        }
+        else
+        {
+            // Jika data membentang lebih dari 2 tahun, kelompokkan per tahun (misal: "2024", "2025", "2026")
+            for (TransaksiParkir t : semuaTransaksiLunas)
+            {
+                // Ambil waktu keluar atau waktu masuk transaksi
+                LocalDateTime waktuBayar = t.getWaktuKeluar() != null ? t.getWaktuKeluar() : t.getWaktuMasuk();
+                // Jika waktu bernilai null, abaikan baris
+                if (waktuBayar == null) { continue; }
+                // Ambil tahun transaksi sebagai label
+                String labelTahun = String.valueOf(waktuBayar.getYear());
+                // Ambil nominal tagihan transaksi lunas
+                BigDecimal tagihan = (t.getNominalTagihan() != null) ? t.getNominalTagihan() : BigDecimal.ZERO;
+
+                // Akumulasikan ke dalam map agregasi
+                agregasiPeriode.put(labelTahun, agregasiPeriode.getOrDefault(labelTahun, BigDecimal.ZERO).add(tagihan));
+            }
+        }
+
+        // Konversi hasil map agregasi ke dalam List DTO grafik
+        int indeks = 1;
+        // Iterasi entri map untuk menyusun daftar titik data DTO
+        for (Map.Entry<String, BigDecimal> entry : agregasiPeriode.entrySet())
+        {
+            // Tambahkan objek DTO titik data ke dalam daftar
+            hasil.add(new DataDashboardDto.DataPendapatanHarianDto(
+                indeks++, // Nomor urut titik data
+                entry.getKey(), // Label periode
+                entry.getValue() // Nominal agregat riil
+            ));
+        }
+
+        // Mengembalikan daftar lengkap titik data grafik all-time
         return hasil;
     }
 }
