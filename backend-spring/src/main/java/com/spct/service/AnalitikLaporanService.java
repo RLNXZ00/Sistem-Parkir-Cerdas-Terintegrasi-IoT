@@ -35,6 +35,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 // Import tipe data waktu lokal LocalTime
 import java.time.LocalTime;
+// Import tipe data YearMonth java untuk agregasi bulanan sepanjang masa
+import java.time.YearMonth;
 // Import DateTimeFormatter untuk format label jam dan tanggal
 import java.time.format.DateTimeFormatter;
 // Import koleksi ArrayList dari java util
@@ -414,67 +416,47 @@ public class AnalitikLaporanService
         // Mengambil seluruh rekaman transaksi berstatus lunas yang diurutkan kronologis waktu naik
         List<TransaksiParkir> semuaTransaksiLunas = transaksiParkirRepository.findTransaksiLunasSepanjangMasa();
 
-        // Jika basis data belum memiliki transaksi lunas sama sekali
-        if (semuaTransaksiLunas == null || semuaTransaksiLunas.isEmpty())
-        {
-            // Tambahkan titik data default tahun berjalan sebesar 0 rupiah
-            LocalDate hariIni = LocalDate.now();
-            hasil.add(new DataDashboardDto.DataPendapatanHarianDto(
-                hariIni.getYear(),
-                String.valueOf(hariIni.getYear()),
-                BigDecimal.ZERO
-            ));
-            return hasil; // Kembalikan list dengan data default
-        }
-
         // Map agregasi untuk mengelompokkan total rupiah per label periode (LinkedHashMap mempertahankan urutan kronologis)
         Map<String, BigDecimal> agregasiPeriode = new LinkedHashMap<>();
 
-        // Menentukan waktu transaksi pertama dan terakhir
-        LocalDateTime waktuPertama = semuaTransaksiLunas.get(0).getWaktuKeluar() != null
-            ? semuaTransaksiLunas.get(0).getWaktuKeluar() : semuaTransaksiLunas.get(0).getWaktuMasuk();
+        // Menyusun kerangka kronologis minimal 6 bulan terakhir hingga bulan saat ini agar grafik membentuk kurva kontinu
+        YearMonth sekarangYM = YearMonth.now();
+        YearMonth awalYM = sekarangYM.minusMonths(5);
 
-        // Hitung selisih tahun antara transaksi pertama dengan waktu sistem saat ini
-        int selisihTahun = LocalDate.now().getYear() - (waktuPertama != null ? waktuPertama.getYear() : LocalDate.now().getYear());
-
-        // Jika rentang data berada dalam lingkup <= 2 tahun, tampilkan agregasi per bulan (misal: "Okt 25", "Nov 26")
-        if (selisihTahun <= 2)
+        // Jika ada transaksi lebih lama, geser awalYM ke bulan transaksi pertama
+        if (semuaTransaksiLunas != null && !semuaTransaksiLunas.isEmpty())
         {
-            // Formatter label bulan dan 2 digit tahun (misal: "Okt 26")
-            DateTimeFormatter formatterBulanTahun = DateTimeFormatter.ofPattern("MMM yy");
-
-            // Mengelompokkan setiap transaksi ke bulan-tahun yang sesuai
-            for (TransaksiParkir t : semuaTransaksiLunas)
+            LocalDateTime waktuPertama = semuaTransaksiLunas.get(0).getWaktuKeluar() != null
+                ? semuaTransaksiLunas.get(0).getWaktuKeluar() : semuaTransaksiLunas.get(0).getWaktuMasuk();
+            if (waktuPertama != null)
             {
-                // Ambil waktu keluar atau waktu masuk transaksi
-                LocalDateTime waktuBayar = t.getWaktuKeluar() != null ? t.getWaktuKeluar() : t.getWaktuMasuk();
-                // Jika waktu bernilai null, abaikan baris
-                if (waktuBayar == null) { continue; }
-                // Format label periode
-                String labelPeriode = waktuBayar.format(formatterBulanTahun);
-                // Ambil nominal tagihan transaksi lunas
-                BigDecimal tagihan = (t.getNominalTagihan() != null) ? t.getNominalTagihan() : BigDecimal.ZERO;
-
-                // Akumulasikan ke dalam map agregasi
-                agregasiPeriode.put(labelPeriode, agregasiPeriode.getOrDefault(labelPeriode, BigDecimal.ZERO).add(tagihan));
+                YearMonth ymPertama = YearMonth.from(waktuPertama);
+                if (ymPertama.isBefore(awalYM))
+                {
+                    awalYM = ymPertama;
+                }
             }
         }
-        else
+
+        // Inisialisasi peta periode secara kronologis dari awalYM s.d. sekarangYM
+        DateTimeFormatter formatterBulanTahun = DateTimeFormatter.ofPattern("MMM yy");
+        YearMonth cursorYM = awalYM;
+        while (!cursorYM.isAfter(sekarangYM))
         {
-            // Jika data membentang lebih dari 2 tahun, kelompokkan per tahun (misal: "2024", "2025", "2026")
+            agregasiPeriode.put(cursorYM.format(formatterBulanTahun), BigDecimal.ZERO);
+            cursorYM = cursorYM.plusMonths(1);
+        }
+
+        // Akumulasikan nominal transaksi lunas riil ke dalam bulan-tahun masing-masing
+        if (semuaTransaksiLunas != null)
+        {
             for (TransaksiParkir t : semuaTransaksiLunas)
             {
-                // Ambil waktu keluar atau waktu masuk transaksi
                 LocalDateTime waktuBayar = t.getWaktuKeluar() != null ? t.getWaktuKeluar() : t.getWaktuMasuk();
-                // Jika waktu bernilai null, abaikan baris
                 if (waktuBayar == null) { continue; }
-                // Ambil tahun transaksi sebagai label
-                String labelTahun = String.valueOf(waktuBayar.getYear());
-                // Ambil nominal tagihan transaksi lunas
+                String labelPeriode = waktuBayar.format(formatterBulanTahun);
                 BigDecimal tagihan = (t.getNominalTagihan() != null) ? t.getNominalTagihan() : BigDecimal.ZERO;
-
-                // Akumulasikan ke dalam map agregasi
-                agregasiPeriode.put(labelTahun, agregasiPeriode.getOrDefault(labelTahun, BigDecimal.ZERO).add(tagihan));
+                agregasiPeriode.put(labelPeriode, agregasiPeriode.getOrDefault(labelPeriode, BigDecimal.ZERO).add(tagihan));
             }
         }
 
