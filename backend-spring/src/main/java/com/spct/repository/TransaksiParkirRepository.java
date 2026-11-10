@@ -113,4 +113,16 @@ public interface TransaksiParkirRepository extends JpaRepository<TransaksiParkir
     Double hitungTotalMenitDihematDalamRentangWaktu(
         @Param("awal") LocalDateTime awal, // Parameter waktu awal rentang
         @Param("akhir") LocalDateTime akhir); // Parameter waktu akhir rentang
+
+    // Method hitungTotalPendapatanSepanjangMasa untuk menghitung seluruh akumulasi rupiah pendapatan lunas sepanjang masa
+    @Query("SELECT SUM(t.nominalTagihan) FROM TransaksiParkir t WHERE t.statusPembayaran = 'LUNAS'")
+    BigDecimal hitungTotalPendapatanSepanjangMasa();
+
+    // Method countTransaksiLunasSepanjangMasa untuk menghitung total kuantitas transaksi berstatus lunas sepanjang masa
+    @Query("SELECT COUNT(t) FROM TransaksiParkir t WHERE t.statusPembayaran = 'LUNAS'")
+    Long countTransaksiLunasSepanjangMasa();
+
+    // Method findTransaksiLunasSepanjangMasa untuk mengambil daftar seluruh rekaman transaksi parkir berstatus lunas
+    @Query("SELECT t FROM TransaksiParkir t WHERE t.statusPembayaran = 'LUNAS' ORDER BY COALESCE(t.waktuKeluar, t.waktuMasuk) ASC")
+    List<TransaksiParkir> findTransaksiLunasSepanjangMasa();
 }
