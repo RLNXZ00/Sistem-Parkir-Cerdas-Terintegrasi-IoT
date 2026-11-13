@@ -6,77 +6,138 @@
 
 ---
 
-## 2. Aturan Mutlak Git: Visual Network Graph & Larangan Direct Commit di `main` (STRICT)
+## 2. Aturan Mutlak Git: Visual Network Graph & Hirarki Pemilihan Branch (STRICT)
 
 > [!CAUTION]
 > **DILARANG KERAS MELAKUKAN DIRECT COMMIT / PUSH LANGSUNG DI BRANCH `main`!**
 > Branch `main` (garis putih utama di GitHub Network Graph) adalah branch produksi stabil yang **HANYA MURNI MENERIMA HASIL MERGE NON-FAST-FORWARD (`git merge --no-ff`)**.
 > 
 > **Target Visual GitHub Network Graph**:
-> Setiap pekerjaan harus terlihat sebagai garis percabangan berwarna tersendiri yang keluar dari `main`, memiliki titik-titik commit di jalurnya sendiri, dan menyatu kembali ke `main` dengan simpul panah merge. Garis `main` tidak boleh memiliki commit pekerjaan langsung.
+> GitHub Network Graph wajib menampilkan struktur percabangan yang rapi, teratur, dan profesional yang mencerminkan pembagian arsitektur sistem (*Separation of Concerns*). Hindari *branch clutter* (penumpukan puluhan branch sekali pakai yang tidak perlu).
 
-### Standar Penamaan Branch Kerja (Descriptive Kebab-Case)
-Setiap tugas atau pembaruan fitur/bugfix wajib memiliki branch kerja tersendiri dengan penamaan topik yang jelas dan deskriptif:
-- Fitur spesifik: `feat/<nama-fitur-kebab-case>` atau `<topik-fitur-kebab-case>` (contoh: `konsistensi-sidebar-header`, `detail-card-list`, `umpan-balik-database`, `memproses-kata-sandi`)
-- Perbaikan bug: `fix/<nama-bug-kebab-case>` atau `<topik-bug-kebab-case>`
-- Pembaruan layer umum: `back-end`, `front-end`, `front-end-kiosk`
+---
+
+### 2.1. Hirarki & Strategi Pemilihan Branch (PENTING)
+
+Branch baru **TIDAK HARUS selalu dibuat untuk setiap tugas**. Prioritaskan penggunaan kembali (*reuse*) branch layer utama yang sudah ada agar riwayat commit tetap mengalir di jalurnya masing-masing dan Network Graph tidak menjadi semrawut.
+
+```
+                    ┌─── back-end ────────(Logika Spring Boot, DB, Model, DTO)───┐
+                    │                                                            │
+main (Produksi) ────┼─── front-end ───────(Dashboard Web, Analitik, Pengaturan)──┼────> main (--no-ff)
+                    │                                                            │
+                    └─── front-end-kiosk ─(Kiosk Masuk, Navigasi, Kiosk Keluar)──┘
+                           │
+                           └── (Opsional) feat/fitur-terisolasi ─────────────────┘
+```
+
+#### PRIORITAS 1: Gunakan Branch Layer yang Sudah Ada (DEFAULT / SANGAT DIREKOMENDASIKAN)
+Prioritaskan menggunakan 3 branch layer permanen yang sudah ada di repositori:
+1. `back-end` $\rightarrow$ Untuk seluruh pengembangan, pemolesan, bugfix, dan integrasi di sisi Java Spring Boot, controller, service, repository, entity model, DTO, dan database PostgreSQL.
+2. `front-end` $ightarrow$ Untuk seluruh pengembangan antarmuka web, perbaikan halaman dashboard manajer/petugas, visualisasi chart, filtering, styling Tailwind, dan penyesuaian SOP.
+3. `front-end-kiosk` $ightarrow$ Untuk antarmuka anjungan mandiri (kiosk masuk gerbang, visualisasi denah rute navigasi, dan kiosk keluar cashless).
+
+**Keuntungan**:
+- Riwayat commit tersimpan kronologis di layer arsitekturnya masing-masing.
+- Rekan tim yang bertugas di layer terkait dapat langsung melihat dan menarik progres terbaru.
+- Menghindari penumpukan puluhan *stale/orphan branches* di GitHub.
+
+#### PRIORITAS 2: Buat Branch Baru Terisolasi (OPSIONAL / HANYA JIKA DIPERLUKAN)
+Pembuatan branch baru (`feat/<nama>`, `fix/<nama>`, `spike/<nama>`) **hanya dilakukan jika memenuhi kondisi berikut**:
+- Pembaruan atau fitur baru yang **benar-benar independen, belum pernah ada jalurnya, dan memerlukan isolasi penuh** (misal: modul OCR YOLOv11 mandiri, integrasi payment gateway pihak ketiga).
+- Eksperimen berisiko tinggi / *breaking changes* (misal: restrukturisasi database masif) yang jika gagal, cabangnya dapat langsung dibuang tanpa merusak branch layer utama.
+- Tugas lintas layer (*cross-cutting*) yang bersifat sementara.
+
+**Standar Penamaan Jika Membuat Branch Baru (Kebab-Case)**:
+- Fitur spesifik: `feat/<nama-fitur-kebab-case>`
+- Perbaikan bug terisolasi: `fix/<nama-bug-kebab-case>`
 - Dokumentasi/SOP: `docs/<nama-dokumen>` atau `chore/<nama-tugas>`
 
 ---
 
-### SOP 6 Langkah Wajib Setiap Pengembangan Fitur / Perbaikan Bug
+### 2.2. SOP 6 Langkah Wajib Alur Kerja Git
 
-Setiap AI Agent dan pengembang **WAJIB** mengeksekusi urutan perintah terminal berikut secara disiplin tanpa melompati satu langkah pun:
+Setiap AI Agent dan pengembang **WAJIB** mengeksekusi urutan perintah terminal berikut secara disiplin:
 
-#### Langkah 1: Sinkronisasi Terkini dari `main`
-Sebelum memulai pengerjaan apa pun, pastikan branch `main` lokal sinkron dengan GitHub:
+#### Skenario A: Alur Utama Menggunakan Branch Layer yang Ada (PRIORITAS UTAMA)
+
+##### Langkah 1: Pindah ke Branch Layer Terkait & Tarik Update Terkini dari `main`
+Sebelum menulis kode, pastikan branch layer yang akan dikerjakan sinkron dengan `main`:
 ```bash
-git checkout main
-git pull origin main
-```
-
-#### Langkah 2: Buat Branch Baru atau Pindah ke Branch Kerja Terkait
-DILARANG menulis kode saat berada di `main`. Buat branch baru dari `main` atau arahkan ke branch kerja:
-```bash
-# Opsi A: Buat branch fitur/perbaikan baru (SANGAT DIREKOMENDASIKAN untuk fitur/tugas baru)
-git checkout -b <nama-branch-deskriptif>
-
-# Opsi B: Pindah ke branch layer yang sudah ada dan sinkronkan dengan main
 git checkout <back-end | front-end | front-end-kiosk>
+git pull origin <back-end | front-end | front-end-kiosk>
 git merge main
 ```
 
-#### Langkah 3: Implementasi Kode & Commit di Branch Kerja
-- Setiap kali menambahkan atau memperbarui kode, sertakan **komentar penjelasan per baris kode** dengan mengadopsi gaya pembahasaan dari `Modul_8/9` dan `Modul_12`.
-- Lakukan commit berkala di branch kerja (BUKAN di `main`):
+##### Langkah 2: Implementasi Kode & Commit di Branch Layer
+- Sertakan **komentar penjelasan per baris kode** dengan mengadopsi gaya pembahasaan dari `Modul_8/9` dan `Modul_12`.
+- Lakukan commit berkala di branch layer tersebut:
 ```bash
 git add <file-terkait>
 git commit -m "tipe(cakupan): deskripsi perubahan dalam bahasa indonesia"
 ```
-*Format tipe*: `feat`, `fix`, `refactor`, `style`, `docs`, `chore`. Wajib menggunakan Bahasa Indonesia.
+*Format tipe*: `feat`, `fix`, `refactor`, `style`, `docs`, `chore`. Wajib menggunakan Bahasa Indonesia formal.
 
-#### Langkah 4: Push Branch Kerja ke Remote GitHub (MANDATORY)
-Branch kerja **WAJIB di-push ke GitHub** agar jalur percabangan berwarna dan label branch tercatat di GitHub Network Graph:
+##### Langkah 3: Push Branch Layer ke Remote GitHub
 ```bash
-git push origin <nama-branch-kerja>
+git push origin <back-end | front-end | front-end-kiosk>
 ```
 
-#### Langkah 5: Merge ke `main` Menggunakan Flag `--no-ff` & Push ke `origin/main`
-Pindah ke branch `main`, lakukan merge dengan bendera `--no-ff` (Non-Fast-Forward) agar simpul grafik percabangan tercipta secara permanen, lalu push `main`:
+##### Langkah 4: Merge ke `main` Menggunakan Flag `--no-ff` (Non-Fast-Forward)
+Pindah ke branch `main`, lakukan merge dengan bendera `--no-ff` agar simpul grafik percabangan tercipta secara permanen, lalu push ke `origin/main`:
 ```bash
 git checkout main
-git merge --no-ff <nama-branch-kerja> -m "merge: integrasikan pembaruan <nama-branch-kerja> ke main"
+git pull origin main
+git merge --no-ff <nama-branch-layer> -m "merge: integrasikan pembaruan <nama-branch-layer> ke main"
 git push origin main
 ```
 
-#### Langkah 6: Sinkronisasi Ulang Branch Kerja dengan `main`
-Kembali ke branch kerja dan gabungkan hasil merge dari `main` agar branch kerja tetap sejajar:
+##### Langkah 5: Sinkronisasi Silang ke Seluruh Layer Branches
+Agar branch layer lainnya tidak tertinggal perubahan dari `main`, sinkronkan `main` ke branch layer lainnya:
 ```bash
-git checkout <nama-branch-kerja>
+git checkout <branch-layer-lain>
 git merge main
-git push origin <nama-branch-kerja>
+git push origin <branch-layer-lain>
 ```
-*(Branch kerja di remote dipertahankan agar riwayat visual di Network Graph GitHub tetap terpampang rapi dengan labelnya).*
+
+##### Langkah 6: Kembalikan Posisi Head ke `main` dalam Kondisi Bersih
+```bash
+git checkout main
+git status
+```
+
+---
+
+#### Skenario B: Alur Opsional Pembuatan Branch Baru (Hanya untuk Fitur Terisolasi / Eksperimen)
+
+Jika fitur memang harus diisolasi sendiri:
+```bash
+# 1. Pastikan main sinkron, lalu buat branch baru
+git checkout main
+git pull origin main
+git checkout -b <feat|fix>/<nama-fitur-kebab-case>
+
+# 2. Koding, beri komentar per baris, dan commit
+git add <file-terkait>
+git commit -m "tipe(cakupan): deskripsi perubahan"
+
+# 3. Push branch baru ke GitHub
+git push -u origin <nama-branch-baru>
+
+# 4. Merge ke main dengan flag --no-ff
+git checkout main
+git pull origin main
+git merge --no-ff <nama-branch-baru> -m "merge: integrasikan <nama-branch-baru> ke main"
+git push origin main
+
+# 5. Sinkronkan hasil merge ke branch layer terkait
+git checkout <back-end | front-end | front-end-kiosk>
+git merge main
+git push origin <nama-layer>
+
+# 6. Kembali ke main
+git checkout main
+```
 
 ---
 
