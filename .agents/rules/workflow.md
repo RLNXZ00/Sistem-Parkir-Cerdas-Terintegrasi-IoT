@@ -34,8 +34,8 @@ main (Produksi) ────┼─── front-end ───────(Dashboa
 #### PRIORITAS 1: Gunakan Branch Layer yang Sudah Ada (DEFAULT / SANGAT DIREKOMENDASIKAN)
 Prioritaskan menggunakan 3 branch layer permanen yang sudah ada di repositori:
 1. `back-end` $\rightarrow$ Untuk seluruh pengembangan, pemolesan, bugfix, dan integrasi di sisi Java Spring Boot, controller, service, repository, entity model, DTO, dan database PostgreSQL.
-2. `front-end` $ightarrow$ Untuk seluruh pengembangan antarmuka web, perbaikan halaman dashboard manajer/petugas, visualisasi chart, filtering, styling Tailwind, dan penyesuaian SOP.
-3. `front-end-kiosk` $ightarrow$ Untuk antarmuka anjungan mandiri (kiosk masuk gerbang, visualisasi denah rute navigasi, dan kiosk keluar cashless).
+2. `front-end` $\rightarrow$ Untuk seluruh pengembangan antarmuka web, perbaikan halaman dashboard manajer/petugas, visualisasi chart, filtering, styling Tailwind, dan penyesuaian SOP.
+3. `front-end-kiosk` $\rightarrow$ Untuk antarmuka anjungan mandiri (kiosk masuk gerbang, visualisasi denah rute navigasi, dan kiosk keluar cashless).
 
 **Keuntungan**:
 - Riwayat commit tersimpan kronologis di layer arsitekturnya masing-masing.
