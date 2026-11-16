@@ -45,6 +45,96 @@ public class DeteksiPlatController
     private LogDeteksiPlatRepository logDeteksiPlatRepository; // Deklarasi atribut logDeteksiPlatRepository
 
     // =====================================================================
+    // Endpoint POST: Memicu Pemindaian On-Demand Edge ALPR Microservice (Laptop)
+    // =====================================================================
+
+    // Method POST triggerAlprScan untuk memicu kamera laptop on-demand dari Kiosk / Central Server
+    @PostMapping("/trigger-scan")
+    public ResponseEntity<Map<String, Object>> triggerAlprScan(
+        @RequestBody(required = false) Map<String, Object> body,
+        @RequestParam(required = false, defaultValue = "MASUK") String gerbang,
+        @RequestParam(required = false, defaultValue = "MOBIL") String jenisKendaraan,
+        @RequestParam(required = false) BigDecimal saldoEwallet,
+        @RequestParam(required = false) Integer durasiMenit,
+        @RequestParam(required = false) String laptopUrl)
+    {
+        // Mengambil parameter gerbang (MASUK/KELUAR) dari body atau query param
+        String gerbangFinal = (body != null && body.containsKey("gerbang")) ? String.valueOf(body.get("gerbang")) : gerbang;
+        
+        // Mengambil jenis kendaraan dari body atau query param
+        String jenisStr = (body != null && body.containsKey("jenisKendaraan")) ? String.valueOf(body.get("jenisKendaraan")) : jenisKendaraan;
+        
+        // Mengambil override alamat URL laptop jika ada
+        String urlFinal = (body != null && body.containsKey("laptopUrl")) ? String.valueOf(body.get("laptopUrl")) : laptopUrl;
+
+        // Inisialisasi saldo default Rp 50.000 untuk gerbang keluar
+        BigDecimal saldoFinal = saldoEwallet != null ? saldoEwallet : BigDecimal.valueOf(50000);
+        if (body != null && body.containsKey("saldoEwallet") && body.get("saldoEwallet") != null) 
+        {
+            try 
+            {
+                saldoFinal = new BigDecimal(body.get("saldoEwallet").toString());
+            } 
+            catch (Exception ignored) {}
+        }
+
+        // Inisialisasi durasi menit simulasi jika ada
+        Integer durasiFinal = durasiMenit;
+        if (body != null && body.containsKey("durasiMenit") && body.get("durasiMenit") != null) 
+        {
+            try 
+            {
+                durasiFinal = Integer.valueOf(body.get("durasiMenit").toString());
+            } 
+            catch (Exception ignored) {}
+        }
+
+        // Parsing tipe jenis kendaraan menjadi enum JenisKendaraan
+        JenisKendaraan jenis;
+        try 
+        {
+            jenis = JenisKendaraan.valueOf(jenisStr.toUpperCase());
+        } 
+        catch (Exception e) 
+        {
+            jenis = JenisKendaraan.MOBIL;
+        }
+
+        // Memanggil service untuk orkestrasi pemanggilan ALPR laptop dan eksekusi transaksi
+        Map<String, Object> hasil = deteksiPlatService.triggerAlprScan(gerbangFinal, jenis, saldoFinal, durasiFinal, urlFinal);
+        String status = (String) hasil.get("status");
+
+        // Evaluasi status kegagalan koneksi ke laptop (HTTP 503)
+        if ("MICROSERVICE_UNREACHABLE".equals(status)) 
+        {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(hasil);
+        }
+        // Evaluasi batas waktu pemindaian 15 detik habis (HTTP 408)
+        if ("TIMEOUT".equals(status)) 
+        {
+            return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body(hasil);
+        }
+        // Evaluasi kendaraan tidak ditemukan di database (HTTP 404)
+        if ("KENDARAAN_TIDAK_DITEMUKAN".equals(status)) 
+        {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(hasil);
+        }
+        // Evaluasi ketidaksesuaian gerbang atau integritas data (HTTP 422)
+        if ("JENIS_KENDARAAN_MISMATCH".equals(status) || "ANOMALI_SLOT_MISMATCH".equals(status) || "ANOMALI_SLOT_TIDAK_VALID".equals(status)) 
+        {
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(hasil);
+        }
+        // Evaluasi saldo kurang (HTTP 402)
+        if ("SALDO_KURANG".equals(status))
+        {
+            return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body(hasil);
+        }
+
+        // Pemrosesan berhasil: kembalikan HTTP 200 OK
+        return ResponseEntity.ok(hasil);
+    }
+
+    // =====================================================================
     // Endpoint POST: Menerima data deteksi plat gerbang MASUK
     // =====================================================================
 
