@@ -1,0 +1,12 @@
+{
+  "server_host": "0.0.0.0",
+  "server_port": 5001,
+  "spring_boot_url": "http://localhost:8081",
+  "camera_index": 0,
+  "scan_timeout_sec": 15,
+  "auto_off_delay_sec": 3.0,
+  "yolo_conf_threshold": 0.25,
+  "yolo_imgsz": 384,
+  "default_flip_mode": 0,
+  "show_opencv_window": true
+}
