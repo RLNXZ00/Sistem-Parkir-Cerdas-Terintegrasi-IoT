@@ -27,6 +27,9 @@ public class HasilDeteksiKeluarDto
     // Deklarasi atribut pesan bertipe String untuk menampilkan keterangan atau instruksi kepada pengemudi
     private String pesan;
 
+    // Deklarasi atribut idSlotDibebaskan bertipe String untuk identitas slot yang dilepaskan menjadi KOSONG
+    private String idSlotDibebaskan;
+
     // Constructor dengan parameter untuk inisialisasi data luaran gerbang keluar
     public HasilDeteksiKeluarDto(String status, String platNomor, LocalDateTime waktuMasuk, 
                                  LocalDateTime waktuKeluar, long durasiJam, BigDecimal totalBiaya, String pesan) 
@@ -51,6 +54,14 @@ public class HasilDeteksiKeluarDto
 
         // Inisialisasi atribut pesan dengan parameter pesan
         this.pesan = pesan;
+    }
+
+    // Overload constructor dengan parameter idSlotDibebaskan untuk validasi berlipat slot keluar
+    public HasilDeteksiKeluarDto(String status, String platNomor, LocalDateTime waktuMasuk, 
+                                 LocalDateTime waktuKeluar, long durasiJam, BigDecimal totalBiaya, String pesan, String idSlotDibebaskan) 
+    {
+        this(status, platNomor, waktuMasuk, waktuKeluar, durasiJam, totalBiaya, pesan);
+        this.idSlotDibebaskan = idSlotDibebaskan;
     }
 
     // Constructor default tanpa parameter (diperlukan untuk serialisasi JSON)
@@ -154,5 +165,17 @@ public class HasilDeteksiKeluarDto
     { 
         // Mengubah nilai atribut pesan dengan parameter pesan
         this.pesan = pesan; 
+    }
+
+    // Method getter getIdSlotDibebaskan() untuk mengambil identitas slot yang dilepaskan
+    public String getIdSlotDibebaskan() 
+    { 
+        return this.idSlotDibebaskan; 
+    }
+
+    // Method setter setIdSlotDibebaskan(String) untuk mengubah identitas slot yang dilepaskan
+    public void setIdSlotDibebaskan(String idSlotDibebaskan) 
+    { 
+        this.idSlotDibebaskan = idSlotDibebaskan; 
     }
 }
