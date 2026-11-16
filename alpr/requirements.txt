@@ -1,0 +1,11 @@
+# Core Deep Learning & Computer Vision
+torch>=2.0.0
+torchvision>=0.15.0
+ultralytics>=8.0.0
+transformers>=4.30.0
+
+# Image Processing & Utilities
+opencv-python>=4.7.0
+pillow>=9.5.0
+numpy>=1.23.0
+pandas>=1.5.0

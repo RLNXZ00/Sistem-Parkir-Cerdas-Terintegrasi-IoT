@@ -18,10 +18,15 @@ import com.spct.repository.SlotParkirRepository;
 import com.spct.repository.TransaksiParkirRepository;
 // Import anotasi Autowired dari Spring Framework
 import org.springframework.beans.factory.annotation.Autowired;
+// Import anotasi Value dari Spring Framework untuk membaca properti aplikasi
+import org.springframework.beans.factory.annotation.Value;
 // Import anotasi Service dari Spring Framework
 import org.springframework.stereotype.Service;
 // Import anotasi Transactional dari Spring Framework
 import org.springframework.transaction.annotation.Transactional;
+
+// Import pustaka Jackson ObjectMapper untuk deserialisasi JSON respon ALPR
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 // Import tipe data BigDecimal untuk nominal tarif rupiah
 import java.math.BigDecimal;
@@ -31,6 +36,8 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 // Import koleksi List dari java util
 import java.util.List;
+// Import koleksi Map dari java util
+import java.util.Map;
 
 // Kelas layanan publik java DeteksiPlatService untuk mengorkestrasi pemrosesan kendaraan gerbang masuk dan gerbang keluar
 @Service // Menandai kelas ini sebagai Spring Service Bean
@@ -70,6 +77,14 @@ public class DeteksiPlatService
     // Injeksi otomatis dependensi TransaksiPembayaranService
     @Autowired
     private TransaksiPembayaranService transaksiPembayaranService; // Deklarasi atribut transaksiPembayaranService
+
+    // Injeksi alamat URL Edge ALPR Microservice dari application.properties
+    @Value("${alpr.microservice.url:http://127.0.0.1:5001}")
+    private String alprMicroserviceUrl;
+
+    // Injeksi batas waktu timeout komunikasi HTTP ALPR dalam milidetik (default: 20 detik)
+    @Value("${alpr.microservice.timeout-ms:20000}")
+    private int alprTimeoutMs;
 
     // =====================================================================
     // Method Utama: Mengorkestrasi seluruh alur pemrosesan kendaraan masuk
@@ -179,21 +194,40 @@ public class DeteksiPlatService
         return prosesKendaraanKeluar(platNomor, saldoEwallet, durasiMenitSimulasi, null);
     }
 
-    // Method lengkap prosesKendaraanKeluar dengan filter jenis kendaraan gerbang
+    // Method lengkap prosesKendaraanKeluar dengan filter jenis kendaraan gerbang dan validasi berlipat (double validation)
     @Transactional
     public HasilDeteksiKeluarDto prosesKendaraanKeluar(String platNomor, BigDecimal saldoEwallet, Integer durasiMenitSimulasi, JenisKendaraan jenisKendaraan)
     {
         // Inisialisasi variabel transaksi dengan nilai awal null
         TransaksiParkir transaksi = null;
 
-        // Jika plat nomor valid dan bukan kata kunci antrean umum, cari transaksi aktifnya
-        if (platNomor != null && !platNomor.trim().isEmpty() && !"QUEUE".equalsIgnoreCase(platNomor.trim()) && !"AUTO".equalsIgnoreCase(platNomor.trim())) 
+        // Evaluasi apakah plat nomor dikirim secara spesifik (bukan antrean otomatis)
+        boolean isPlatSpesifik = (platNomor != null && !platNomor.trim().isEmpty() 
+                                  && !"QUEUE".equalsIgnoreCase(platNomor.trim()) 
+                                  && !"AUTO".equalsIgnoreCase(platNomor.trim()));
+
+        // Jika plat nomor valid dan spesifik, cari transaksi aktifnya di database
+        if (isPlatSpesifik) 
         {
             transaksi = transaksiParkirRepository.findFirstByKendaraan_PlatNomorAndStatusPembayaranOrderByWaktuMasukDesc(
                     platNomor.trim(), StatusPembayaran.BELUM_LUNAS).orElse(null);
+
+            // Jika plat spesifik dicari namun tidak ditemukan di database kendaraan aktif, tolak transaksi
+            if (transaksi == null)
+            {
+                return new HasilDeteksiKeluarDto(
+                    "KENDARAAN_TIDAK_DITEMUKAN", 
+                    platNomor, 
+                    null, 
+                    null, 
+                    0, 
+                    BigDecimal.ZERO, 
+                    "Plat nomor " + platNomor + " tidak ditemukan dalam daftar parkir aktif (mungkin belum masuk atau sudah lunas)."
+                );
+            }
         }
 
-        // Jika transaksi belum ditemukan, gunakan mekanisme antrean FIFO terdepan
+        // Jika bukan plat spesifik (mode simulasi antrean FIFO), ambil kendaraan terdepan
         if (transaksi == null) 
         {
             transaksi = (jenisKendaraan == null)
@@ -202,15 +236,51 @@ public class DeteksiPlatService
                         StatusPembayaran.BELUM_LUNAS, jenisKendaraan).orElse(null);
         }
 
-        // Jika tidak ada transaksi kendaraan yang aktif sama sekali, maka:
+        // Jika tidak ada transaksi kendaraan yang aktif sama sekali di database, maka:
         if (transaksi == null) 
         {
             // Kembalikan DTO KENDARAAN_TIDAK_DITEMUKAN
             return new HasilDeteksiKeluarDto("KENDARAAN_TIDAK_DITEMUKAN", platNomor, null, null, 0, BigDecimal.ZERO, "Tidak ada kendaraan di dalam area parkir (semua sudah lunas / basement kosong).");
         }
 
-        // Mengambil plat nomor dari data transaksi kendaraan aktif
+        // Mengambil plat nomor definitif dari data transaksi kendaraan aktif
         platNomor = transaksi.getKendaraan().getPlatNomor();
+
+        // =====================================================================
+        // VALIDASI BERLIPAT (DOUBLE VALIDATION)
+        // =====================================================================
+
+        // 1. Validasi Kesesuaian Kategori Kendaraan dengan Gerbang Keluar
+        if (jenisKendaraan != null && transaksi.getKendaraan().getJenisKendaraan() != jenisKendaraan)
+        {
+            return new HasilDeteksiKeluarDto(
+                "JENIS_KENDARAAN_MISMATCH",
+                platNomor,
+                transaksi.getWaktuMasuk(),
+                null,
+                0,
+                BigDecimal.ZERO,
+                "Ketidaksesuaian gerbang: Kendaraan " + platNomor + " bertipe " + transaksi.getKendaraan().getJenisKendaraan() + " namun melalui gerbang keluar " + jenisKendaraan + "."
+            );
+        }
+
+        // 2. Validasi Integritas Slot Parkir: Memastikan slot parkir tercatat valid pada tiket masuk
+        SlotParkir slotTersimpan = transaksi.getSlotDipilih();
+        if (slotTersimpan == null)
+        {
+            return new HasilDeteksiKeluarDto(
+                "ANOMALI_SLOT_TIDAK_VALID",
+                platNomor,
+                transaksi.getWaktuMasuk(),
+                null,
+                0,
+                BigDecimal.ZERO,
+                "Anomali integritas data: Kendaraan " + platNomor + " tidak memiliki keterikatan slot parkir yang valid."
+            );
+        }
+
+        // Mengambil identifier kode slot yang akan dilepaskan (misal: B01-M01)
+        String idSlotDibebaskan = slotTersimpan.getIdSlot();
 
         // Mencatat waktu saat ini sebagai waktu keluar kendaraan
         LocalDateTime waktuKeluar = LocalDateTime.now();
@@ -251,12 +321,12 @@ public class DeteksiPlatService
             transaksiPembayaranService.bebaskanSlotParkir(transaksi); // Lepaskan slot parkir menjadi KOSONG
             transaksiParkirRepository.save(transaksi); // Simpan pembaruan transaksi ke database
 
-            // Kembalikan respons sukses bebas tarif grace period
-            return new HasilDeteksiKeluarDto("SUKSES", platNomor, waktuMasuk, waktuKeluar, hours, BigDecimal.ZERO, "Gratis (Grace Period ≤ 10 menit). Silakan keluar.");
+            // Kembalikan respons sukses bebas tarif grace period beserta ID slot yang dibebaskan
+            return new HasilDeteksiKeluarDto("SUKSES", platNomor, waktuMasuk, waktuKeluar, hours, BigDecimal.ZERO, "Gratis (Grace Period ≤ 10 menit). Silakan keluar.", idSlotDibebaskan);
         }
 
         // Jika saldo dompet digital mencukupi untuk membayar tagihan, maka:
-        if (saldoEwallet.compareTo(totalBiaya) >= 0) 
+        if (saldoEwallet != null && saldoEwallet.compareTo(totalBiaya) >= 0) 
         {
             transaksi.setWaktuKeluar(waktuKeluar); // Catat timestamp waktu keluar
             transaksi.setDurasiTotalMenit((int) minutes); // Catat durasi menit
@@ -275,13 +345,113 @@ public class DeteksiPlatService
             pembayaran.setWaktuPembayaran(waktuKeluar); // Waktu pembayaran sukses
             pembayaranRepository.save(pembayaran); // Simpan record pembayaran ke database
 
-            // Kembalikan DTO SUKSES keluar gerbang
-            return new HasilDeteksiKeluarDto("SUKSES", platNomor, waktuMasuk, waktuKeluar, hours, totalBiaya, "Pembayaran berhasil. Silakan keluar.");
+            // Kembalikan DTO SUKSES keluar gerbang beserta slot yang dibebaskan
+            return new HasilDeteksiKeluarDto("SUKSES", platNomor, waktuMasuk, waktuKeluar, hours, totalBiaya, "Pembayaran berhasil. Silakan keluar.", idSlotDibebaskan);
         } 
         else // Jika saldo e-wallet kurang dari total biaya tagihan, maka:
         {
             // Kembalikan DTO peringatan status SALDO_KURANG
-            return new HasilDeteksiKeluarDto("SALDO_KURANG", platNomor, waktuMasuk, waktuKeluar, hours, totalBiaya, "Saldo E-Wallet tidak mencukupi.");
+            return new HasilDeteksiKeluarDto("SALDO_KURANG", platNomor, waktuMasuk, waktuKeluar, hours, totalBiaya, "Saldo E-Wallet tidak mencukupi.", idSlotDibebaskan);
+        }
+    }
+
+    // =====================================================================
+    // Method Orkestrasi Microservice ALPR: Pemicu On-Demand Kamera Laptop
+    // =====================================================================
+
+    // Method triggerAlprScan untuk mengorkestrasi pemindaian kamera Edge ALPR di laptop
+    public Map<String, Object> triggerAlprScan(String gerbang, JenisKendaraan jenisKendaraan, BigDecimal saldoEwallet, Integer durasiMenit, String laptopUrlOverride)
+    {
+        // Menentukan base URL target: gunakan parameter override jika diisi, atau konfigurasi aplikasi
+        String baseUrl = (laptopUrlOverride != null && !laptopUrlOverride.isBlank()) ? laptopUrlOverride.trim() : alprMicroserviceUrl;
+        if (baseUrl.endsWith("/")) 
+        {
+            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+        }
+        String endpoint = baseUrl + "/api/alpr/scan";
+
+        // Membentuk payload JSON untuk dikirim ke Edge ALPR Microservice di laptop
+        String jsonPayload = String.format("{\"gerbang\":\"%s\",\"jenis\":\"%s\",\"timeout\":15}",
+                gerbang != null ? gerbang.toUpperCase() : "MASUK",
+                jenisKendaraan != null ? jenisKendaraan.name() : "MOBIL");
+
+        try
+        {
+            // Instansiasi HttpClient Java standar dengan batas waktu koneksi
+            java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofMillis(alprTimeoutMs))
+                    .build();
+
+            // Membangun request HTTP POST ke endpoint kamera laptop
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(endpoint))
+                    .timeout(Duration.ofMillis(alprTimeoutMs))
+                    .header("Content-Type", "application/json")
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(jsonPayload))
+                    .build();
+
+            // Mengirimkan permintaan secara sinkron dan menerima balasan teks JSON
+            java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+
+            // Jika microservice mengembalikan HTTP 200 OK:
+            if (response.statusCode() == 200)
+            {
+                // Parsing body respon JSON menggunakan Jackson ObjectMapper
+                ObjectMapper mapper = new ObjectMapper();
+                @SuppressWarnings("unchecked")
+                Map<String, Object> alprRes = mapper.readValue(response.body(), Map.class);
+                String statusAlpr = (String) alprRes.get("status");
+
+                // Jika plat nomor sukses terdeteksi:
+                if ("SUKSES".equalsIgnoreCase(statusAlpr))
+                {
+                    String platNomor = (String) alprRes.get("platNomor");
+                    double conf = (alprRes.get("confidence") != null) ? ((Number) alprRes.get("confidence")).doubleValue() : 1.0;
+
+                    // Jika pemindaian dilakukan di gerbang KELUAR:
+                    if ("KELUAR".equalsIgnoreCase(gerbang))
+                    {
+                        HasilDeteksiKeluarDto hasilKeluar = prosesKendaraanKeluar(platNomor, saldoEwallet != null ? saldoEwallet : BigDecimal.valueOf(50000), durasiMenit, jenisKendaraan);
+                        return Map.of("status", hasilKeluar.getStatus(), "gerbang", "KELUAR", "data", hasilKeluar, "alpr", alprRes);
+                    }
+                    else // Jika pemindaian di gerbang MASUK:
+                    {
+                        HasilDeteksiMasukDto hasilMasuk = prosesKendaraanMasuk(platNomor, jenisKendaraan, conf);
+                        return Map.of("status", hasilMasuk.getStatus(), "gerbang", "MASUK", "data", hasilMasuk, "alpr", alprRes);
+                    }
+                }
+                else
+                {
+                    return Map.of("status", statusAlpr, "gerbang", gerbang, "pesan", alprRes.getOrDefault("pesan", "Kamera ALPR tidak berhasil mendeteksi plat."), "alpr", alprRes);
+                }
+            }
+            else if (response.statusCode() == 408)
+            {
+                // Timeout pemindaian 15 detik
+                return Map.of("status", "TIMEOUT", "gerbang", gerbang, "pesan", "Waktu pemindaian kamera habis (15 detik). Plat nomor tidak terdeteksi oleh webcam laptop.");
+            }
+            else
+            {
+                return Map.of("status", "ERROR", "gerbang", gerbang, "pesan", "Microservice ALPR mengembalikan kode respon HTTP " + response.statusCode());
+            }
+        }
+        catch (java.net.ConnectException ce)
+        {
+            // Penanganan kegagalan koneksi jaringan (firewall / laptop belum menyala)
+            return Map.of(
+                "status", "MICROSERVICE_UNREACHABLE",
+                "gerbang", gerbang,
+                "pesan", "Tidak dapat terhubung ke Edge ALPR Microservice di " + baseUrl + ". Pastikan laptop dan PC berada di Wi-Fi yang sama dan skrip 'alpr_microservice.py' di laptop telah menyala."
+            );
+        }
+        catch (Exception ex)
+        {
+            // Penanganan kesalahan umum lainnya
+            return Map.of(
+                "status", "ERROR",
+                "gerbang", gerbang,
+                "pesan", "Terjadi kesalahan saat memicu kamera ALPR: " + ex.getMessage()
+            );
         }
     }
 
