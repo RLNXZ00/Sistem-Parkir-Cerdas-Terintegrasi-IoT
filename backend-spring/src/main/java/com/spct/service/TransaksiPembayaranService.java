@@ -38,6 +38,10 @@ public class TransaksiPembayaranService
     @Autowired
     private SlotParkirRepository slotParkirRepository; // Deklarasi atribut slotParkirRepository
 
+    // Injeksi otomatis dependensi SimpMessagingTemplate untuk penyiaran pembaruan denah via WebSocket (opsional)
+    @Autowired(required = false)
+    private org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
+
     // =====================================================================
     // Method Utama: Menghitung tagihan saat kendaraan tiba di gerbang keluar
     // =====================================================================
@@ -197,6 +201,17 @@ public class TransaksiPembayaranService
             slotTerkait.setKendaraanAktif(null); // Menghapus referensi kendaraan aktif
             slotTerkait.setWaktuDipesan(null); // Menghapus timestamp pemesanan
             slotParkirRepository.save(slotTerkait); // Menyimpan pembaruan slot ke database
+
+            // Jika messagingTemplate tersedia, broadcast status KOSONG ke topik monitoring dashboard
+            if (messagingTemplate != null)
+            {
+                java.util.Map<String, Object> payload = java.util.Map.of(
+                    "idSlot", slotTerkait.getIdSlot(),
+                    "statusSlot", "KOSONG",
+                    "tingkatKeparahan", "INFO"
+                );
+                messagingTemplate.convertAndSend("/topic/monitoring", payload);
+            }
         }
     }
 }
