@@ -97,7 +97,7 @@ DEFAULT_CONFIG = {
     "camera_index": 0,
     "scan_timeout_sec": 15,
     "auto_off_delay_sec": 3.0,
-    "yolo_conf_threshold": 0.25,
+    "yolo_conf_threshold": 0.45,
     "yolo_imgsz": 384,
     "default_flip_mode": 0,
     "show_opencv_window": True
@@ -119,7 +119,7 @@ APP_CONFIG = load_config()
 # Pola Regex TNKB Indonesia dan Peta Disambiguasi Karakter
 DIGIT_TO_CHAR = {'0': 'O', '1': 'I', '2': 'Z', '4': 'A', '5': 'S', '6': 'G', '8': 'B'}
 CHAR_TO_DIGIT = {'O': '0', 'I': '1', 'Z': '2', 'A': '4', 'S': '5', 'G': '6', 'B': '8', 'Q': '0'}
-TNKB_PATTERN = re.compile(r'^([A-Z]{1,2})([0-9]{1,4})([A-Z]{1,3})$')
+TNKB_PATTERN = re.compile(r'^([A-Z]{1,2})\s*([0-9]{1,4})\s*([A-Z]{1,3})$')
 
 # ─── 4. ALGORITMA POST-PROCESSING TNKB INDONESIA ──────────────────────────────
 def _try_segment(chars, p_end, n_end):
@@ -197,22 +197,23 @@ def validate_tnkb(text):
 
 
 def postprocess_plate(raw_text):
-    """Menghasilkan teks plat akhir yang bersih, terformat, dan valid."""
+    """Menghasilkan teks plat akhir yang bersih, terformat [Daerah] [Nomor] [Seri], dan valid."""
     cleaned = re.sub(r'[^A-Z0-9]', '', raw_text.upper())
     corrected = correct_char_ambiguity(cleaned)
     is_valid, groups = validate_tnkb(corrected)
-    formatted = " ".join(groups) if groups else corrected
+    # Standarisasi pemisahan spasi TNKB resmi: [Kode Daerah] [Nomor Polisi] [Seri Wilayah]
+    formatted = f"{groups[0]} {groups[1]} {groups[2]}" if groups else corrected
     return {
         'raw': raw_text,
-        'final': corrected,
+        'final': formatted,
         'formatted': formatted,
         'valid': is_valid,
         'groups': groups
     }
 
 
-def crop_plate(frame_bgr, xyxy, pad_x_pct=0.08, pad_y_pct=0.04):
-    """Memotong area plat nomor dari frame kamera dengan padding proporsional."""
+def crop_plate(frame_bgr, xyxy, pad_x_pct=0.04, pad_y_pct=0.04):
+    """Memotong area plat nomor dari frame kamera dengan padding ketat agar tidak menangkap emblem/bemper."""
     h, w = frame_bgr.shape[:2]
     x1, y1, x2, y2 = xyxy
     bw = x2 - x1
@@ -287,23 +288,30 @@ class AlprMicroserviceEngine:
                 generated_ids = self.trocr_model.generate(
                     pixel_values,
                     max_new_tokens=12,
-                    num_beams=1,
-                    early_stopping=True
+                    num_beams=2,
+                    early_stopping=True,
+                    repetition_penalty=1.05
                 )
             raw_text = self.trocr_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
             pp = postprocess_plate(raw_text)
 
             # Fallback jika hanya membaca angka pajak baris bawah
-            if (pp['final'].isdigit() or not pp['valid']) and crop_rgb.shape[0] >= 30:
+            if (pp['final'].replace(' ', '').isdigit() or not pp['valid']) and crop_rgb.shape[0] >= 30:
                 top_h = int(crop_rgb.shape[0] * 0.75)
                 top_crop = crop_rgb[:top_h, :]
                 top_pil = Image.fromarray(top_crop)
                 top_pixels = self.trocr_processor(top_pil, return_tensors="pt").pixel_values.to(self.device)
                 with torch.no_grad():
-                    top_ids = self.trocr_model.generate(top_pixels, max_new_tokens=12, num_beams=1)
+                    top_ids = self.trocr_model.generate(
+                        top_pixels,
+                        max_new_tokens=12,
+                        num_beams=2,
+                        early_stopping=True,
+                        repetition_penalty=1.05
+                    )
                 top_raw = self.trocr_processor.batch_decode(top_ids, skip_special_tokens=True)[0]
                 top_pp = postprocess_plate(top_raw)
-                if top_pp['valid'] or (any(c.isalpha() for c in top_pp['final']) and len(top_pp['final']) >= 4):
+                if top_pp['valid'] or (any(c.isalpha() for c in top_pp['final']) and len(top_pp['final'].replace(' ', '')) >= 4):
                     pp = top_pp
 
             return pp
@@ -507,6 +515,8 @@ def opencv_camera_worker():
     frame_count = 0
     cached_detections = []
     success_hold_until = 0
+    candidate_plate = None
+    candidate_count = 0
 
     print("=" * 65)
     print("🚀 EDGE ALPR MICROSERVICE AKTIF & SIAP MENERIMA PERMINTAAN!")
@@ -562,6 +572,11 @@ def opencv_camera_worker():
                     success_hold_until = 0
                     print("💤 [STANDBY] Kamera kembali ke status standby (hemat daya & siap pemicu berikutnya).")
 
+            # Reset kandidat debounce jika tidak dalam status SCANNING
+            if state != "SCANNING":
+                candidate_plate = None
+                candidate_count = 0
+
             # Eksekusi AI hanya saat status SCANNING aktif
             detections = []
             if state == "SCANNING":
@@ -585,7 +600,14 @@ def opencv_camera_worker():
                                 for box in results.boxes:
                                     xyxy = box.xyxy[0].cpu().numpy().astype(int).tolist()
                                     conf = float(box.conf[0].cpu())
-                                    cached.append({'xyxy': xyxy, 'conf': conf})
+                                    bw = xyxy[2] - xyxy[0]
+                                    bh = xyxy[3] - xyxy[1]
+                                    if bh <= 0 or bw <= 0:
+                                        continue
+                                    ar = bw / float(bh)
+                                    # Filter Aspect Ratio TNKB Indonesia (rasio lebar:tinggi 1.8 s.d. 6.0) dan dimensi minimal kotak plat
+                                    if 1.8 <= ar <= 6.0 and bw >= 50 and bh >= 16:
+                                        cached.append({'xyxy': xyxy, 'conf': conf})
                                 cached_detections = cached
                             except Exception as e:
                                 cached_detections = []
@@ -603,8 +625,23 @@ def opencv_camera_worker():
                         elapsed_ocr = (time.time() - t_ocr_start) * 1000
 
                         if ocr_res.get('valid', False):
-                            # Perekaman deteksi sukses
-                            ALPR_ENGINE.record_success_detection(ocr_res, best_det['conf'], elapsed_ocr, crop_rgb)
+                            # Jika confidence YOLO sangat tinggi (>= 0.65), konfirmasi langsung
+                            if best_det['conf'] >= 0.65:
+                                ALPR_ENGINE.record_success_detection(ocr_res, best_det['conf'], elapsed_ocr, crop_rgb)
+                                candidate_plate = None
+                                candidate_count = 0
+                            else:
+                                # Jika confidence marginal (0.45 - 0.64), butuh 2 frame berturut-turut untuk mencegah false positive
+                                if candidate_plate == ocr_res['formatted']:
+                                    candidate_count += 1
+                                else:
+                                    candidate_plate = ocr_res['formatted']
+                                    candidate_count = 1
+
+                                if candidate_count >= 2:
+                                    ALPR_ENGINE.record_success_detection(ocr_res, best_det['conf'], elapsed_ocr, crop_rgb)
+                                    candidate_plate = None
+                                    candidate_count = 0
 
             # ─── MENGGAMBAR OVERLAY HUD FUTURISTIK ───────────────────────────
             h, w = frame.shape[:2]
