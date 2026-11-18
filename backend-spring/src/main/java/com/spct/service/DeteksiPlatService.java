@@ -87,6 +87,35 @@ public class DeteksiPlatService
     private int alprTimeoutMs;
 
     // =====================================================================
+    // Method Helper: Normalisasi Format Plat Nomor TNKB Indonesia
+    // =====================================================================
+
+    // Method helper formatPlatNomorBaku untuk menstandarisasi format plat nomor TNKB Indonesia menjadi [Daerah] [Nomor] [Seri]
+    public static String formatPlatNomorBaku(String inputPlat)
+    {
+        // Jika input kosong atau bernilai null, kembalikan nilai asal
+        if (inputPlat == null || inputPlat.trim().isEmpty())
+        {
+            return inputPlat;
+        }
+
+        // Hilangkan spasi berlebih dan konversi string ke huruf kapital
+        String bersih = inputPlat.trim().toUpperCase().replaceAll("\\s+", "");
+        // Pola regex baku TNKB Indonesia: 1-2 huruf kode daerah, 1-4 digit nomor polisi, 1-3 huruf seri akhir
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("^([A-Z]{1,2})([0-9]{1,4})([A-Z]{1,3})$");
+        java.util.regex.Matcher matcher = pattern.matcher(bersih);
+
+        // Jika string cocok dengan pola TNKB Indonesia, format dengan spasi pemisah standar
+        if (matcher.matches())
+        {
+            return matcher.group(1) + " " + matcher.group(2) + " " + matcher.group(3);
+        }
+
+        // Jika tidak sesuai pola baku, kembalikan teks hasil pembersihan kapital
+        return inputPlat.trim().toUpperCase();
+    }
+
+    // =====================================================================
     // Method Utama: Mengorkestrasi seluruh alur pemrosesan kendaraan masuk
     // =====================================================================
 
@@ -94,6 +123,9 @@ public class DeteksiPlatService
     @Transactional
     public HasilDeteksiMasukDto prosesKendaraanMasuk(String platNomor, JenisKendaraan jenisKendaraan, double confidenceScore)
     {
+        // Menstandarisasi format plat nomor ke format baku TNKB [Daerah] [Nomor] [Seri]
+        platNomor = formatPlatNomorBaku(platNomor);
+
         // Jika nilai confidence score di bawah batas ambang 70%, maka:
         if (confidenceScore < CONFIDENCE_THRESHOLD)
         {
@@ -158,8 +190,16 @@ public class DeteksiPlatService
     // Method cariAtauDaftarkanKendaraan untuk mencari atau mendaftarkan kendaraan baru
     private DataKendaraan cariAtauDaftarkanKendaraan(String platNomor, JenisKendaraan jenisKendaraan)
     {
-        // Mencari kendaraan di database berdasarkan plat nomor
-        DataKendaraan terdaftar = dataKendaraanRepository.findByPlatNomor(platNomor).orElse(null);
+        // Standarisasi plat nomor ke format baku TNKB
+        String platBaku = formatPlatNomorBaku(platNomor);
+        // String plat nomor tanpa spasi untuk kompatibilitas pencarian data lama
+        String platTanpaSpasi = platBaku.replace(" ", "");
+
+        // Mencari kendaraan di database berdasarkan plat nomor baku atau tanpa spasi
+        DataKendaraan terdaftar = dataKendaraanRepository.findByPlatNomor(platBaku)
+            .or(() -> dataKendaraanRepository.findByPlatNomor(platTanpaSpasi))
+            .orElse(null);
+
         // Jika kendaraan sudah ada, maka:
         if (terdaftar != null)
         {
@@ -173,7 +213,7 @@ public class DeteksiPlatService
         }
 
         // Jika kendaraan baru, instansiasi entitas DataKendaraan baru dan simpan ke database
-        return dataKendaraanRepository.save(new DataKendaraan(platNomor, jenisKendaraan));
+        return dataKendaraanRepository.save(new DataKendaraan(platBaku, jenisKendaraan));
     }
 
     // =====================================================================
@@ -209,20 +249,29 @@ public class DeteksiPlatService
         // Jika plat nomor valid dan spesifik, cari transaksi aktifnya di database
         if (isPlatSpesifik) 
         {
+            // Standarisasi plat nomor ke format baku TNKB
+            String platBaku = formatPlatNomorBaku(platNomor);
+            // String plat nomor tanpa spasi untuk kompatibilitas data transaksi lama
+            String platTanpaSpasi = platBaku.replace(" ", "");
+
+            // Mencari transaksi aktif berdasarkan format ber-spasi atau tanpa spasi
             transaksi = transaksiParkirRepository.findFirstByKendaraan_PlatNomorAndStatusPembayaranOrderByWaktuMasukDesc(
-                    platNomor.trim(), StatusPembayaran.BELUM_LUNAS).orElse(null);
+                    platBaku, StatusPembayaran.BELUM_LUNAS)
+                .or(() -> transaksiParkirRepository.findFirstByKendaraan_PlatNomorAndStatusPembayaranOrderByWaktuMasukDesc(
+                    platTanpaSpasi, StatusPembayaran.BELUM_LUNAS))
+                .orElse(null);
 
             // Jika plat spesifik dicari namun tidak ditemukan di database kendaraan aktif, tolak transaksi
             if (transaksi == null)
             {
                 return new HasilDeteksiKeluarDto(
                     "KENDARAAN_TIDAK_DITEMUKAN", 
-                    platNomor, 
+                    platBaku, 
                     null, 
                     null, 
                     0, 
                     BigDecimal.ZERO, 
-                    "Plat nomor " + platNomor + " tidak ditemukan dalam daftar parkir aktif (mungkin belum masuk atau sudah lunas)."
+                    "Plat nomor " + platBaku + " tidak ditemukan dalam daftar parkir aktif (mungkin belum masuk atau sudah lunas)."
                 );
             }
         }
@@ -405,7 +454,11 @@ public class DeteksiPlatService
                 // Jika plat nomor sukses terdeteksi:
                 if ("SUKSES".equalsIgnoreCase(statusAlpr))
                 {
-                    String platNomor = (String) alprRes.get("platNomor");
+                    // Mengambil teks plat nomor dari respons ALPR (prioritaskan field formatted dengan spasi)
+                    String rawPlat = (String) alprRes.getOrDefault("formatted", alprRes.get("platNomor"));
+                    if (rawPlat == null) rawPlat = (String) alprRes.get("platNomor");
+                    // Normalisasi teks plat nomor ke format standar baku TNKB Indonesia [Daerah] [Nomor] [Seri]
+                    String platNomor = formatPlatNomorBaku(rawPlat);
                     double conf = (alprRes.get("confidence") != null) ? ((Number) alprRes.get("confidence")).doubleValue() : 1.0;
 
                     // Jika pemindaian dilakukan di gerbang KELUAR:
