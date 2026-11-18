@@ -37,8 +37,21 @@ export default function ExitScanPage({ jenis = 'MOBIL' }) {
 
   // Inisialisasi state saldo bertipe number dengan nilai awal Rp 50.000 untuk simulasi saldo e-wallet
   const [saldo, setSaldo] = useState(50000); 
-  // Inisialisasi state durasiSimulasi bertipe number dengan nilai awal 60 menit untuk durasi parkir
-  const [durasiSimulasi, setDurasiSimulasi] = useState(60);
+  // Inisialisasi state durasiSimulasi bertipe number dengan nilai default 0 (Real-time / Waktu Sebenarnya)
+  const [durasiSimulasi, setDurasiSimulasi] = useState(() => {
+    // Membaca preferensi durasi simulasi yang tersimpan di localStorage browser
+    const durasiTersimpan = localStorage.getItem('spct_exit_durasi_simulasi');
+    // Jika ada nilai tersimpan kembalikan nilai tersebut, jika tidak gunakan default 0 (Real-time)
+    return durasiTersimpan !== null ? Number(durasiTersimpan) : 0;
+  });
+
+  // Fungsi handler ubahDurasiSimulasi untuk menyimpan nilai durasi terpilih ke state dan localStorage
+  const ubahDurasiSimulasi = (nilaiDurasi) => {
+    // Mengubah state durasiSimulasi dengan nilai durasi baru
+    setDurasiSimulasi(Number(nilaiDurasi));
+    // Menyimpan pilihan durasi ke localStorage agar persisten antar navigasi gerbang
+    localStorage.setItem('spct_exit_durasi_simulasi', String(nilaiDurasi));
+  };
 
   // Fungsi toggle mode pemindaian keluar
   const toggleScanMode = (mode) => {
@@ -293,7 +306,7 @@ export default function ExitScanPage({ jenis = 'MOBIL' }) {
           saldo={saldo}
           setSaldo={setSaldo}
           durasi={durasiSimulasi}
-          setDurasi={setDurasiSimulasi}
+          setDurasi={ubahDurasiSimulasi}
         />
 
         {/* Bingkai visual bidikan kamera pemindai gerbang keluar */}
