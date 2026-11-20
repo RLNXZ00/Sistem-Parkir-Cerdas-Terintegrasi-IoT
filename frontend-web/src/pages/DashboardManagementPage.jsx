@@ -230,16 +230,19 @@ export default function DashboardManagementPage() {
 
     // Blok try-catch-finally untuk menangani pemuatan data paralel secara aman
     try {
-      // Melakukan request paralel secara simultan ke endpoint monitoring slots dan log IoT via Promise.all
-      const [slotsRes, logsRes] = await Promise.all([
+      // Melakukan request paralel secara simultan ke endpoint slots, log IoT, dan sensor status
+      const [slotsRes, logsRes, sensorRes] = await Promise.all([
         fetch('http://localhost:8081/api/monitoring/slots'),
-        fetch('http://localhost:8081/api/monitoring/log-iot')
+        fetch('http://localhost:8081/api/monitoring/log-iot'),
+        fetch('http://localhost:8081/api/hardware/sensor')
       ]);
 
       // Parsing respon daftar slot jika HTTP status OK, fallback ke array kosong jika gagal
       const slots = slotsRes.ok ? await slotsRes.json() : [];
       // Parsing respon daftar log jika HTTP status OK, fallback ke array kosong jika gagal
       const logs = logsRes.ok ? await logsRes.json() : [];
+      // Parsing respon daftar sensor hardware
+      const sensors = sensorRes.ok ? await sensorRes.json() : [];
 
       // Perbarui state slotsList dengan data server jika ada, atau fallback ke 16 slot standar
       setSlotsList(slots.length > 0 ? slots : DEFAULT_SLOTS.map(id => ({ idSlot: id })));
@@ -250,6 +253,26 @@ export default function DashboardManagementPage() {
       const anomaliGroup = {};
       // Inisialisasi variabel penampung kode slot anomali pertama yang ditemukan untuk auto-fokus
       let firstErrorSlot = null;
+
+      // Iterasi data sensor untuk menandai slot dengan sensor fisik OFFLINE sebagai anomali
+      sensors.forEach(s => {
+        if (s.statusSensor === 'OFF' && s.slotDipantau && s.slotDipantau.idSlot) {
+          const sId = s.slotDipantau.idSlot;
+          if (!anomaliGroup[sId]) {
+            anomaliGroup[sId] = [];
+            if (!firstErrorSlot) firstErrorSlot = sId;
+          }
+          anomaliGroup[sId].push({
+            idLog: 'HW-OFF',
+            waktuKejadian: new Date().toISOString(),
+            jenisKejadian: 'SENSOR_OFFLINE_TIMEOUT',
+            tingkatKeparahan: 'CRITICAL',
+            statusResolusi: 'BELUM_DITANGANI',
+            jenisAnomali: 'SENSOR_OFFLINE',
+            catatanDetail: `Sensor ${s.idSensor} terpantau OFFLINE/Mati. Sistem melewati slot ini dari proses alokasi parkir.`
+          });
+        }
+      });
 
       // Iterasi setiap objek log untuk mengidentifikasi keberadaan insiden anomali
       latest10.forEach(log => {
@@ -680,6 +703,13 @@ export default function DashboardManagementPage() {
   // Menghitung persentase keaktifan sensor (health percentage)
   const sensorPct = totalSensor > 0 ? Math.round((sensorAktif / totalSensor) * 100) : 100;
 
+  // Menentukan jumlah kamera ANPR aktif saat ini (default 4 unit)
+  const kameraAktif = safeData.totalKameraAktif ?? 4;
+  // Menentukan kapasitas total unit kamera ANPR (default 4 unit)
+  const totalKamera = safeData.totalKamera ?? 4;
+  // Menghitung persentase keaktifan kamera ANPR
+  const kameraPct = totalKamera > 0 ? Math.round((kameraAktif / totalKamera) * 100) : 100;
+
   // Menentukan daftar slot denah aktif berdasarkan tab kategori kendaraan yang dipilih
   const activeGridSlots = nodeMapCategory === 'MOTOR' ? DEFAULT_MOTOR_SLOTS : DEFAULT_MOBIL_SLOTS;
   // Membagi slot denah aktif menjadi 2 baris (Baris 1: 8 slot pertama)
@@ -926,20 +956,44 @@ export default function DashboardManagementPage() {
                 <span>View Node Logs</span>
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-4 flex-1">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
               {/* Kotak Informasi Sensor Aktif Real-Time */}
-              <div className="bg-surface-container p-4 rounded-lg border border-outline-variant/20">
+              <div className={`p-4 rounded-lg border transition-all duration-300 ${sensorPct < 100 
+                ? 'bg-red-950/20 border-red-500/50 shadow-[0_0_12px_rgba(239,68,68,0.15)]' 
+                : 'bg-surface-container border-outline-variant/20'}`}>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="material-symbols-outlined text-on-surface-variant text-[20px]">sensors</span>
-                  <span className="font-mono text-sm text-on-surface-variant">Active Sensors</span>
+                  <span className={`material-symbols-outlined text-[20px] ${sensorPct < 100 ? 'text-red-400' : 'text-on-surface-variant'}`}>sensors</span>
+                  <span className={`font-mono text-sm ${sensorPct < 100 ? 'text-red-300 font-bold' : 'text-on-surface-variant'}`}>Active Sensors</span>
                 </div>
-                <div className="text-4xl text-on-surface font-bold leading-none font-mono">
-                  {sensorAktif} <span className="text-sm text-text-muted font-normal font-sans">/ {totalSensor} Unit</span>
+                <div className="text-3xl text-on-surface font-bold leading-none font-mono">
+                  {sensorAktif} <span className="text-xs text-text-muted font-normal font-sans">/ {totalSensor} Unit</span>
                 </div>
-                <div className="text-eco-success font-mono text-sm mt-1">{sensorPct}% Up</div>
+                <div className={`font-mono text-xs mt-1 ${sensorPct < 100 ? 'text-red-400 font-bold' : 'text-eco-success'}`}>
+                  {sensorPct}% Up {sensorPct < 100 && '• Anomali'}
+                </div>
                 {/* Batang indikator rasio keaktifan sensor fisik */}
                 <div className="w-full bg-surface-container-highest rounded-full h-1 mt-3">
-                  <div className="bg-eco-success h-full rounded-full" style={{ width: `${sensorPct}%` }}></div>
+                  <div className={`h-full rounded-full ${sensorPct < 100 ? 'bg-red-500' : 'bg-eco-success'}`} style={{ width: `${sensorPct}%` }}></div>
+                </div>
+              </div>
+
+              {/* Kotak Informasi Kamera ANPR Gerbang Real-Time */}
+              <div className={`p-4 rounded-lg border transition-all duration-300 ${kameraPct < 100 
+                ? 'bg-red-950/20 border-red-500/50 shadow-[0_0_12px_rgba(239,68,68,0.15)]' 
+                : 'bg-surface-container border-outline-variant/20'}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`material-symbols-outlined text-[20px] ${kameraPct < 100 ? 'text-red-400' : 'text-[#7ad0ff]'}`}>videocam</span>
+                  <span className={`font-mono text-sm ${kameraPct < 100 ? 'text-red-300 font-bold' : 'text-on-surface-variant'}`}>Kamera ANPR</span>
+                </div>
+                <div className="text-3xl text-on-surface font-bold leading-none font-mono">
+                  {kameraAktif} <span className="text-xs text-text-muted font-normal font-sans">/ {totalKamera} Unit</span>
+                </div>
+                <div className={`font-mono text-xs mt-1 ${kameraPct < 100 ? 'text-red-400 font-bold' : 'text-sky-400'}`}>
+                  {kameraPct}% Up {kameraPct < 100 && '• OFFLINE'}
+                </div>
+                {/* Batang indikator rasio keaktifan kamera gerbang */}
+                <div className="w-full bg-surface-container-highest rounded-full h-1 mt-3">
+                  <div className={`h-full rounded-full ${kameraPct < 100 ? 'bg-red-500' : 'bg-sky-400'}`} style={{ width: `${kameraPct}%` }}></div>
                 </div>
               </div>
 
@@ -951,17 +1005,17 @@ export default function DashboardManagementPage() {
                 </div>
                 <div className="flex items-center gap-3 mt-2">
                   {/* Animasi spinner lingkaran status latensi jaringan */}
-                  <div className="relative w-12 h-12 flex items-center justify-center flex-shrink-0">
+                  <div className="relative w-10 h-10 flex items-center justify-center flex-shrink-0">
                     <div className="absolute inset-0 rounded-full border-2 border-system-info/30"></div>
                     <div className="absolute inset-0 rounded-full border-t-2 border-system-info animate-spin"></div>
-                    <span className="material-symbols-outlined text-system-info text-[24px]">router</span>
+                    <span className="material-symbols-outlined text-system-info text-[20px]">router</span>
                   </div>
                   <div>
                     {/* Status stabilitas jaringan berdasarkan ambang batas ping 100ms */}
-                    <span className={`font-mono text-lg font-bold ${networkPing && networkPing < 100 ? 'text-system-info' : 'text-warning-reserved'}`}>
+                    <span className={`font-mono text-base font-bold ${networkPing && networkPing < 100 ? 'text-system-info' : 'text-warning-reserved'}`}>
                       {networkPing === null ? 'Checking...' : (networkPing < 100 ? 'Stable' : 'Slow')}
                     </span>
-                    <p className="text-xs text-text-muted font-mono">
+                    <p className="text-[11px] text-text-muted font-mono">
                       Ping: {networkPing !== null ? `${networkPing}ms` : '--'}
                     </p>
                   </div>
@@ -971,7 +1025,7 @@ export default function DashboardManagementPage() {
               {/* Banner Peringatan Anomali Aktif (Interaktif: Klik untuk membuka modal 10 riwayat log) */}
               <div 
                 onClick={openAnomaliListModal}
-                className="col-span-2 bg-error-container/10 p-4 rounded-lg border border-alert-anomaly/30 flex items-center justify-between group cursor-pointer hover:bg-error-container/20 transition-all shadow-sm"
+                className="col-span-1 sm:col-span-3 bg-error-container/10 p-4 rounded-lg border border-alert-anomaly/30 flex items-center justify-between group cursor-pointer hover:bg-error-container/20 transition-all shadow-sm"
               >
                 <div className="flex items-center gap-3">
                   {/* Ikon peringatan segitiga bahaya dengan animasi denyut jika ada anomali */}
