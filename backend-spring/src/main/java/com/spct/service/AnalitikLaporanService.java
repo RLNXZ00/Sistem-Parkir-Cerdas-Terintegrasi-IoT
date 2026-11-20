@@ -333,6 +333,9 @@ public class AnalitikLaporanService
         // Formatter format tanggal (misal: "01 Okt")
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM");
 
+        // Inisialisasi akumulator pendapatan berjalan (running total) untuk pertumbuhan kontinu
+        BigDecimal akumulasiBerjalan = BigDecimal.ZERO;
+
         // Inisialisasi tanggal berjalan dengan awal bulan
         LocalDate tgl = awalBulan;
         // Selama tgl belum melewati hariIni, lakukan perulangan harian:
@@ -349,11 +352,14 @@ public class AnalitikLaporanService
             // Jika null, beri nilai ZERO
             if (pendapatanHari == null) { pendapatanHari = BigDecimal.ZERO; }
 
-            // Menambahkan titik data pendapatan harian ke dalam list
+            // Akumulasikan pendapatan harian ke total berjalan agar grafik pertumbuhan stabil naik/mendatar (tidak anjlok)
+            akumulasiBerjalan = akumulasiBerjalan.add(pendapatanHari);
+
+            // Menambahkan titik data pendapatan akumulatif ke dalam list
             hasil.add(new DataDashboardDto.DataPendapatanHarianDto(
                 tgl.getDayOfMonth(), // Nomor hari (tanggal)
                 tgl.format(formatter), // Label tanggal
-                pendapatanHari // Nominal pendapatan
+                akumulasiBerjalan // Nominal pendapatan akumulatif berjalan
             ));
 
             // Melangkah 1 hari ke depan
