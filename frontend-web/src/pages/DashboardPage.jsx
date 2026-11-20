@@ -121,6 +121,38 @@ export default function DashboardPage() {
   // Fungsi pembantu pengecekan apakah status hardware bernilai 'ON'
   const isOn = (status) => status?.toUpperCase() === 'ON';
 
+  // Fungsi untuk mengubah status operasional kamera ANPR secara interaktif (Simulasi Online / Offline)
+  const toggleKameraStatus = async (idKamera, currentStatus) => {
+    const statusBaru = isOn(currentStatus) ? 'OFF' : 'ON';
+    try {
+      await fetch(`${API_BASE}/api/hardware/kamera/${idKamera}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statusKamera: statusBaru }),
+      });
+      // Panggil fetchAll secara instan agar kartu segera berubah warna
+      fetchAll();
+    } catch (err) {
+      console.error('Gagal mengubah status kamera:', err);
+    }
+  };
+
+  // Fungsi untuk mengubah status operasional sensor IoT secara interaktif (Simulasi Online / Offline)
+  const toggleSensorStatus = async (idSensor, currentStatus) => {
+    const statusBaru = isOn(currentStatus) ? 'OFF' : 'ON';
+    try {
+      await fetch(`${API_BASE}/api/hardware/sensor/${idSensor}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statusSensor: statusBaru }),
+      });
+      // Panggil fetchAll secara instan agar kartu segera berubah warna
+      fetchAll();
+    } catch (err) {
+      console.error('Gagal mengubah status sensor:', err);
+    }
+  };
+
   // Fungsi penentu gaya visual kartu slot parkir berdasarkan status sensor, anomali, dan alokasi
   const getSlotStyle = (slot) => {
     // Jika sensor pemantau slot dalam kondisi OFF, kategorikan sebagai ANOMALI
@@ -374,22 +406,34 @@ export default function DashboardPage() {
                         {visibleSlots.map(slot => {
                           const styleClass = getSlotStyle(slot);
                           const isAnomali = styleClass === SLOT_STYLES.ANOMALI;
+                          const isSensorOff = getSensorStatus(slot.idSlot) === 'OFF';
                           return (
                             <div
                               key={slot.idSlot}
-                              title={`${slot.idSlot.replace(/^M(\d+)/, 'B$1')} — ${slot.statusSlot}${slot.kendaraanAktif ? ` | ${slot.kendaraanAktif.platNomor}` : ''}`}
+                              title={`${slot.idSlot.replace(/^M(\d+)/, 'B$1')} — ${isSensorOff ? 'SENSOR OFFLINE' : slot.statusSlot}${slot.kendaraanAktif ? ` | ${slot.kendaraanAktif.platNomor}` : ''}`}
                               className={`group h-10 rounded flex items-center justify-center font-mono text-xs relative ${styleClass}`}
                             >
                               {/* Menampilkan kode slot motor dengan awalan B (misal M1-01 -> B1-01) */}
                               {slot.idSlot.replace(/^M(\d+)/, 'B$1')}
+                              {/* Indikator berdenyut jika sensor IoT slot sedang offline */}
+                              {isSensorOff && (
+                                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600 border border-black"></span>
+                                </span>
+                              )}
                               {/* Kotak tooltip detail anomali saat hover */}
                               {isAnomali && (
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-surface-container-high border border-alert-anomaly p-3 rounded shadow-lg hidden group-hover:block z-50 text-left">
-                                  <p className="text-xs text-alert-anomaly font-bold mb-1">ANOMALI SLOT</p>
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 bg-surface-container-high border border-alert-anomaly p-3 rounded shadow-lg hidden group-hover:block z-50 text-left">
+                                  <p className="text-xs text-alert-anomaly font-bold mb-1">
+                                    {isSensorOff ? '⚠️ SENSOR IOT OFFLINE' : 'ANOMALI SLOT'}
+                                  </p>
                                   <p className="text-xs text-on-surface-variant font-mono">Slot: {slot.idSlot.replace(/^M(\d+)/, 'B$1')}</p>
-                                  {slot.kendaraanAktif && (
+                                  {isSensorOff ? (
+                                    <p className="text-[11px] text-red-300 mt-1">Sensor mati. Sistem otomatis melewati slot ini dari alokasi kendaraan.</p>
+                                  ) : slot.kendaraanAktif ? (
                                     <p className="text-xs text-on-surface-variant font-mono">Plat: {slot.kendaraanAktif.platNomor}</p>
-                                  )}
+                                  ) : null}
                                 </div>
                               )}
                             </div>
@@ -405,34 +449,42 @@ export default function DashboardPage() {
             {/* Bagian status perangkat keras: Kamera ANPR dan Sensor IoT */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-              {/* Status Kamera ANPR */}
+              {/* Status Kamera ANPR (Dapat diklik untuk simulasi toggle Online/Offline) */}
               <div className="bg-bg-primary rounded-xl border border-surface-variant p-4">
-                <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2 mb-3 border-b border-surface-variant pb-2">
-                  <span className="material-symbols-outlined text-[#7ad0ff] text-[18px]">videocam</span>
-                  Status Kamera ANPR (4 Unit)
-                </h3>
+                <div className="flex justify-between items-center mb-3 border-b border-surface-variant pb-2">
+                  <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[#7ad0ff] text-[18px]">videocam</span>
+                    Status Kamera ANPR (4 Unit)
+                  </h3>
+                  <span className="text-[10px] text-text-muted font-mono uppercase bg-surface-variant/40 px-2 py-0.5 rounded">
+                    Klik kartu untuk uji simulasi
+                  </span>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   {kameraList.map(k => {
                     const kOn = isOn(k.statusKamera);
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={k.idKamera}
-                        className={`flex items-center justify-between rounded-lg px-3 py-2 border text-xs font-mono transition-all duration-500 ${kOn
-                          ? 'bg-eco-success/10 border-eco-success/30'
-                          : 'bg-red-950/30 border-red-600/50 shadow-[inset_0_0_8px_rgba(239,68,68,0.15)]'
+                        onClick={() => toggleKameraStatus(k.idKamera, k.statusKamera)}
+                        title={`Klik untuk ubah status kamera ${k.idKamera} (Saat ini: ${kOn ? 'ONLINE' : 'OFFLINE'})`}
+                        className={`w-full flex items-center justify-between rounded-lg px-3 py-2 border text-xs font-mono transition-all duration-300 cursor-pointer hover:scale-[1.02] text-left ${kOn
+                          ? 'bg-eco-success/10 border-eco-success/30 hover:border-eco-success/60'
+                          : 'bg-red-950/40 border-red-500/80 shadow-[0_0_10px_rgba(239,68,68,0.3)] hover:border-red-400'
                           }`}
                       >
                         <div className="flex items-center gap-1.5">
-                          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${kOn ? 'bg-eco-success animate-pulse' : 'bg-red-500'}`} />
-                          <span className={kOn ? 'text-eco-success' : 'text-red-400'}>{k.idKamera}</span>
+                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${kOn ? 'bg-eco-success animate-pulse' : 'bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]'}`} />
+                          <span className={`font-bold ${kOn ? 'text-eco-success' : 'text-red-400'}`}>{k.idKamera}</span>
                         </div>
                         <span className={`font-bold text-[10px] px-1.5 py-0.5 rounded border ${kOn
                           ? 'text-eco-success border-eco-success/40 bg-eco-success/10'
-                          : 'text-red-400 border-red-600/50 bg-red-950/40'
+                          : 'text-red-300 border-red-500 bg-red-900/60'
                           }`}>
                           {kOn ? 'ON' : 'OFF'}
                         </span>
-                      </div>
+                      </button>
                     );
                   })}
                   {kameraList.length === 0 && !isLoading && (
@@ -441,28 +493,36 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Status Sensor IoT */}
+              {/* Status Sensor IoT (Dapat diklik untuk simulasi toggle Online/Offline) */}
               <div className="bg-bg-primary rounded-xl border border-surface-variant p-4">
-                <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2 mb-3 border-b border-surface-variant pb-2">
-                  <span className="material-symbols-outlined text-[#ffd700] text-[18px]">sensors</span>
-                  {t('dash.sensorIotStatus', 'Status Sensor IoT')} — {t('dash.floor', 'Lantai')} {lantaiTerpilih} · {jenisAktif === 'MOBIL' ? t('dash.car', 'Mobil') : t('dash.motorcycle', 'Motor')}
-                </h3>
+                <div className="flex justify-between items-center mb-3 border-b border-surface-variant pb-2">
+                  <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[#ffd700] text-[18px]">sensors</span>
+                    {t('dash.sensorIotStatus', 'Status Sensor IoT')} — {t('dash.floor', 'Lantai')} {lantaiTerpilih} · {jenisAktif === 'MOBIL' ? t('dash.car', 'Mobil') : t('dash.motorcycle', 'Motor')}
+                  </h3>
+                  <span className="text-[10px] text-text-muted font-mono uppercase bg-surface-variant/40 px-2 py-0.5 rounded">
+                    Klik node untuk uji simulasi
+                  </span>
+                </div>
                 <div className="flex flex-wrap gap-1.5 w-full">
                   {visibleSensors.map(s => {
                     const sOn = isOn(s.statusSensor);
                     // Menghilangkan prefix 'SNS-' dan mengubah kode lantai motor dari M menjadi B (M1-01 -> B1-01, dst.)
                     const labelSensor = s.idSensor.replace('SNS-', '').replace(/^M(\d+)/, 'B$1');
                     return (
-                      <span
+                      <button
+                        type="button"
                         key={s.idSensor}
-                        title={`${labelSensor}: ${sOn ? 'ON' : 'OFF'}`}
-                        className={`text-[11px] font-mono px-3 py-2 rounded border transition-all duration-500 ${sOn
-                          ? 'bg-eco-success/10 border-eco-success/30 text-eco-success'
-                          : 'bg-red-950/30 border-red-600/60 text-red-400 shadow-[0_0_6px_rgba(239,68,68,0.3)]'
+                        onClick={() => toggleSensorStatus(s.idSensor, s.statusSensor)}
+                        title={`Klik untuk ubah status sensor ${labelSensor} (${sOn ? 'ONLINE' : 'OFFLINE'})`}
+                        className={`text-[11px] font-mono px-3 py-2 rounded border transition-all duration-300 cursor-pointer hover:scale-105 flex items-center gap-1 ${sOn
+                          ? 'bg-eco-success/10 border-eco-success/30 text-eco-success hover:border-eco-success/60'
+                          : 'bg-red-950/50 border-red-500 text-red-300 shadow-[0_0_8px_rgba(239,68,68,0.4)] hover:border-red-400 font-bold'
                           }`}
                       >
-                        {labelSensor}
-                      </span>
+                        <span>{labelSensor}</span>
+                        {!sOn && <span className="text-[9px] bg-red-600 text-white px-1 rounded font-bold">OFF</span>}
+                      </button>
                     );
                   })}
                   {sensorList.length === 0 && !isLoading && (
