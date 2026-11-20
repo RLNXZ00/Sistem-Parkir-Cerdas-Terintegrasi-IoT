@@ -96,6 +96,12 @@ public class DataDashboardDto
     // Deklarasi atribut slotMotorTotal bertipe Long untuk kapasitas total slot motor di Lantai 1
     private Long slotMotorTotal;
 
+    // Deklarasi atribut totalKamera bertipe Long untuk jumlah seluruh perangkat kamera ANPR
+    private Long totalKamera;
+
+    // Deklarasi atribut totalKameraAktif bertipe Long untuk jumlah kamera ANPR berstatus ON
+    private Long totalKameraAktif;
+
     // =====================================================================
     // Inner Class: DataPendapatanHarianDto
     // =====================================================================
@@ -593,5 +599,29 @@ public class DataDashboardDto
     public void setGrafikPendapatanSemua(List<DataPendapatanHarianDto> grafikPendapatanSemua) 
     {
         this.grafikPendapatanSemua = grafikPendapatanSemua; // Inisialisasi atribut grafikPendapatanSemua dengan parameter
+    }
+
+    // Method getter getTotalKamera untuk mengambil jumlah total kamera ANPR
+    public Long getTotalKamera()
+    {
+        return totalKamera;
+    }
+
+    // Method setter setTotalKamera untuk mengubah jumlah total kamera ANPR
+    public void setTotalKamera(Long totalKamera)
+    {
+        this.totalKamera = totalKamera;
+    }
+
+    // Method getter getTotalKameraAktif untuk mengambil jumlah kamera ANPR berstatus ON
+    public Long getTotalKameraAktif()
+    {
+        return totalKameraAktif;
+    }
+
+    // Method setter setTotalKameraAktif untuk mengubah jumlah kamera ANPR berstatus ON
+    public void setTotalKameraAktif(Long totalKameraAktif)
+    {
+        this.totalKameraAktif = totalKameraAktif;
     }
 }

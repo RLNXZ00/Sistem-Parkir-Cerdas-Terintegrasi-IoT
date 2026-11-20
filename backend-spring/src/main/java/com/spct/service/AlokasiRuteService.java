@@ -10,12 +10,16 @@ import com.spct.model.DataKendaraan;
 import com.spct.model.JenisKendaraan;
 // Import entitas SlotParkir dari package model
 import com.spct.model.SlotParkir;
+// Import entitas SensorIoT dari package model
+import com.spct.model.SensorIoT;
 // Import enum StatusSlot dari package model
 import com.spct.model.StatusSlot;
 // Import repositori DataKendaraanRepository dari package repository
 import com.spct.repository.DataKendaraanRepository;
 // Import repositori SlotParkirRepository dari package repository
 import com.spct.repository.SlotParkirRepository;
+// Import repositori SensorIoTRepository dari package repository
+import com.spct.repository.SensorIoTRepository;
 // Import anotasi Autowired dari Spring Framework
 import org.springframework.beans.factory.annotation.Autowired;
 // Import anotasi Service dari Spring Framework
@@ -39,6 +43,10 @@ public class AlokasiRuteService
     // Injeksi otomatis dependensi DataKendaraanRepository
     @Autowired
     private DataKendaraanRepository dataKendaraanRepository; // Deklarasi atribut dataKendaraanRepository
+
+    // Injeksi otomatis dependensi SensorIoTRepository untuk verifikasi keaktifan sensor fisik slot
+    @Autowired
+    private SensorIoTRepository sensorIoTRepository; // Deklarasi atribut sensorIoTRepository
 
     // Kelas inner GraphNodeData untuk menyimpan data koordinat simpul graf peta
     private static class GraphNodeData 
@@ -141,9 +149,17 @@ public class AlokasiRuteService
             // Mengambil daftar slot kosong sesuai jenis kendaraan pada lantai bersangkutan
             List<SlotParkir> slotKosongList = slotParkirRepository
                 .findByStatusSlotAndLantaiAndJenisKendaraanOrderByKoordinatXAsc(StatusSlot.KOSONG, lantai, jenisKendaraan);
-            // Menambahkan setiap slot kosong ke dalam koleksi pencarian
+            // Menambahkan setiap slot kosong yang memiliki sensor IoT aktif ke dalam koleksi pencarian
             for (SlotParkir slot : slotKosongList) 
             {
+                // Validasi kesehatan operasional sensor IoT: lewati slot jika sensor pemantau berstatus OFF / OFFLINE
+                Optional<SensorIoT> sensorOpt = sensorIoTRepository.findBySlotDipantau_IdSlot(slot.getIdSlot());
+                if (sensorOpt.isPresent() && !"ON".equalsIgnoreCase(sensorOpt.get().getStatusSensor()))
+                {
+                    // Sensor IoT slot ini sedang offline/mati, abaikan dan jangan dialokasikan ke pengendara
+                    System.out.println("[ALOKASI] Melewati slot " + slot.getIdSlot() + " karena sensor IoT sedang OFFLINE (" + sensorOpt.get().getStatusSensor() + ")");
+                    continue;
+                }
                 setNodeSlotKosong.add(slot.getNodeId());
                 mapSlotKosong.put(slot.getNodeId(), slot);
             }
