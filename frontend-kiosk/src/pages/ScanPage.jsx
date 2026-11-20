@@ -95,6 +95,13 @@ export default function ScanPage({ jenis = 'MOBIL' }) {
           return;
         }
 
+        // Penanganan kasus kamera gerbang sedang offline di sistem
+        if (resData.status === 'KAMERA_OFFLINE') {
+          setErrorMsg(resData.pesan || "Kamera ANPR gerbang ini sedang NON-AKTIF / OFFLINE di Dashboard. Silakan aktifkan kamera terlebih dahulu.");
+          setIsScanning(false);
+          return;
+        }
+
         // Penanganan kasus batas waktu kamera habis (Timeout 15 detik)
         if (resData.status === 'TIMEOUT') {
           setErrorMsg("Waktu pemindaian kamera habis (15 detik). Plat nomor tidak terdeteksi oleh webcam laptop. Silakan coba lagi.");
