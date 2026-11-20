@@ -1,4 +1,5 @@
 # Abaikan folder rancangan, dokumen internal, dan eksplorasi lokal
+/alpr/
 /Rekayasa Perangkat Lunak/
 /Spesifikasi Sistem Parkir Cerdas/
 /Respon Antigravity/
@@ -11,6 +12,11 @@
 Tahap_V_SistemParkirCerdas.pdf
 Evaluasi SPCT IoT.txt
 *.pdf
+
+# File Logbook Pengembangan Lokal (DILARANG KERAS di-commit ke Git)
+LOGBOOK*.md
+*logbook*
+*LOGBOOK*
 
 # Abaikan file sistem OS
 .DS_Store
