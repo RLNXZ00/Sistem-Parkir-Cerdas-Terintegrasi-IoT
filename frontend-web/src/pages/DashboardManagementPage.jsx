@@ -295,15 +295,21 @@ export default function DashboardManagementPage() {
     }
   };
 
-  // Hook useEffect untuk merender atau memperbarui visualisasi grafik garis Chart.js saat data analitik atau filter periode berubah
+  // Hook useEffect untuk memastikan penghancuran instance grafik Chart.js saat komponen dilepas dari DOM (unmount)
+  useEffect(() => {
+    return () => {
+      // Periksa apakah instance chart masih aktif sebelum memanggil destroy saat komponen ditutup
+      if (chartInstanceRef.current) {
+        chartInstanceRef.current.destroy();
+        chartInstanceRef.current = null;
+      }
+    };
+  }, []); // Array dependensi kosong agar pembersihan hanya terjadi saat unmount
+
+  // Hook useEffect untuk merender atau memperbarui visualisasi grafik garis Chart.js saat data analitik, tema, atau periode filter berubah
   useEffect(() => {
     // Batalkan eksekusi jika data analitik belum siap atau elemen canvas grafik belum terpasang di DOM
     if (!data || !chartRef.current) return;
-
-    // Hancurkan instance chart yang sedang berjalan sebelumnya untuk mencegah memory leak dan glitch rendering
-    if (chartInstanceRef.current) {
-      chartInstanceRef.current.destroy();
-    }
 
     // Inisialisasi daftar nama 12 bulan kalender standar untuk periode Tahunan (Jan s.d. Des)
     const DEFAULT_BULAN_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -412,7 +418,38 @@ export default function DashboardManagementPage() {
     // Beri warna transparan penuh di bagian bawah kurva
     gradient.addColorStop(1, 'rgba(46, 139, 87, 0.0)');
 
-    // Inisialisasi dan bangun objek instance grafik Chart.js tipe line
+    // Jika objek grafik Chart.js sudah terbentuk sebelumnya, perbarui data secara in-place tanpa animasi dan tanpa recreasi objek
+    if (chartInstanceRef.current) {
+      const chart = chartInstanceRef.current;
+      // Perbarui label sumbu X
+      chart.data.labels = labels;
+      // Perbarui judul keterangan dataset
+      chart.data.datasets[0].label = activeDatasetLabel;
+      // Perbarui array data nominal pendapatan
+      chart.data.datasets[0].data = values;
+      // Perbarui gradien latar belakang kurva
+      chart.data.datasets[0].backgroundColor = gradient;
+      // Perbarui border titik data sesuai tema
+      chart.data.datasets[0].pointBorderColor = pointBorder;
+
+      // Perbarui warna sumbu X dan Y sesuai tema
+      chart.options.scales.x.grid.color = gridColor;
+      chart.options.scales.x.ticks.color = tickColor;
+      chart.options.scales.y.grid.color = gridColor;
+      chart.options.scales.y.ticks.color = tickColor;
+
+      // Perbarui warna tooltip sesuai tema
+      chart.options.plugins.tooltip.backgroundColor = isLightChart ? '#ffffff' : '#0F172A';
+      chart.options.plugins.tooltip.borderColor = isLightChart ? '#cbd5e1' : '#334155';
+      chart.options.plugins.tooltip.titleColor = isLightChart ? '#0f172a' : '#ffffff';
+      chart.options.plugins.tooltip.bodyColor = isLightChart ? '#0f172a' : '#ffffff';
+
+      // Eksekusi pembaruan grafik instan tanpa animasi ('none') untuk mencegah visualisasi berkedip / memantul berkala
+      chart.update('none');
+      return;
+    }
+
+    // Inisialisasi awal objek instance grafik Chart.js tipe line dengan animasi dinonaktifkan
     chartInstanceRef.current = new Chart(ctx, {
       type: 'line', // Menentukan jenis visualisasi berupa diagram garis kontinu
       data: {
@@ -433,6 +470,7 @@ export default function DashboardManagementPage() {
         }]
       },
       options: {
+        animation: false, // Matikan animasi entrance agar kurva langsung tampil stabil tanpa memantul naik-turun tiap polling
         responsive: true, // Grafik menyesuaikan lebar kontainer secara responsif
         maintainAspectRatio: false, // Memungkinkan canvas mengisi tinggi kontainer fleksibel
         plugins: {
@@ -472,15 +510,7 @@ export default function DashboardManagementPage() {
         }
       }
     });
-
-    // Mengembalikan fungsi pembersih untuk menghancurkan instance chart saat efek di-reset atau komponen di-unmount
-    return () => {
-      // Periksa apakah instance chart masih aktif sebelum memanggil destroy
-      if (chartInstanceRef.current) {
-        chartInstanceRef.current.destroy();
-      }
-    };
-  }, [data, isLight, revenuePeriod]); // Efek samping dieksekusi ulang setiap kali state data, tema, atau periode filter berubah
+  }, [data, isLight, revenuePeriod]); // Efek samping dieksekusi saat data analitik, tema, atau filter periode berubah
 
   // Jika aplikasi masih dalam fase pemuatan awal data analitik, tampilkan indikator loading
   if (isLoading) {
