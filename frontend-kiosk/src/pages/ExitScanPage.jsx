@@ -152,6 +152,13 @@ export default function ExitScanPage({ jenis = 'MOBIL' }) {
           return;
         }
 
+        // Jika kamera gerbang keluar offline di sistem
+        if (resData.status === 'KAMERA_OFFLINE') {
+          setErrorMsg(resData.pesan || "Kamera ANPR gerbang keluar sedang NON-AKTIF / OFFLINE di Dashboard. Silakan aktifkan kamera terlebih dahulu.");
+          setIsScanning(false);
+          return;
+        }
+
         // Jika batas waktu 15 detik habis
         if (resData.status === 'TIMEOUT') {
           setErrorMsg("Waktu pemindaian kamera habis (15 detik). Plat keluar tidak terdeteksi oleh webcam laptop.");
