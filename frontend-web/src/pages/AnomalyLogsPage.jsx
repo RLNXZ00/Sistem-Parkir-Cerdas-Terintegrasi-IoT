@@ -45,8 +45,8 @@ export default function AnomalyLogsPage() {
         const mapped = data.map(log => ({
           // Nomor identitas rekaman log
           id: log.idLog,
-          // Kode slot parkir terkait
-          slot: log.slotTerkait?.idSlot || '-',
+          // Kode slot parkir terkait (transformasi kode motor M -> B)
+          slot: log.slotTerkait?.idSlot ? log.slotTerkait.idSlot.replace(/^M(\d+)/, 'B$1') : '-',
           // Kategori kejadian sistem
           type: log.jenisKejadian,
           // Kategori spesifik anomali

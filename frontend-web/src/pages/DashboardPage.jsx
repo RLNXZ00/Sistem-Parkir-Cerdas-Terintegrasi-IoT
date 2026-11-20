@@ -377,15 +377,16 @@ export default function DashboardPage() {
                           return (
                             <div
                               key={slot.idSlot}
-                              title={`${slot.idSlot} — ${slot.statusSlot}${slot.kendaraanAktif ? ` | ${slot.kendaraanAktif.platNomor}` : ''}`}
+                              title={`${slot.idSlot.replace(/^M(\d+)/, 'B$1')} — ${slot.statusSlot}${slot.kendaraanAktif ? ` | ${slot.kendaraanAktif.platNomor}` : ''}`}
                               className={`group h-10 rounded flex items-center justify-center font-mono text-xs relative ${styleClass}`}
                             >
+                              {/* Menampilkan kode slot motor dengan awalan B (misal M1-01 -> B1-01) */}
                               {slot.idSlot.replace(/^M(\d+)/, 'B$1')}
                               {/* Kotak tooltip detail anomali saat hover */}
                               {isAnomali && (
                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-surface-container-high border border-alert-anomaly p-3 rounded shadow-lg hidden group-hover:block z-50 text-left">
                                   <p className="text-xs text-alert-anomaly font-bold mb-1">ANOMALI SLOT</p>
-                                  <p className="text-xs text-on-surface-variant font-mono">Slot: {slot.idSlot.replace(/^M(\d+)/, "B$1")}</p>
+                                  <p className="text-xs text-on-surface-variant font-mono">Slot: {slot.idSlot.replace(/^M(\d+)/, 'B$1')}</p>
                                   {slot.kendaraanAktif && (
                                     <p className="text-xs text-on-surface-variant font-mono">Plat: {slot.kendaraanAktif.platNomor}</p>
                                   )}
@@ -449,16 +450,18 @@ export default function DashboardPage() {
                 <div className="flex flex-wrap gap-1.5 w-full">
                   {visibleSensors.map(s => {
                     const sOn = isOn(s.statusSensor);
+                    // Menghilangkan prefix 'SNS-' dan mengubah kode lantai motor dari M menjadi B (M1-01 -> B1-01, dst.)
+                    const labelSensor = s.idSensor.replace('SNS-', '').replace(/^M(\d+)/, 'B$1');
                     return (
                       <span
                         key={s.idSensor}
-                        title={`${s.idSensor}: ${sOn ? 'ON' : 'OFF'}`}
+                        title={`${labelSensor}: ${sOn ? 'ON' : 'OFF'}`}
                         className={`text-[11px] font-mono px-3 py-2 rounded border transition-all duration-500 ${sOn
                           ? 'bg-eco-success/10 border-eco-success/30 text-eco-success'
                           : 'bg-red-950/30 border-red-600/60 text-red-400 shadow-[0_0_6px_rgba(239,68,68,0.3)]'
                           }`}
                       >
-                        {s.idSensor.replace('SNS-', '').replace(/^M(\d+)/, 'B$1')}
+                        {labelSensor}
                       </span>
                     );
                   })}
@@ -505,7 +508,8 @@ export default function DashboardPage() {
                       >
                         <div className="flex justify-between items-start mb-1">
                           <span className={`font-mono text-sm font-bold ${resolved ? 'text-on-surface-variant line-through' : (log.tingkatKeparahan === 'CRITICAL' ? 'text-alert-anomaly' : 'text-warning-reserved')}`}>
-                            {log.slotTerkait?.idSlot || '-'} — {log.jenisKejadian}
+                            {/* Menampilkan kode slot motor berawalan B pada active alerts */}
+                            {(log.slotTerkait?.idSlot || '-').replace(/^M(\d+)/, 'B$1')} — {log.jenisKejadian}
                           </span>
                           <span className="text-xs text-on-surface-variant font-mono">
                             {new Date(log.waktuKejadian).toLocaleTimeString('id-ID')}

@@ -150,12 +150,12 @@ export function NotificationProvider({ children }) {
             title: isAnomaly
               ? `Anomali: ${log.jenisAnomali && log.jenisAnomali !== '-' ? log.jenisAnomali : 'Deteksi Sensor'}`
               : isEntry
-              ? `Kendaraan Tiba di Slot ${log.slotTerkait?.idSlot || '-'}`
+              ? `Kendaraan Tiba di Slot ${(log.slotTerkait?.idSlot || '-').replace(/^M(\d+)/, 'B$1')}`
               : `Aktivitas Sensor IoT #${log.idLog}`,
             description: log.catatanDetail || 'Pembaruan telemetri sensor sistem parkir.',
             time: waktu,
             isRead: isAlreadyRead,
-            slotId: log.slotTerkait?.idSlot,
+            slotId: log.slotTerkait?.idSlot ? log.slotTerkait.idSlot.replace(/^M(\d+)/, 'B$1') : undefined,
             severity: log.tingkatKeparahan || (isAnomaly ? 'CRITICAL' : 'INFO'),
             link: isAnomaly ? '/anomaly-logs' : '/dashboard',
           };
