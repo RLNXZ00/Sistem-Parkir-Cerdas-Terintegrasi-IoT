@@ -16,6 +16,8 @@ import com.spct.model.SlotParkir;
 import com.spct.repository.DataKendaraanRepository;
 // Import repositori LogOperasionalIoTRepository dari package repository
 import com.spct.repository.LogOperasionalIoTRepository;
+// Import repositori KameraAnprRepository dari package repository
+import com.spct.repository.KameraAnprRepository;
 // Import repositori SensorIoTRepository dari package repository
 import com.spct.repository.SensorIoTRepository;
 // Import repositori SlotParkirRepository dari package repository
@@ -76,6 +78,10 @@ public class AnalitikLaporanService
     // Injeksi otomatis dependensi SensorIoTRepository
     @Autowired
     private SensorIoTRepository sensorIoTRepository; // Deklarasi atribut sensorIoTRepository
+
+    // Injeksi otomatis dependensi KameraAnprRepository
+    @Autowired
+    private KameraAnprRepository kameraAnprRepository; // Deklarasi atribut kameraAnprRepository
 
     // =====================================================================
     // Method Utama: Mengumpulkan semua data metrik untuk Dashboard Manajemen
@@ -171,6 +177,11 @@ public class AnalitikLaporanService
         // Mengambil kuantitas unit sensor yang sedang berstatus aktif (ON)
         Long totalSensorAktif = (long) sensorIoTRepository.findByStatusSensor("ON").size();
 
+        // Mengambil total unit perangkat kamera ANPR
+        Long totalKamera = kameraAnprRepository.count();
+        // Mengambil kuantitas unit kamera ANPR yang sedang berstatus aktif (ON)
+        Long totalKameraAktif = (long) kameraAnprRepository.findByStatusKamera("ON").size();
+
         // Mengambil total akumulasi menit yang berhasil dihemat oleh navigasi cerdas
         Double totalMenitDihemat = transaksiParkirRepository.hitungTotalMenitDihematDariSensor();
         // Jika null, beri nilai 0.0
@@ -262,6 +273,10 @@ public class AnalitikLaporanService
         dto.setOccupancyRateSaatIni(occupancyRateSaatIni);
         // Mengisi metrik total kendaraan masuk hari ini
         dto.setTotalKendaraanHariIni(totalKendaraanHariIni);
+
+        // Mengisi metrik perangkat keras kamera ANPR
+        dto.setTotalKamera(totalKamera);
+        dto.setTotalKameraAktif(totalKameraAktif);
 
         // Mengisi metrik okupansi khusus zona mobil dan motor di Lantai 1
         dto.setSlotMobilTerisi(slotMobilTerisi);

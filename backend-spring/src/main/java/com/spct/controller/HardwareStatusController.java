@@ -1,8 +1,13 @@
 package com.spct.controller; // Nama package controller
 
+import com.spct.model.JenisKejadian; // Mengimpor enum JenisKejadian
 import com.spct.model.KameraAnpr; // Mengimpor model KameraAnpr
+import com.spct.model.LogOperasionalIoT; // Mengimpor model LogOperasionalIoT
 import com.spct.model.SensorIoT; // Mengimpor model SensorIoT
+import com.spct.model.StatusResolusi; // Mengimpor enum StatusResolusi
+import com.spct.model.TingkatKeparahan; // Mengimpor enum TingkatKeparahan
 import com.spct.repository.KameraAnprRepository; // Mengimpor repository kamera_anpr
+import com.spct.repository.LogOperasionalIoTRepository; // Mengimpor repository log_operasional_iot
 import com.spct.repository.SensorIoTRepository; // Mengimpor repository sensor_iot
 import org.springframework.beans.factory.annotation.Autowired; // Mengimpor anotasi Autowired untuk injeksi dependensi
 import org.springframework.http.ResponseEntity; // Mengimpor ResponseEntity untuk pembungkus respons HTTP
@@ -29,6 +34,10 @@ public class HardwareStatusController
     @Autowired
     private SensorIoTRepository sensorRepo;
 
+    // Deklarasi atribut logRepo bertipe LogOperasionalIoTRepository dengan injeksi otomatis Spring
+    @Autowired
+    private LogOperasionalIoTRepository logRepo;
+
 
     // =====================================================================
     // Method GET: Mengambil status semua kamera ANPR
@@ -50,17 +59,26 @@ public class HardwareStatusController
         @RequestBody Map<String, String> body) // Payload request JSON dari body
     {
         // Mengambil nilai atribut statusBaru dari request body map
-        String statusBaru = body.get("statusKamera");
+        String statusBaru = body != null ? body.get("statusKamera") : null;
 
         // Jika statusBaru bernilai null atau bukan "ON" dan bukan "OFF", maka:
-        if (statusBaru == null || (!statusBaru.equals("ON") && !statusBaru.equals("OFF")))
+        if (statusBaru == null || (!statusBaru.equalsIgnoreCase("ON") && !statusBaru.equalsIgnoreCase("OFF")))
         {
             // Mengembalikan respons HTTP 400 Bad Request dengan pesan error
             return ResponseEntity.badRequest().body(Map.of("pesan", "Status harus 'ON' atau 'OFF'."));
         }
 
-        // Mencari objek kamera berdasarkan idKamera di database
+        // Normalisasi status ke format huruf kapital
+        statusBaru = statusBaru.toUpperCase();
+
+        // Mencari objek kamera berdasarkan idKamera di database (dukung pencarian tepat atau case-insensitive)
         Optional<KameraAnpr> kameraOpt = this.kameraRepo.findById(idKamera);
+        if (kameraOpt.isEmpty())
+        {
+            kameraOpt = this.kameraRepo.findAll().stream()
+                .filter(k -> k.getIdKamera().equalsIgnoreCase(idKamera))
+                .findFirst();
+        }
 
         // Jika data kamera tidak ditemukan dalam database, maka:
         if (kameraOpt.isEmpty())
@@ -80,7 +98,7 @@ public class HardwareStatusController
 
         // Mengembalikan respons HTTP 200 OK beserta data konfirmasi perubahan status
         return ResponseEntity.ok(Map.of(
-            "pesan", "Status kamera " + idKamera + " berhasil diubah ke " + statusBaru,
+            "pesan", "Status kamera " + kamera.getIdKamera() + " berhasil diubah ke " + statusBaru,
             "idKamera", kamera.getIdKamera(),
             "statusKamera", kamera.getStatusKamera()
         ));
@@ -107,17 +125,31 @@ public class HardwareStatusController
         @RequestBody Map<String, String> body) // Payload request JSON dari body
     {
         // Mengambil nilai atribut statusBaru dari request body map
-        String statusBaru = body.get("statusSensor");
+        String statusBaru = body != null ? body.get("statusSensor") : null;
 
         // Jika statusBaru bernilai null atau bukan "ON" dan bukan "OFF", maka:
-        if (statusBaru == null || (!statusBaru.equals("ON") && !statusBaru.equals("OFF")))
+        if (statusBaru == null || (!statusBaru.equalsIgnoreCase("ON") && !statusBaru.equalsIgnoreCase("OFF")))
         {
             // Mengembalikan respons HTTP 400 Bad Request dengan pesan error
             return ResponseEntity.badRequest().body(Map.of("pesan", "Status harus 'ON' atau 'OFF'."));
         }
 
+        // Normalisasi status ke format huruf kapital
+        statusBaru = statusBaru.toUpperCase();
+
         // Mencari objek sensor berdasarkan idSensor di database
         Optional<SensorIoT> sensorOpt = this.sensorRepo.findById(idSensor);
+
+        // Jika tidak ditemukan langsung, coba cari berdasarkan ID slot yang dipantau (misal: "B1-01")
+        if (sensorOpt.isEmpty())
+        {
+            sensorOpt = this.sensorRepo.findBySlotDipantau_IdSlot(idSensor);
+        }
+        // Jika masih belum ditemukan, coba dengan menambahkan prefix SNS- (misal: "SNS-B1-01")
+        if (sensorOpt.isEmpty() && !idSensor.startsWith("SNS-"))
+        {
+            sensorOpt = this.sensorRepo.findById("SNS-" + idSensor);
+        }
 
         // Jika data sensor tidak ditemukan dalam database, maka:
         if (sensorOpt.isEmpty())
@@ -135,10 +167,41 @@ public class HardwareStatusController
         // Menyimpan perubahan status sensor ke database melalui sensorRepo
         this.sensorRepo.save(sensor);
 
+        // Jika status sensor diubah menjadi OFF, buat rekam jejak anomali hardware tingkat CRITICAL
+        if ("OFF".equalsIgnoreCase(statusBaru) && sensor.getSlotDipantau() != null)
+        {
+            LogOperasionalIoT logAnomali = new LogOperasionalIoT(
+                sensor.getSlotDipantau(),
+                JenisKejadian.SENSOR_OFFLINE_TIMEOUT,
+                TingkatKeparahan.CRITICAL,
+                "Sensor ultrasonik " + sensor.getIdSensor() + " pada slot " + sensor.getSlotDipantau().getIdSlot() + " terputus/OFFLINE. Slot dilewati dari alokasi kendaraan."
+            );
+            logAnomali.setJenisAnomali("SENSOR_OFFLINE");
+            logAnomali.setStatusResolusi(StatusResolusi.BELUM_DITANGANI);
+            this.logRepo.save(logAnomali);
+            System.out.println("[HARDWARE] Sensor " + sensor.getIdSensor() + " OFFLINE -> Anomali CRITICAL dicatat.");
+        }
+        // Jika sensor kembali ON, otomatis selesaikan tiket anomali sensor offline sebelumnya
+        else if ("ON".equalsIgnoreCase(statusBaru) && sensor.getSlotDipantau() != null)
+        {
+            List<LogOperasionalIoT> riwayatLog = this.logRepo.findBySlotTerkait_IdSlotOrderByWaktuKejadianDesc(sensor.getSlotDipantau().getIdSlot());
+            for (LogOperasionalIoT a : riwayatLog)
+            {
+                if (a.getJenisKejadian() == JenisKejadian.SENSOR_OFFLINE_TIMEOUT && a.getStatusResolusi() == StatusResolusi.BELUM_DITANGANI)
+                {
+                    a.setStatusResolusi(StatusResolusi.SELESAI_DIVALIDASI);
+                    a.setCatatanDetail(a.getCatatanDetail() + " [Sensor kembali pulih ON]");
+                    this.logRepo.save(a);
+                }
+            }
+            System.out.println("[HARDWARE] Sensor " + sensor.getIdSensor() + " kembali ONLINE -> Anomali diselesaikan.");
+        }
+
         // Mengembalikan respons HTTP 200 OK beserta data konfirmasi perubahan status
         return ResponseEntity.ok(Map.of(
-            "pesan", "Status sensor " + idSensor + " berhasil diubah ke " + statusBaru,
+            "pesan", "Status sensor " + sensor.getIdSensor() + " berhasil diubah ke " + statusBaru,
             "idSensor", sensor.getIdSensor(),
+            "idSlot", (sensor.getSlotDipantau() != null ? sensor.getSlotDipantau().getIdSlot() : "-"),
             "statusSensor", sensor.getStatusSensor()
         ));
     }

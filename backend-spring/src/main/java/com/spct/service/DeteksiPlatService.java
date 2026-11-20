@@ -10,6 +10,8 @@ import com.spct.dto.HasilDeteksiMasukDto;
 import com.spct.model.*;
 // Import repositori DataKendaraanRepository dari package repository
 import com.spct.repository.DataKendaraanRepository;
+// Import repositori KameraAnprRepository dari package repository
+import com.spct.repository.KameraAnprRepository;
 // Import repositori PembayaranRepository dari package repository
 import com.spct.repository.PembayaranRepository;
 // Import repositori SlotParkirRepository dari package repository
@@ -38,6 +40,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 // Import koleksi Map dari java util
 import java.util.Map;
+// Import kelas pembungkus Optional dari java util
+import java.util.Optional;
 
 // Kelas layanan publik java DeteksiPlatService untuk mengorkestrasi pemrosesan kendaraan gerbang masuk dan gerbang keluar
 @Service // Menandai kelas ini sebagai Spring Service Bean
@@ -77,6 +81,10 @@ public class DeteksiPlatService
     // Injeksi otomatis dependensi TransaksiPembayaranService
     @Autowired
     private TransaksiPembayaranService transaksiPembayaranService; // Deklarasi atribut transaksiPembayaranService
+
+    // Injeksi otomatis dependensi KameraAnprRepository
+    @Autowired
+    private KameraAnprRepository kameraAnprRepository; // Deklarasi atribut kameraAnprRepository
 
     // Injeksi alamat URL Edge ALPR Microservice dari application.properties
     @Value("${alpr.microservice.url:http://127.0.0.1:5001}")
@@ -411,6 +419,22 @@ public class DeteksiPlatService
     // Method triggerAlprScan untuk mengorkestrasi pemindaian kamera Edge ALPR di laptop
     public Map<String, Object> triggerAlprScan(String gerbang, JenisKendaraan jenisKendaraan, BigDecimal saldoEwallet, Integer durasiMenit, String laptopUrlOverride)
     {
+        // Tentukan ID kamera yang sesuai berdasarkan posisi gerbang dan jenis kendaraan
+        String targetIdKamera = "PG-" + (gerbang != null && gerbang.equalsIgnoreCase("KELUAR") ? "OUT" : "IN")
+                + "-" + (jenisKendaraan == JenisKendaraan.MOTOR ? "MOT" : "MOB");
+
+        // Evaluasi status operasional kamera di database sebelum memicu pemindaian fisik
+        Optional<KameraAnpr> kameraOpt = kameraAnprRepository.findById(targetIdKamera);
+        if (kameraOpt.isPresent() && !"ON".equalsIgnoreCase(kameraOpt.get().getStatusKamera()))
+        {
+            return Map.of(
+                "status", "KAMERA_OFFLINE",
+                "gerbang", gerbang != null ? gerbang.toUpperCase() : "MASUK",
+                "idKamera", targetIdKamera,
+                "pesan", "Kamera ANPR (" + targetIdKamera + ") pada gerbang " + gerbang + " sedang NON-AKTIF / OFFLINE di Dashboard. Aktifkan kamera untuk memproses pemindaian plat."
+            );
+        }
+
         // Menentukan base URL target: gunakan parameter override jika diisi, atau konfigurasi aplikasi
         String baseUrl = (laptopUrlOverride != null && !laptopUrlOverride.isBlank()) ? laptopUrlOverride.trim() : alprMicroserviceUrl;
         if (baseUrl.endsWith("/")) 
@@ -445,6 +469,14 @@ public class DeteksiPlatService
             // Jika microservice mengembalikan HTTP 200 OK:
             if (response.statusCode() == 200)
             {
+                // Sinkronkan status kamera di database menjadi ON jika sebelumnya mati
+                kameraOpt.ifPresent(k -> {
+                    if (!"ON".equalsIgnoreCase(k.getStatusKamera())) {
+                        k.setStatusKamera("ON");
+                        kameraAnprRepository.save(k);
+                    }
+                });
+
                 // Parsing body respon JSON menggunakan Jackson ObjectMapper
                 ObjectMapper mapper = new ObjectMapper();
                 @SuppressWarnings("unchecked")
@@ -490,6 +522,14 @@ public class DeteksiPlatService
         }
         catch (java.net.ConnectException ce)
         {
+            // Sinkronkan status kamera di database menjadi OFF karena microservice fisik belum menyala atau terputus
+            kameraOpt.ifPresent(k -> {
+                if (!"OFF".equalsIgnoreCase(k.getStatusKamera())) {
+                    k.setStatusKamera("OFF");
+                    kameraAnprRepository.save(k);
+                }
+            });
+
             // Penanganan kegagalan koneksi jaringan (firewall / laptop belum menyala)
             return Map.of(
                 "status", "MICROSERVICE_UNREACHABLE",
