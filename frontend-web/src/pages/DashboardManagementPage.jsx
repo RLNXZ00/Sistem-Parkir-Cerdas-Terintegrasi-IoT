@@ -357,7 +357,7 @@ export default function DashboardManagementPage() {
           nominal: 0
         }));
       }
-      activeDatasetLabel = 'Pendapatan Harian (Rp)';
+      activeDatasetLabel = 'Pertumbuhan Akumulatif (Rp)';
     }
 
     // Petakan label sumbu X berdasarkan properti labelTanggal atau nomor hari
@@ -370,8 +370,29 @@ export default function DashboardManagementPage() {
       return item.labelTanggal || `P-${item.hari}`;
     });
 
-    // Petakan nilai numerik nominal pendapatan untuk sumbu Y
-    const values = activeChartData.map(item => item.nominal || 0);
+    // Petakan nilai numerik nominal pendapatan dasar dari dataset aktif
+    const rawValues = activeChartData.map(item => Number(item.nominal) || 0);
+
+    // Untuk periode BULANAN atau SEMUA, pastikan nilai membentuk kurva pertumbuhan akumulatif kontinu (running total)
+    // agar visualisasi selalu stabil menanjak atau mendatar, tidak naik-turun tajam atau anjlok ke nol
+    let values = rawValues;
+    if (revenuePeriod === 'BULANAN' || revenuePeriod === 'SEMUA') {
+      let isStrictlyNonDecreasing = true;
+      for (let i = 1; i < rawValues.length; i++) {
+        if (rawValues[i] < rawValues[i - 1]) {
+          isStrictlyNonDecreasing = false;
+          break;
+        }
+      }
+      // Jika nilai belum berformat akumulasi berjalan, konversi deretan nilai ke running total
+      if (!isStrictlyNonDecreasing) {
+        let runningAccumulator = 0;
+        values = rawValues.map(nominal => {
+          runningAccumulator += nominal;
+          return runningAccumulator;
+        });
+      }
+    }
 
     // Deteksi apakah tema aktif saat ini adalah tema cerah (light mode) dengan memeriksa kelas dokumen
     const isLightChart = isLight;
@@ -398,12 +419,13 @@ export default function DashboardManagementPage() {
         labels: labels, // Label sumbu horizontal berupa deretan label tanggal/bulan
         datasets: [{
           label: activeDatasetLabel, // Label dataset untuk keterangan tooltip
-          data: values, // Deretan data nominal pendapatan
+          data: values, // Deretan data nominal pendapatan akumulatif
           borderColor: '#10b981', // Warna garis kurva hijau emerald
           borderWidth: 2.5, // Ketebalan garis kurva 2.5 piksel
           backgroundColor: gradient, // Latar belakang arsiran bawah kurva berupa gradien
           fill: true, // Aktifkan pengisian warna di bawah garis kurva
-          tension: 0.35, // Kelengkungan kurva spline untuk transisi data yang halus
+          tension: 0.25, // Kelengkungan kurva spline stabil
+          cubicInterpolationMode: 'monotone', // Mencegah osilasi dan overshoot agar kurva tidak naik-turun anjlok
           pointBackgroundColor: '#10b981', // Warna isi lingkaran titik data
           pointBorderColor: pointBorder, // Warna bingkai titik data adaptif tema
           pointHoverRadius: 6, // Ukuran radius titik saat kursor mouse melayang di atasnya
