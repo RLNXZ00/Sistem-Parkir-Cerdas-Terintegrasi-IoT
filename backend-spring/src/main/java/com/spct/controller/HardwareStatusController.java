@@ -10,6 +10,7 @@ import com.spct.repository.KameraAnprRepository; // Mengimpor repository kamera_
 import com.spct.repository.LogOperasionalIoTRepository; // Mengimpor repository log_operasional_iot
 import com.spct.repository.SensorIoTRepository; // Mengimpor repository sensor_iot
 import org.springframework.beans.factory.annotation.Autowired; // Mengimpor anotasi Autowired untuk injeksi dependensi
+import org.springframework.data.domain.Sort; // Mengimpor kelas Sort untuk pengurutan deterministik data perangkat keras
 import org.springframework.http.ResponseEntity; // Mengimpor ResponseEntity untuk pembungkus respons HTTP
 import org.springframework.web.bind.annotation.*; // Mengimpor anotasi REST Controller Spring Web
 
@@ -45,8 +46,8 @@ public class HardwareStatusController
     @GetMapping("/kamera")
     public ResponseEntity<List<KameraAnpr>> getAllKamera()
     {
-        // Memanggil method findAll() pada kameraRepo dan mengembalikan respons HTTP 200 OK
-        return ResponseEntity.ok(this.kameraRepo.findAll());
+        // Memanggil method findAll() dengan pengurutan deterministik idKamera agar urutan kartu tidak berpindah saat status diperbarui
+        return ResponseEntity.ok(this.kameraRepo.findAll(Sort.by(Sort.Direction.ASC, "idKamera")));
     }
 
 
@@ -111,8 +112,8 @@ public class HardwareStatusController
     @GetMapping("/sensor")
     public ResponseEntity<List<SensorIoT>> getAllSensor()
     {
-        // Memanggil method findAll() pada sensorRepo dan mengembalikan respons HTTP 200 OK
-        return ResponseEntity.ok(this.sensorRepo.findAll());
+        // Memanggil method findAll() dengan pengurutan deterministik idSensor (B1-01 s.d. B1-16) agar urutan node konsisten
+        return ResponseEntity.ok(this.sensorRepo.findAll(Sort.by(Sort.Direction.ASC, "idSensor")));
     }
 
 
