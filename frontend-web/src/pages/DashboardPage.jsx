@@ -1,5 +1,5 @@
-// Import hook useState, useEffect, dan useCallback dari pustaka react untuk penanganan state lokal dan lifecycle
-import { useState, useEffect, useCallback } from 'react';
+// Import hook useState, useEffect, useCallback, dan useRef dari pustaka react untuk penanganan state lokal, referensi mutasi, dan lifecycle
+import { useState, useEffect, useCallback, useRef } from 'react';
 // Import komponen AppLayout sebagai kerangka tata letak halaman standar SPCT
 import AppLayout from '../components/AppLayout';
 // Import hook useLanguage dari konteks bahasa untuk internasionalisasi label dan teks
@@ -63,8 +63,12 @@ export default function DashboardPage() {
     sessionStorage.setItem(KUNCI_STATUS_PETA, JSON.stringify({ jenis: jenisAktif, lantai: lantaiPerJenis }));
   }, [jenisAktif, lantaiPerJenis]);
 
+  // Inisialisasi ref pencatat stempel waktu mutasi terakhir agar hasil polling lama tidak menimpa klik terbaru
+  const lastMutationRef = useRef(0);
+
   // Deklarasi fungsi memoize fetchAll untuk mengambil data slot, kamera, sensor, dan log secara simultan
   const fetchAll = useCallback(async () => {
+    const reqStarted = Date.now();
     try {
       // Mengirimkan permintaan HTTP GET paralel ke seluruh endpoint monitoring dan telemetri
       const [slotsRes, kameraRes, sensorRes, logsRes] = await Promise.all([
@@ -73,6 +77,9 @@ export default function DashboardPage() {
         fetch(`${API_BASE}/api/hardware/sensor`, { cache: 'no-store' }),
         fetch(`${API_BASE}/api/monitoring/log-iot`, { cache: 'no-store' }),
       ]);
+
+      // Abaikan snapshot polling yang dimulai sebelum interaksi toggle terakhir selesai agar warna kartu stabil
+      if (reqStarted < lastMutationRef.current) return;
 
       // Memperbarui state slots jika respons berhasil
       if (slotsRes.ok) setSlots(await slotsRes.json());
@@ -124,32 +131,42 @@ export default function DashboardPage() {
   // Fungsi untuk mengubah status operasional kamera ANPR secara interaktif (Simulasi Online / Offline)
   const toggleKameraStatus = async (idKamera, currentStatus) => {
     const statusBaru = isOn(currentStatus) ? 'OFF' : 'ON';
+    lastMutationRef.current = Date.now();
+    // Pembaruan optimistik di tempat agar warna kartu langsung berubah tanpa menunggu siklus polling berikutnya
+    setKameraList(prev => prev.map(k => (k.idKamera === idKamera ? { ...k, statusKamera: statusBaru } : k)));
     try {
-      await fetch(`${API_BASE}/api/hardware/kamera/${idKamera}/status`, {
+      const res = await fetch(`${API_BASE}/api/hardware/kamera/${idKamera}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ statusKamera: statusBaru }),
       });
-      // Panggil fetchAll secara instan agar kartu segera berubah warna
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // Sinkronkan ulang seluruh data panel setelah perubahan tersimpan
       fetchAll();
     } catch (err) {
       console.error('Gagal mengubah status kamera:', err);
+      fetchAll();
     }
   };
 
   // Fungsi untuk mengubah status operasional sensor IoT secara interaktif (Simulasi Online / Offline)
   const toggleSensorStatus = async (idSensor, currentStatus) => {
     const statusBaru = isOn(currentStatus) ? 'OFF' : 'ON';
+    lastMutationRef.current = Date.now();
+    // Pembaruan optimistik di tempat agar warna kartu langsung beralih hijau <-> merah tanpa menambah/menggeser kartu
+    setSensorList(prev => prev.map(s => (s.idSensor === idSensor ? { ...s, statusSensor: statusBaru } : s)));
     try {
-      await fetch(`${API_BASE}/api/hardware/sensor/${idSensor}/status`, {
+      const res = await fetch(`${API_BASE}/api/hardware/sensor/${idSensor}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ statusSensor: statusBaru }),
       });
-      // Panggil fetchAll secara instan agar kartu segera berubah warna
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // Sinkronkan ulang log dan status panel setelah perubahan tersimpan
       fetchAll();
     } catch (err) {
       console.error('Gagal mengubah status sensor:', err);
+      fetchAll();
     }
   };
 
@@ -188,9 +205,25 @@ export default function DashboardPage() {
     .filter(s => (s.lantai || 1) === lantaiTerpilih && getJenisSlot(s) === jenisAktif)
     .sort((a, b) => a.idSlot.localeCompare(b.idSlot, undefined, { numeric: true, sensitivity: 'base' }));
 
-  // Mengumpulkan ID slot yang tampak untuk menyaring daftar sensor terkait
+  // Mengurutkan daftar kamera ANPR secara deterministik agar posisi kartu tidak berpindah saat diklik
+  const sortedKameraList = [...kameraList].sort((a, b) => {
+    if (a.posisiGerbang === b.posisiGerbang) {
+      return (a.idKamera || '').localeCompare(b.idKamera || '', undefined, { numeric: true, sensitivity: 'base' });
+    }
+    return a.posisiGerbang === 'MASUK' ? -1 : 1;
+  });
+
+  // Mengumpulkan ID slot yang tampak lalu menyaring dan mengurutkan sensor dari B1-01 s.d. B1-16 secara rapi dan konsisten
   const visibleSlotIds = new Set(visibleSlots.map(s => s.idSlot));
-  const visibleSensors = sensorList.filter(s => visibleSlotIds.has(s.slotDipantau?.idSlot));
+  const visibleSensors = sensorList
+    .filter(s => visibleSlotIds.has(s.slotDipantau?.idSlot))
+    .sort((a, b) =>
+      (a.slotDipantau?.idSlot || a.idSensor).localeCompare(
+        b.slotDipantau?.idSlot || b.idSensor,
+        undefined,
+        { numeric: true, sensitivity: 'base' }
+      )
+    );
 
   // Definisi tab jenis kendaraan
   const TAB_JENIS = [
@@ -461,7 +494,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  {kameraList.map(k => {
+                  {sortedKameraList.map(k => {
                     const kOn = isOn(k.statusKamera);
                     return (
                       <button
@@ -469,16 +502,16 @@ export default function DashboardPage() {
                         key={k.idKamera}
                         onClick={() => toggleKameraStatus(k.idKamera, k.statusKamera)}
                         title={`Klik untuk ubah status kamera ${k.idKamera} (Saat ini: ${kOn ? 'ONLINE' : 'OFFLINE'})`}
-                        className={`w-full flex items-center justify-between rounded-lg px-3 py-2 border text-xs font-mono transition-all duration-300 cursor-pointer hover:scale-[1.02] text-left ${kOn
+                        className={`w-full flex items-center justify-between rounded-lg px-3 py-2 border text-xs font-mono transition-colors duration-200 cursor-pointer text-left ${kOn
                           ? 'bg-eco-success/10 border-eco-success/30 hover:border-eco-success/60'
-                          : 'bg-red-950/40 border-red-500/80 shadow-[0_0_10px_rgba(239,68,68,0.3)] hover:border-red-400'
+                          : 'bg-red-950/50 border-red-500/80 shadow-[0_0_10px_rgba(239,68,68,0.3)] hover:border-red-400'
                           }`}
                       >
                         <div className="flex items-center gap-1.5">
                           <div className={`w-2 h-2 rounded-full flex-shrink-0 ${kOn ? 'bg-eco-success animate-pulse' : 'bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]'}`} />
                           <span className={`font-bold ${kOn ? 'text-eco-success' : 'text-red-400'}`}>{k.idKamera}</span>
                         </div>
-                        <span className={`font-bold text-[10px] px-1.5 py-0.5 rounded border ${kOn
+                        <span className={`min-w-[34px] text-center font-bold text-[10px] px-1.5 py-0.5 rounded border ${kOn
                           ? 'text-eco-success border-eco-success/40 bg-eco-success/10'
                           : 'text-red-300 border-red-500 bg-red-900/60'
                           }`}>
@@ -493,7 +526,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Status Sensor IoT (Dapat diklik untuk simulasi toggle Online/Offline) */}
+              {/* Status Sensor IoT (Grid rapi 8 kolom sejajar, klik langsung mengubah warna hijau <-> merah di kartu yang sama) */}
               <div className="bg-bg-primary rounded-xl border border-surface-variant p-4">
                 <div className="flex justify-between items-center mb-3 border-b border-surface-variant pb-2">
                   <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2">
@@ -504,7 +537,7 @@ export default function DashboardPage() {
                     Klik node untuk uji simulasi
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-1.5 w-full">
+                <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 w-full">
                   {visibleSensors.map(s => {
                     const sOn = isOn(s.statusSensor);
                     // Menghilangkan prefix 'SNS-' dan mengubah kode lantai motor dari M menjadi B (M1-01 -> B1-01, dst.)
@@ -515,18 +548,17 @@ export default function DashboardPage() {
                         key={s.idSensor}
                         onClick={() => toggleSensorStatus(s.idSensor, s.statusSensor)}
                         title={`Klik untuk ubah status sensor ${labelSensor} (${sOn ? 'ONLINE' : 'OFFLINE'})`}
-                        className={`text-[11px] font-mono px-3 py-2 rounded border transition-all duration-300 cursor-pointer hover:scale-105 flex items-center gap-1 ${sOn
-                          ? 'bg-eco-success/10 border-eco-success/30 text-eco-success hover:border-eco-success/60'
-                          : 'bg-red-950/50 border-red-500 text-red-300 shadow-[0_0_8px_rgba(239,68,68,0.4)] hover:border-red-400 font-bold'
+                        className={`w-full h-9 rounded border font-mono text-xs flex items-center justify-center transition-colors duration-200 cursor-pointer ${sOn
+                          ? 'bg-eco-success/10 border-eco-success/35 text-eco-success hover:bg-eco-success/20 hover:border-eco-success/60'
+                          : 'bg-red-950/60 border-red-500 text-red-400 shadow-[0_0_8px_rgba(239,68,68,0.35)] hover:bg-red-950/80 hover:border-red-400 font-bold'
                           }`}
                       >
-                        <span>{labelSensor}</span>
-                        {!sOn && <span className="text-[9px] bg-red-600 text-white px-1 rounded font-bold">OFF</span>}
+                        {labelSensor}
                       </button>
                     );
                   })}
                   {sensorList.length === 0 && !isLoading && (
-                    <p className="text-xs text-text-muted text-center font-mono py-4 w-full">Memuat data sensor...</p>
+                    <p className="col-span-4 sm:col-span-8 text-xs text-text-muted text-center font-mono py-4 w-full">Memuat data sensor...</p>
                   )}
                 </div>
               </div>
@@ -604,7 +636,7 @@ export default function DashboardPage() {
                 Live Gate Monitor
               </h2>
               <div className="grid grid-cols-2 gap-3">
-                {kameraList.length > 0 ? kameraList.map(cam => {
+                {sortedKameraList.length > 0 ? sortedKameraList.map(cam => {
                   const camOn = isOn(cam.statusKamera);
                   return (
                     <div key={cam.idKamera} className={`relative bg-surface-container-lowest rounded overflow-hidden border aspect-video flex flex-col group transition-all duration-500 ${camOn ? 'border-surface-variant' : 'border-red-700/50 shadow-[0_0_12px_rgba(239,68,68,0.2)]'
