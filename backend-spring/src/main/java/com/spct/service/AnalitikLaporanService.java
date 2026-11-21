@@ -87,34 +87,43 @@ public class AnalitikLaporanService
     // Method Utama: Mengumpulkan semua data metrik untuk Dashboard Manajemen
     // =====================================================================
 
+    // Konstanta batas akhir hari dalam presisi mikrodetik PostgreSQL (23:59:59.999999) agar tidak membulat ke hari berikutnya
+    private static final LocalTime AKHIR_HARI_MIKRO = LocalTime.of(23, 59, 59, 999_999_000);
+
     // Method ambilDataDashboard untuk merangkum seluruh metrik operasional dan performa finansial
     public DataDashboardDto ambilDataDashboard(LocalDate tanggalAwal, LocalDate tanggalAkhir)
     {
         // Menentukan tanggal hari ini dari parameter atau waktu kalender sistem
         LocalDate hariIni = (tanggalAkhir != null) ? tanggalAkhir : LocalDate.now();
 
-        // 1. Pendapatan Hari Ini (00:00:00 s.d. 23:59:59)
+        // 1. Pendapatan Hari Ini (00:00:00 s.d. 23:59:59.999999)
         LocalDateTime awalHariIni = hariIni.atStartOfDay();
-        LocalDateTime akhirHariIni = hariIni.atTime(LocalTime.MAX);
+        LocalDateTime akhirHariIni = hariIni.atTime(AKHIR_HARI_MIKRO);
         BigDecimal pendapatanHariIni = transaksiParkirRepository
             .hitungTotalPendapatanDalamRentangWaktu(awalHariIni, akhirHariIni);
         // Jika pendapatan hari ini bernilai null, inisialisasi dengan nilai ZERO
         if (pendapatanHariIni == null) { pendapatanHariIni = BigDecimal.ZERO; }
 
-        // 2. Pendapatan Kemarin (untuk perbandingan rasio persentase pertumbuhan)
-        LocalDateTime awalKemarin = awalHariIni.minusDays(1);
-        LocalDateTime akhirKemarin = akhirHariIni.minusDays(1);
+        // 2. Pendapatan Kemarin (00:00:00 s.d. 23:59:59.999999 hari sebelumnya untuk pembanding rasio harian)
+        LocalDate tanggalKemarin = hariIni.minusDays(1);
+        LocalDateTime awalKemarin = tanggalKemarin.atStartOfDay();
+        LocalDateTime akhirKemarin = tanggalKemarin.atTime(AKHIR_HARI_MIKRO);
         BigDecimal pendapatanKemarin = transaksiParkirRepository
             .hitungTotalPendapatanDalamRentangWaktu(awalKemarin, akhirKemarin);
         // Jika pendapatan kemarin null, inisialisasi dengan nilai ZERO
         if (pendapatanKemarin == null) { pendapatanKemarin = BigDecimal.ZERO; }
 
-        // Inisialisasi persentase pendapatan dengan nilai 0.0
+        // 3. Logika Khusus Persentase Perbandingan Pendapatan Hari Ini vs Kemarin:
+        //    - Kemarin > 0 -> ((Hari Ini - Kemarin) / Kemarin) * 100% (presisi 1 desimal)
+        //    - Kemarin = 0 & Hari Ini > 0 -> +100.0%
+        //    - Kemarin = 0 & Hari Ini = 0 -> 0.0%
         Double persentasePendapatan = 0.0;
-        // Jika pendapatan kemarin lebih dari 0, hitung persentase pertumbuhan
         if (pendapatanKemarin.compareTo(BigDecimal.ZERO) > 0) 
         {
-            persentasePendapatan = (pendapatanHariIni.doubleValue() - pendapatanKemarin.doubleValue()) / pendapatanKemarin.doubleValue() * 100.0;
+            persentasePendapatan = pendapatanHariIni.subtract(pendapatanKemarin)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(pendapatanKemarin, 1, java.math.RoundingMode.HALF_UP)
+                .doubleValue();
         } 
         else if (pendapatanHariIni.compareTo(BigDecimal.ZERO) > 0) 
         {
@@ -284,6 +293,8 @@ public class AnalitikLaporanService
         dto.setSlotMotorTerisi(slotMotorTerisi);
         dto.setSlotMotorTotal(slotMotorTotal);
 
+        // Menetapkan pendapatan kemarin riil ke DTO sebagai referensi pembanding harian
+        dto.setPendapatanKemarin(pendapatanKemarin);
         // Menetapkan pendapatan total riil all-time ke DTO
         dto.setPendapatanTotal(pendapatanTotal);
         // Menetapkan pendapatan tahunan riil ke DTO
@@ -337,19 +348,16 @@ public class AnalitikLaporanService
     }
 
     // =====================================================================
-    // Method Pendukung: Menyusun Data Pertumbuhan Pendapatan Harian
+    // Method Pendukung: Menyusun Data Pendapatan Harian (Per Tanggal, Non-Akumulasi)
     // =====================================================================
 
-    // Method susunGrafikPendapatanHarian untuk menyusun grafik tren pendapatan tanggal 1 s.d. hari ini
+    // Method susunGrafikPendapatanHarian untuk menyusun grafik rincian pendapatan murni per tanggal (tanggal 1 s.d. hari ini)
     private List<DataDashboardDto.DataPendapatanHarianDto> susunGrafikPendapatanHarian(LocalDate awalBulan, LocalDate hariIni)
     {
         // Instansiasi list data pendapatan harian
         List<DataDashboardDto.DataPendapatanHarianDto> hasil = new ArrayList<>();
         // Formatter format tanggal (misal: "01 Okt")
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM");
-
-        // Inisialisasi akumulator pendapatan berjalan (running total) untuk pertumbuhan kontinu
-        BigDecimal akumulasiBerjalan = BigDecimal.ZERO;
 
         // Inisialisasi tanggal berjalan dengan awal bulan
         LocalDate tgl = awalBulan;
@@ -358,23 +366,20 @@ public class AnalitikLaporanService
         {
             // Menentukan jam 00:00:00 hari tersebut
             LocalDateTime awalHari = tgl.atStartOfDay();
-            // Menentukan jam 23:59:59 hari tersebut
-            LocalDateTime akhirHari = tgl.atTime(LocalTime.MAX);
+            // Menentukan jam 23:59:59.999999 hari tersebut agar tepat pada hari bersangkutan
+            LocalDateTime akhirHari = tgl.atTime(AKHIR_HARI_MIKRO);
 
-            // Menghitung total pendapatan pada hari tersebut
+            // Menghitung total pendapatan lunas murni pada hari tersebut (bukan akumulasi kumulatif)
             BigDecimal pendapatanHari = transaksiParkirRepository
                 .hitungTotalPendapatanDalamRentangWaktu(awalHari, akhirHari);
             // Jika null, beri nilai ZERO
             if (pendapatanHari == null) { pendapatanHari = BigDecimal.ZERO; }
 
-            // Akumulasikan pendapatan harian ke total berjalan agar grafik pertumbuhan stabil naik/mendatar (tidak anjlok)
-            akumulasiBerjalan = akumulasiBerjalan.add(pendapatanHari);
-
-            // Menambahkan titik data pendapatan akumulatif ke dalam list
+            // Menambahkan titik data pendapatan harian murni ke dalam list
             hasil.add(new DataDashboardDto.DataPendapatanHarianDto(
                 tgl.getDayOfMonth(), // Nomor hari (tanggal)
                 tgl.format(formatter), // Label tanggal
-                akumulasiBerjalan // Nominal pendapatan akumulatif berjalan
+                pendapatanHari // Nominal pendapatan murni hari tersebut
             ));
 
             // Melangkah 1 hari ke depan
@@ -389,7 +394,7 @@ public class AnalitikLaporanService
     // Method Pendukung: Menyusun Data Rekapitulasi Pendapatan 12 Bulan (Tahunan)
     // =====================================================================
 
-    // Method susunGrafikPendapatanBulanan untuk menyusun grafik agregasi pendapatan 12 bulan dalam setahun
+    // Method susunGrafikPendapatanBulanan untuk menyusun grafik pendapatan per bulan (Jan - Des) dalam setahun
     private List<DataDashboardDto.DataPendapatanHarianDto> susunGrafikPendapatanBulanan(int tahun)
     {
         // Instansiasi list data pendapatan bulanan
@@ -404,10 +409,10 @@ public class AnalitikLaporanService
             LocalDate awalBulanTgl = LocalDate.of(tahun, b, 1);
             // Menentukan batas awal waktu bulan jam 00:00:00
             LocalDateTime awalBulanWaktu = awalBulanTgl.atStartOfDay();
-            // Menentukan batas akhir waktu bulan pada hari terakhir jam 23:59:59
-            LocalDateTime akhirBulanWaktu = awalBulanTgl.withDayOfMonth(awalBulanTgl.lengthOfMonth()).atTime(LocalTime.MAX);
+            // Menentukan batas akhir waktu bulan pada hari terakhir jam 23:59:59.999999
+            LocalDateTime akhirBulanWaktu = awalBulanTgl.withDayOfMonth(awalBulanTgl.lengthOfMonth()).atTime(AKHIR_HARI_MIKRO);
 
-            // Menghitung akumulasi pendapatan lunas pada bulan tersebut langsung dari basis data
+            // Menghitung total pendapatan lunas khusus pada bulan tersebut langsung dari basis data
             BigDecimal nominalBulan = transaksiParkirRepository.hitungTotalPendapatanDalamRentangWaktu(awalBulanWaktu, akhirBulanWaktu);
             // Jika bernilai null, inisialisasi dengan BigDecimal.ZERO
             if (nominalBulan == null) { nominalBulan = BigDecimal.ZERO; }

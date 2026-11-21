@@ -18,6 +18,9 @@ public class DataDashboardDto
     // Deklarasi atribut pendapatanHariIni bertipe BigDecimal untuk total pendapatan pada hari ini
     private BigDecimal pendapatanHariIni;
 
+    // Deklarasi atribut pendapatanKemarin bertipe BigDecimal untuk total pendapatan pada hari kemarin (pembanding harian)
+    private BigDecimal pendapatanKemarin;
+
     // Deklarasi atribut pendapatanBulanan bertipe BigDecimal untuk pendapatan bulan berjalan
     private BigDecimal pendapatanBulanan;
 
@@ -623,5 +626,17 @@ public class DataDashboardDto
     public void setTotalKameraAktif(Long totalKameraAktif)
     {
         this.totalKameraAktif = totalKameraAktif;
+    }
+
+    // Method getter getPendapatanKemarin untuk mengambil total pendapatan kemarin
+    public BigDecimal getPendapatanKemarin()
+    {
+        return pendapatanKemarin;
+    }
+
+    // Method setter setPendapatanKemarin untuk mengubah total pendapatan kemarin
+    public void setPendapatanKemarin(BigDecimal pendapatanKemarin)
+    {
+        this.pendapatanKemarin = pendapatanKemarin;
     }
 }
