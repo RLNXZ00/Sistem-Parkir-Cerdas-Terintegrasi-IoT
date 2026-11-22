@@ -1,5 +1,7 @@
 // Import hook useState, useEffect, dan useRef dari react untuk state dan referensi DOM elemen popover
 import { useState, useEffect, useRef } from 'react';
+// Import hook useLocation dari react-router-dom untuk mendeteksi rute halaman aktif
+import { useLocation } from 'react-router-dom';
 // Import hook useLanguage dari konteks bahasa untuk alih bahasa antarmuka
 import { useLanguage } from '../context/LanguageContext';
 // Import hook useNotification dari konteks notifikasi untuk mengelola badge lonceng dan daftar peringatan
@@ -9,14 +11,34 @@ import NotificationPopover from './NotificationPopover';
 
 // Deklarasi fungsi komponen publik TopBar untuk bilah navigasi bagian atas halaman aplikasi web
 export default function TopBar({ breadcrumb, status }) {
+  // Mengambil instance lokasi rute URL yang sedang aktif
+  const location = useLocation();
   // Destrukturisasi bahasa aktif, fungsi alih bahasa, dan helper terjemahan t dari LanguageContext
   const { lang, setLanguage, t } = useLanguage();
-  // Destrukturisasi state notifikasi, jumlah belum dibaca, dan aksi baca dari NotificationContext
-  const { notifications, unreadCount, markAllRead, markAsRead } = useNotification();
+  // Destrukturisasi state notifikasi petugas, manajer, jumlah belum dibaca, dan aksi baca dari NotificationContext
+  const {
+    notifications,
+    unreadCount,
+    managerNotifications,
+    managerUnreadCount,
+    markAllRead,
+    markAsRead,
+  } = useNotification();
   // Inisialisasi state isNotificationOpen bertipe boolean dengan nilai awal false untuk status buka/tutup popover
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   // Inisialisasi referensi notificationRef untuk mendeteksi klik di luar wadah popover
   const notificationRef = useRef(null);
+
+  // Membaca profil pengguna yang sedang masuk dari sessionStorage atau fallback ke objek kosong
+  const userData = JSON.parse(sessionStorage.getItem('spct_user') || '{}');
+  // Menentukan apakah pengguna sedang membuka rute modul manajerial (/dashboard-management atau /reports)
+  const isManagementRoute = location.pathname.startsWith('/dashboard-management') || location.pathname.startsWith('/reports');
+  // Menentukan apakah pengguna berperan sebagai Manajer (ADMIN / Manajemen RS) atau berada pada rute manajemen
+  const isManager = userData.role === 'ADMIN' || userData.role === 'Manajemen RS' || isManagementRoute;
+
+  // Memilih daftar notifikasi dan penghitung badge sesuai peran aktif (Manajer vs Petugas Lapangan)
+  const activeNotifications = isManager ? managerNotifications : notifications;
+  const activeUnreadCount = isManager ? managerUnreadCount : unreadCount;
 
   // Deklarasi fungsi toggleLanguage untuk beralih antara Bahasa Indonesia dan Bahasa Inggris
   const toggleLanguage = () => {
@@ -46,9 +68,9 @@ export default function TopBar({ breadcrumb, status }) {
     };
   }, [isNotificationOpen]);
 
-  // Deklarasi fungsi handleMarkAllRead untuk menandai semua notifikasi telah dibaca
+  // Deklarasi fungsi handleMarkAllRead untuk menandai seluruh notifikasi sesuai scope peran saat ini telah dibaca
   const handleMarkAllRead = () => {
-    markAllRead();
+    markAllRead(isManager ? 'manager' : 'operator');
   };
 
   // Deklarasi fungsi handleNotificationClick untuk menandai satu item notifikasi spesifik telah dibaca
@@ -102,9 +124,9 @@ export default function TopBar({ breadcrumb, status }) {
             >
               <span className="material-symbols-outlined text-[20px]">notifications</span>
               {/* Lencana penanda jumlah notifikasi belum terbaca */}
-              {unreadCount > 0 && (
+              {activeUnreadCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#ea580c] text-white text-[10px] font-bold font-mono flex items-center justify-center shadow-md animate-pulse">
-                  {unreadCount > 9 ? '9+' : unreadCount}
+                  {activeUnreadCount > 9 ? '9+' : activeUnreadCount}
                 </span>
               )}
             </button>
@@ -113,7 +135,7 @@ export default function TopBar({ breadcrumb, status }) {
             <NotificationPopover
               isOpen={isNotificationOpen}
               onClose={() => setIsNotificationOpen(false)}
-              notifications={notifications}
+              notifications={activeNotifications}
               onMarkAllRead={handleMarkAllRead}
               onNotificationClick={handleNotificationClick}
             />
