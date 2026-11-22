@@ -9,12 +9,29 @@ const LanguageContext = createContext();
 // Konstanta kunci penyimpanan lokal peramban (localStorage) untuk preferensi bahasa sistem
 export const STORAGE_KEY_LANG = 'spct_language';
 
+// Fungsi pembantu untuk menyisipkan parameter dinamis berpola {namaParam} ke dalam teks terjemahan
+const interpolateParams = (text, params) => {
+  // Jika tidak ada teks string atau tidak ada parameter, kembalikan teks asli
+  if (typeof text !== 'string' || !params) return text;
+  // Ganti setiap token {key} dengan nilai dari objek params jika tersedia
+  return text.replace(/\{(\w+)\}/g, (match, token) =>
+    params[token] !== undefined ? String(params[token]) : match
+  );
+};
+
 // Deklarasi fungsi komponen publik LanguageProvider untuk membungkus komponen turunan dengan context bahasa
 export function LanguageProvider({ children }) {
   // Inisialisasi state lang bertipe string dengan nilai awal dari localStorage atau default 'id'
   const [lang, setLangState] = useState(() => {
     return localStorage.getItem(STORAGE_KEY_LANG) || 'id';
   });
+
+  // Menyinkronkan atribut lang pada elemen root HTML agar peramban mengenali bahasa aktif
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = lang;
+    }
+  }, [lang]);
 
   // Deklarasi fungsi callback setLanguage untuk mengubah bahasa aktif ('id' atau 'en')
   const setLanguage = useCallback((newLang) => {
@@ -58,21 +75,22 @@ export function LanguageProvider({ children }) {
     };
   }, []);
 
-  // Deklarasi fungsi pembantu penerjemahan teks t dengan memoize useCallback
-  const t = useCallback((key, fallback) => {
+  // Deklarasi fungsi pembantu penerjemahan teks t dengan dukungan interpolasi parameter opsional
+  const t = useCallback((key, fallback, params) => {
     // Mengambil kamus aktif sesuai bahasa terpilih atau fallback ke bahasa Indonesia
     const currentDict = translations[lang] || translations.id;
     // Jika kata kunci ditemukan pada kamus aktif, kembalikan terjemahannya
     if (currentDict && currentDict[key] !== undefined) {
-      return currentDict[key];
+      return interpolateParams(currentDict[key], params);
     }
     // Jika tidak ditemukan, periksa kamus default bahasa Indonesia
     const defaultDict = translations.id;
     if (defaultDict && defaultDict[key] !== undefined) {
-      return defaultDict[key];
+      return interpolateParams(defaultDict[key], params);
     }
     // Jika tetap tidak ditemukan, kembalikan teks fallback atau nama key itu sendiri
-    return fallback !== undefined ? fallback : key;
+    const baseText = fallback !== undefined ? fallback : key;
+    return interpolateParams(baseText, params);
   }, [lang]);
 
   // Mengembalikan penyedia context LanguageContext dengan nilai bahasa, fungsi pengubah, dan helper terjemahan
@@ -95,9 +113,10 @@ export function useLanguage() {
     return {
       lang: fallbackLang,
       setLanguage: () => {},
-      t: (key, fallback) => {
+      t: (key, fallback, params) => {
         const dict = translations[fallbackLang] || translations.id;
-        return dict?.[key] ?? (fallback ?? key);
+        const raw = dict?.[key] ?? (fallback ?? key);
+        return interpolateParams(raw, params);
       }
     };
   }

@@ -23,9 +23,9 @@ export default function Sidebar() {
   // Mendefinisikan daftar item menu navigasi secara dinamis berbasis Role-Based Access Control (RBAC)
   const navItems = isManager 
     ? [
-        // Menu untuk peran Manajemen RS: Live Dashboard Manajemen dan Laporan Analitik
-        { to: '/dashboard-management', icon: 'dashboard', label: t('nav.fieldDashboard', 'Live Dashboard') },
-        { to: '/reports', icon: 'bar_chart', label: t('nav.reports', 'Reports') }
+        // Menu untuk peran Manajemen RS: Dashboard Manajemen dan Laporan Analitik
+        { to: '/dashboard-management', icon: 'dashboard', label: t('nav.managementDashboard', 'Dashboard Manajemen') },
+        { to: '/reports', icon: 'bar_chart', label: t('nav.reports', 'Laporan Analitik') }
       ]
     : [
         // Menu untuk peran Petugas Lapangan: Live Dashboard Operasional, Gate OCR Feed, dan Log Anomali
@@ -47,7 +47,7 @@ export default function Sidebar() {
         {/* Teks nama aplikasi yang hanya tampak pada layar desktop besar (lg) */}
         <div className="hidden lg:block overflow-hidden">
           <p className="font-semibold text-[16px] leading-tight text-primary truncate">Smart Parking</p>
-          <p className="font-mono text-[12px] text-text-muted truncate">Green Earth System</p>
+          <p className="font-mono text-[12px] text-text-muted truncate">{t('nav.systemSubtitle', 'Sistem Parkir Cerdas')}</p>
         </div>
       </div>
 
