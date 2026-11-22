@@ -45,6 +45,11 @@ export const translations = {
     'notification.anomalyLogs': 'Log Anomali', // Pintasan navigasi footer ke halaman log anomali
     'notification.gateLive': 'Gate Live OCR', // Pintasan navigasi footer ke monitoring kamera gerbang
     'notification.reports': 'Laporan Analitik', // Pintasan navigasi footer ke laporan analitik untuk manajer
+    'notification.exportReport': 'Ekspor Laporan', // Tab filter riwayat ekspor dokumen laporan untuk manajer
+    'notification.exportPdf': 'Ekspor PDF', // Tab filter khusus unduhan dokumen PDF
+    'notification.exportExcel': 'Ekspor Excel', // Tab filter khusus unduhan dokumen spreadsheet Excel
+    'notification.managerTitle': 'Riwayat & Notifikasi Manajer', // Judul panel notifikasi khusus peran manajer
+    'notification.emptyManager': 'Belum ada riwayat ekspor laporan atau peringatan audit', // Pesan kosong notifikasi manajer
     'notification.unreadTooltip': 'Belum dibaca', // Tooltip titik penanda notifikasi belum dibaca
 
     // Frasa halaman Dashboard Petugas Lapangan (DashboardPage)
@@ -350,6 +355,11 @@ export const translations = {
     'notification.anomalyLogs': 'Anomaly Logs', // Shortcut footer navigation to anomaly logs
     'notification.gateLive': 'Gate Live OCR', // Shortcut footer navigation to live gate camera feed
     'notification.reports': 'Analytics Reports', // Shortcut footer navigation to analytics reports for manager
+    'notification.exportReport': 'Report Exports', // Filter tab for report document export history for manager
+    'notification.exportPdf': 'PDF Exports', // Filter tab for PDF document exports
+    'notification.exportExcel': 'Excel Exports', // Filter tab for Excel spreadsheet exports
+    'notification.managerTitle': 'Manager History & Alerts', // Panel title specifically for manager role
+    'notification.emptyManager': 'No report export history or audit alerts yet', // Empty notification state for manager
     'notification.unreadTooltip': 'Unread', // Unread indicator tooltip
 
     // Field Dashboard (DashboardPage) labels
