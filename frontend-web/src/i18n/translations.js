@@ -38,6 +38,9 @@ export const translations = {
     'notification.entry': 'Kendaraan Masuk', // Tab filter notifikasi kendaraan masuk
     'notification.anomaly': 'Anomali', // Tab filter notifikasi anomali
     'notification.empty': 'Tidak ada notifikasi', // Pesan saat notifikasi kosong
+    'notification.anomalyLogs': 'Log Anomali', // Pintasan navigasi footer ke halaman log anomali
+    'notification.gateLive': 'Gate Live OCR', // Pintasan navigasi footer ke monitoring kamera gerbang
+    'notification.reports': 'Laporan Analitik', // Pintasan navigasi footer ke laporan analitik untuk manajer
 
     // Frasa halaman Dashboard Petugas Lapangan (DashboardPage)
     'dash.totalSlots': 'Total Slot', // Metrik total kapasitas slot parkir
@@ -207,6 +210,9 @@ export const translations = {
     'notification.entry': 'Vehicle Entry', // Filter vehicle entry notifications
     'notification.anomaly': 'Anomalies', // Filter anomaly notifications
     'notification.empty': 'No notifications', // Empty notification state
+    'notification.anomalyLogs': 'Anomaly Logs', // Shortcut footer navigation to anomaly logs
+    'notification.gateLive': 'Gate Live OCR', // Shortcut footer navigation to live gate camera feed
+    'notification.reports': 'Analytics Reports', // Shortcut footer navigation to analytics reports for manager
 
     // Field Dashboard (DashboardPage) labels
     'dash.totalSlots': 'Total Slots', // Metric total parking slots
