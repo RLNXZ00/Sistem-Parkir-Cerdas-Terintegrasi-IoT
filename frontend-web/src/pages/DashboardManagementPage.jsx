@@ -6,6 +6,12 @@ import AppLayout from '../components/AppLayout';
 import Chart from 'chart.js/auto';
 // Import hook useLanguage dari '../context/LanguageContext' untuk dukungan multi-bahasa (internasionalisasi i18n)
 import { useLanguage } from '../context/LanguageContext';
+// Import helper penerjemahan log IoT dan status resolusi untuk sinkronisasi kartu dan modal dalam bahasa ID/EN
+import {
+  translateLogEventType,
+  translateLogDetail,
+  translateResolutionStatus,
+} from '../i18n/i18nHelpers';
 
 // Deklarasi konstanta DEFAULT_MOBIL_SLOTS berisi daftar 16 kode slot parkir mobil pada Basement Lantai 1
 const DEFAULT_MOBIL_SLOTS = [
@@ -334,13 +340,15 @@ export default function DashboardManagementPage() {
     // Batalkan eksekusi jika data analitik belum siap atau elemen canvas grafik belum terpasang di DOM
     if (!data || !chartRef.current) return;
 
-    // Inisialisasi daftar nama 12 bulan kalender standar untuk periode Tahunan (Jan s.d. Des)
-    const DEFAULT_BULAN_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    // Inisialisasi daftar nama 12 bulan kalender sesuai bahasa aktif (Jan s.d. Des / Dec)
+    const DEFAULT_BULAN_NAMES = lang === 'en'
+      ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+      : ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
     // Menentukan array titik data aktif berdasarkan filter periode
     let activeChartData = [];
     // Label dataset untuk tooltip Chart.js
-    let activeDatasetLabel = 'Pendapatan Harian (Rp)';
+    let activeDatasetLabel = lang === 'en' ? 'Daily Revenue (Rp)' : 'Pendapatan Harian (Rp)';
 
     // Pemilihan dataset berdasarkan pilihan filter periode pendapatan
     if (revenuePeriod === 'TAHUNAN') {
@@ -356,7 +364,7 @@ export default function DashboardManagementPage() {
           nominal: 0
         }));
       }
-      activeDatasetLabel = 'Pendapatan Bulanan (Rp)';
+      activeDatasetLabel = lang === 'en' ? 'Monthly Revenue (Rp)' : 'Pendapatan Bulanan (Rp)';
     } else if (revenuePeriod === 'SEMUA') {
       // Periode Semua: Mengambil rincian data pendapatan per bulan sepanjang masa dari backend
       const rawData = data.grafikPendapatanSemua;
@@ -367,11 +375,11 @@ export default function DashboardManagementPage() {
         const now = new Date();
         activeChartData = Array.from({ length: 6 }, (_, idx) => {
           const d = new Date(now.getFullYear(), now.getMonth() - (5 - idx), 1);
-          const lbl = d.toLocaleDateString('id-ID', { month: 'short', year: '2-digit' });
+          const lbl = d.toLocaleDateString(lang === 'en' ? 'en-US' : 'id-ID', { month: 'short', year: '2-digit' });
           return { hari: idx + 1, labelTanggal: lbl, nominal: 0 };
         });
       }
-      activeDatasetLabel = 'Pendapatan Per Bulan (Rp)';
+      activeDatasetLabel = lang === 'en' ? 'Revenue per Month (Rp)' : 'Pendapatan Per Bulan (Rp)';
     } else {
       // Periode Bulanan (default): Mengambil rincian pendapatan per hari tanggal 1 s.d. hari ini dari backend
       const rawData = data.grafikPendapatanHarian;
@@ -382,20 +390,28 @@ export default function DashboardManagementPage() {
         const todayDate = new Date().getDate();
         activeChartData = Array.from({ length: Math.max(todayDate, 10) }, (_, i) => ({
           hari: i + 1,
-          labelTanggal: `Tgl ${i + 1}`,
+          labelTanggal: lang === 'en' ? `Day ${i + 1}` : `Tgl ${i + 1}`,
           nominal: 0
         }));
       }
-      activeDatasetLabel = 'Pendapatan Harian (Rp)';
+      activeDatasetLabel = lang === 'en' ? 'Daily Revenue (Rp)' : 'Pendapatan Harian (Rp)';
     }
 
     // Petakan label sumbu X berdasarkan properti labelTanggal atau nomor hari
     const labels = activeChartData.map(item => {
-      // Jika periode bulanan, tampilkan format 'Tgl X'
+      // Jika periode bulanan, tampilkan format 'Tgl X' atau 'Day X' sesuai bahasa aktif
       if (revenuePeriod === 'BULANAN') {
-        return item.labelTanggal && item.labelTanggal.startsWith('Tgl') ? item.labelTanggal : `Tgl ${item.hari}`;
+        const rawLabel = item.labelTanggal && item.labelTanggal.startsWith('Tgl') ? item.labelTanggal : `Tgl ${item.hari}`;
+        return lang === 'en' ? rawLabel.replace(/^Tgl\s*/i, 'Day ') : rawLabel;
       }
-      // Jika periode tahunan atau semua, gunakan labelTanggal (misal: "Jan", "Feb" atau "Okt 26")
+      // Jika periode tahunan atau semua, terjemahkan singkatan bulan Indonesia ke Inggris bila aktif
+      if (lang === 'en' && item.labelTanggal) {
+        return item.labelTanggal
+          .replace(/\bMei\b/g, 'May')
+          .replace(/\bAgu\b/g, 'Aug')
+          .replace(/\bOkt\b/g, 'Oct')
+          .replace(/\bDes\b/g, 'Dec');
+      }
       return item.labelTanggal || `P-${item.hari}`;
     });
 
@@ -512,17 +528,17 @@ export default function DashboardManagementPage() {
         }
       }
     });
-  }, [data, isLight, revenuePeriod]); // Efek samping dieksekusi saat data analitik, tema, atau filter periode berubah
+  }, [data, isLight, revenuePeriod, lang]); // Efek samping dieksekusi saat data analitik, tema, filter periode, atau bahasa berubah
 
   // Jika aplikasi masih dalam fase pemuatan awal data analitik, tampilkan indikator loading
   if (isLoading) {
     return (
-      // Membungkus antarmuka pemuatan dengan komponen AppLayout berstatus 'Loading...'
-      <AppLayout breadcrumb="Management Oversight" status="Loading...">
+      // Membungkus antarmuka pemuatan dengan komponen AppLayout berstatus loading sesuai bahasa
+      <AppLayout breadcrumb={t('topbar.mgmtOversight', 'Management Oversight')} status={t('common.loading', 'Loading...')}>
         {/* Kontainer flexbox di tengah layar untuk indikator animasi loading */}
         <div className="flex h-full items-center justify-center">
           {/* Teks animasi berdenyut penanda pemuatan data analitik */}
-          <div className="text-xl text-primary font-mono animate-pulse">Memuat Data Analitik...</div>
+          <div className="text-xl text-primary font-mono animate-pulse">{t('mgmt.loadingAnalytics', 'Memuat Data Analitik...')}</div>
         </div>
       </AppLayout>
     );
@@ -632,8 +648,10 @@ export default function DashboardManagementPage() {
   // Deklarasi array konfigurasi kartu informasi kepadatan zona parkir (Zona Mobil dan Zona Motor)
   const ZONES = [
     { 
-      name: lang === 'en' ? 'Car Zone' : 'Zona Mobil', 
-      desc: `Basement Lantai 1 (${mobilTerisi} dari ${mobilTotal} Slot)`, 
+      name: t('mgmt.carZone', 'Zona Mobil'), 
+      desc: lang === 'en'
+        ? `Basement Floor 1 (${mobilTerisi} of ${mobilTotal} Slots)`
+        : `Basement Lantai 1 (${mobilTerisi} dari ${mobilTotal} Slot)`, 
       pct: pctMobil, 
       colorClass: colorMobil, 
       status: statusMobil, 
@@ -641,8 +659,10 @@ export default function DashboardManagementPage() {
       barBg: barBgMobil
     },
     { 
-      name: lang === 'en' ? 'Motorcycle Zone' : 'Zona Motor', 
-      desc: `Basement Lantai 1 (${motorTerisi} dari ${motorTotal} Slot)`, 
+      name: t('mgmt.motorZone', 'Zona Motor'), 
+      desc: lang === 'en'
+        ? `Basement Floor 1 (${motorTerisi} of ${motorTotal} Slots)`
+        : `Basement Lantai 1 (${motorTerisi} dari ${motorTotal} Slot)`, 
       pct: pctMotor, 
       colorClass: colorMotor, 
       status: statusMotor, 
@@ -676,9 +696,9 @@ export default function DashboardManagementPage() {
       color: 'text-secondary' 
     },
     { 
-      label: 'Avg Fee / Kendaraan', 
+      label: t('mgmt.avgFeeLabel', 'Rata-rata Tarif / Kendaraan'), 
       value: `Rp ${Number(avgFeeVal).toLocaleString('id-ID')}`, 
-      sub: `${totalTransaksiLunasVal} ${lang === 'en' ? 'Paid Transactions' : 'Transaksi Lunas Bulan Ini'}`, 
+      sub: `${totalTransaksiLunasVal} ${lang === 'en' ? 'Paid Transactions This Month' : 'Transaksi Lunas Bulan Ini'}`, 
       icon: 'receipt_long', 
       color: 'text-tertiary' 
     },
@@ -769,9 +789,9 @@ export default function DashboardManagementPage() {
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-eco-success">payments</span>
                   <h2 className="text-xl font-semibold text-on-surface">
-                    {revenuePeriod === 'BULANAN' && 'Pendapatan Bulanan'}
-                    {revenuePeriod === 'TAHUNAN' && 'Pendapatan Tahunan'}
-                    {revenuePeriod === 'SEMUA' && 'Pendapatan Sepanjang Waktu'}
+                    {revenuePeriod === 'BULANAN' && t('mgmt.revMonthly', 'Pendapatan Bulanan')}
+                    {revenuePeriod === 'TAHUNAN' && t('mgmt.revYearly', 'Pendapatan Tahunan')}
+                    {revenuePeriod === 'SEMUA' && t('mgmt.revAll', 'Pendapatan Sepanjang Waktu')}
                   </h2>
                 </div>
 
@@ -786,7 +806,7 @@ export default function DashboardManagementPage() {
                         : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
                     }`}
                   >
-                    Bulanan
+                    {t('mgmt.filterMonthly', 'Bulanan')}
                   </button>
                   <button
                     type="button"
@@ -797,7 +817,7 @@ export default function DashboardManagementPage() {
                         : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
                     }`}
                   >
-                    Tahunan
+                    {t('mgmt.filterYearly', 'Tahunan')}
                   </button>
                   <button
                     type="button"
@@ -808,7 +828,7 @@ export default function DashboardManagementPage() {
                         : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
                     }`}
                   >
-                    Semua
+                    {t('mgmt.filterAll', 'Semua')}
                   </button>
                 </div>
               </div>
@@ -816,15 +836,15 @@ export default function DashboardManagementPage() {
               {/* Sub-header: Keterangan konteks rentang dan lencana penanda aktif */}
               <div className="flex justify-between items-center mb-2">
                 <span className="text-xs text-text-muted font-mono">
-                  {revenuePeriod === 'BULANAN' && 'Rekapitulasi transaksi lunas bulan kalender berjalan'}
-                  {revenuePeriod === 'TAHUNAN' && `Rekapitulasi riil 12 bulan kalender tahun ${CURRENT_CALENDAR_YEAR}`}
-                  {revenuePeriod === 'SEMUA' && 'Rekapitulasi seluruh riwayat transaksi lunas sejak sistem beroperasi'}
+                  {revenuePeriod === 'BULANAN' && t('mgmt.revSubMonthly', 'Rekapitulasi transaksi lunas bulan kalender berjalan')}
+                  {revenuePeriod === 'TAHUNAN' && `${t('mgmt.revSubYearly', 'Rekapitulasi riil 12 bulan kalender tahun')} ${CURRENT_CALENDAR_YEAR}`}
+                  {revenuePeriod === 'SEMUA' && t('mgmt.revSubAll', 'Rekapitulasi seluruh riwayat transaksi lunas sejak sistem beroperasi')}
                 </span>
                 {/* Lencana penanda periode aktif */}
                 <span className="px-2.5 py-1 bg-eco-success/20 text-eco-success rounded text-xs font-mono font-bold border border-eco-success/30">
-                  {revenuePeriod === 'BULANAN' && `Bulan Berjalan (${safeData.grafikPendapatanHarian?.length || 1} Hari)`}
-                  {revenuePeriod === 'TAHUNAN' && `Tahun ${CURRENT_CALENDAR_YEAR} (12 Bulan)`}
-                  {revenuePeriod === 'SEMUA' && `Histori Database (${activeTrxLunasCount} Trx)`}
+                  {revenuePeriod === 'BULANAN' && `${t('mgmt.revBadgeMonthly', 'Bulan Berjalan')} (${safeData.grafikPendapatanHarian?.length || 1} ${t('mgmt.daysLabel', 'Hari')})`}
+                  {revenuePeriod === 'TAHUNAN' && `${t('mgmt.revBadgeYearly', 'Tahun')} ${CURRENT_CALENDAR_YEAR} (12 ${t('mgmt.monthsLabel', 'Bulan')})`}
+                  {revenuePeriod === 'SEMUA' && `${t('mgmt.revBadgeAll', 'Histori Database')} (${activeTrxLunasCount} Trx)`}
                 </span>
               </div>
 
@@ -841,9 +861,9 @@ export default function DashboardManagementPage() {
             </div>
             {/* Catatan kaki metodologi perhitungan pendapatan sesuai filter aktif */}
             <div className="text-right text-[11px] text-text-muted font-mono mt-2">
-              {revenuePeriod === 'BULANAN' && '*Rincian pendapatan riil per hari dari tanggal 1 s.d. hari ini'}
-              {revenuePeriod === 'TAHUNAN' && `*Rincian pendapatan riil per bulan pada tahun berjalan ${CURRENT_CALENDAR_YEAR}`}
-              {revenuePeriod === 'SEMUA' && '*Rincian pendapatan riil per bulan sepanjang waktu operasional sistem'}
+              {revenuePeriod === 'BULANAN' && t('mgmt.revFootMonthly', '*Rincian pendapatan riil per hari dari tanggal 1 s.d. hari ini')}
+              {revenuePeriod === 'TAHUNAN' && `${t('mgmt.revFootYearly', '*Rincian pendapatan riil per bulan pada tahun berjalan')} ${CURRENT_CALENDAR_YEAR}`}
+              {revenuePeriod === 'SEMUA' && t('mgmt.revFootAll', '*Rincian pendapatan riil per bulan sepanjang waktu operasional sistem')}
             </div>
           </div>
 
@@ -852,26 +872,26 @@ export default function DashboardManagementPage() {
             {/* Header seksi Financial Impact */}
             <div className="flex items-center gap-2 border-b border-outline-variant/30 pb-4">
               <span className="material-symbols-outlined text-primary">insert_chart</span>
-              <h2 className="text-xl font-semibold text-on-surface">Financial Impact</h2>
+              <h2 className="text-xl font-semibold text-on-surface">{t('mgmt.financialImpact', 'Financial Impact')}</h2>
             </div>
             {/* Kotak Metrik Tarif Rata-rata per Kendaraan (Avg Fee per Vehicle) */}
             <div className="bg-surface-container p-4 rounded-lg border border-outline-variant/20">
-              <span className="font-mono text-sm text-on-surface-variant block mb-1">Avg Fee per Vehicle</span>
+              <span className="font-mono text-sm text-on-surface-variant block mb-1">{t('mgmt.avgFeeVehicle', 'Avg Fee per Vehicle')}</span>
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl text-primary font-bold">
                   Rp {Number(activeAvgFeeVal).toLocaleString('id-ID')}
                 </span>
                 {/* Indikator transaksi lunas yang mendasari perhitungan rata-rata */}
-                <span className="text-eco-success font-mono text-xs flex items-center gap-1" title="Rata-rata pembayaran per transaksi lunas pada periode aktif">
-                  <span className="material-symbols-outlined text-[16px]">info</span>{activeTrxLunasCount} Transaksi Lunas
+                <span className="text-eco-success font-mono text-xs flex items-center gap-1" title={lang === 'en' ? 'Average fee per paid transaction in active period' : 'Rata-rata pembayaran per transaksi lunas pada periode aktif'}>
+                  <span className="material-symbols-outlined text-[16px]">info</span>{activeTrxLunasCount} {t('mgmt.paidTransactions', 'Transaksi Lunas')}
                 </span>
               </div>
             </div>
             {/* Kotak Metrik Imbal Hasil Okupansi & Pendapatan per Kapasitas Slot (RevPAS) */}
             <div className="bg-surface-container p-4 rounded-lg border border-outline-variant/20">
               <div className="flex justify-between items-center mb-1">
-                <span className="font-mono text-sm text-on-surface-variant">Occupancy & Revenue Yield</span>
-                <span className="text-xs font-mono text-tertiary-container font-semibold" title="RevPAS: Pendapatan rata-rata per kapasitas slot">
+                <span className="font-mono text-sm text-on-surface-variant">{t('mgmt.occRevenueYield', 'Occupancy & Revenue Yield')}</span>
+                <span className="text-xs font-mono text-tertiary-container font-semibold" title={lang === 'en' ? 'RevPAS: Average revenue per slot capacity' : 'RevPAS: Pendapatan rata-rata per kapasitas slot'}>
                   Rp {Number(revenuePerSlotVal).toLocaleString('id-ID')}/slot
                 </span>
               </div>
@@ -880,7 +900,7 @@ export default function DashboardManagementPage() {
                   {pctMobil}%
                 </span>
                 <span className="text-text-muted font-mono text-xs">
-                  Okupansi Fisik Saat Ini ({safeData.slotTerisiSaatIni || 0}/{mobilTotal} Slot)
+                  {t('mgmt.currentPhysOcc', 'Okupansi Fisik Saat Ini')} ({safeData.slotTerisiSaatIni || 0}/{mobilTotal} {lang === 'en' ? 'Slots' : 'Slot'})
                 </span>
               </div>
               {/* Batang kemajuan (progress bar) persentase okupansi zona parkir */}
@@ -901,7 +921,7 @@ export default function DashboardManagementPage() {
             {/* Header kartu penghematan CO2 */}
             <div className="flex items-center gap-2 mb-4 self-start">
               <span className="material-symbols-outlined text-eco-success">eco</span>
-              <h2 className="text-lg font-semibold text-on-surface">CO2 Savings</h2>
+              <h2 className="text-lg font-semibold text-on-surface">{t('mgmt.co2SavingsTitle', 'CO2 Savings')}</h2>
             </div>
             {/* Visualisasi diagram lingkaran donat SVG untuk pencapaian reduksi emisi */}
             <div className="relative w-48 h-48 flex items-center justify-center">
@@ -916,13 +936,13 @@ export default function DashboardManagementPage() {
               {/* Teks persentase pencapaian target emisi di pusat diagram donat */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-4xl text-eco-success font-bold tracking-tighter">{safeData.persentaseCo2}%</span>
-                <span className="font-mono text-xs text-text-muted uppercase tracking-wider">Tercapai</span>
+                <span className="font-mono text-xs text-text-muted uppercase tracking-wider">{t('mgmt.achieved', 'Tercapai')}</span>
               </div>
             </div>
             {/* Keterangan total berat emisi CO2 yang berhasil dicegah dalam kilogram */}
             <div className="mt-4 text-center">
               <div className="font-mono text-2xl text-on-surface font-bold">{safeData.reduksiCo2Kg} kg</div>
-              <div className="text-sm text-on-surface-variant">Emisi dicegah total berdasarkan sensor IoT</div>
+              <div className="text-sm text-on-surface-variant">{t('mgmt.co2SavedDesc', 'Emisi dicegah total berdasarkan sensor IoT')}</div>
             </div>
           </div>
 
@@ -931,17 +951,17 @@ export default function DashboardManagementPage() {
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-system-info">memory</span>
-                <h2 className="text-xl font-semibold text-on-surface">System Health</h2>
+                <h2 className="text-xl font-semibold text-on-surface">{t('mgmt.systemHealth', 'System Health')}</h2>
               </div>
               
               {/* Tombol aksi 'View Node Logs' untuk membuka modal denah spasial visual Lantai 1 */}
               <button 
                 onClick={openNodeMapModal}
                 className="text-primary font-mono text-sm hover:underline cursor-pointer flex items-center gap-1 bg-primary/10 hover:bg-primary/20 px-3 py-1 rounded-lg border border-primary/30 transition-colors"
-                title="Buka Denah Spasial Node Sensor & Indikasi Kesalahan Parkir"
+                title={t('mgmt.modalSpatialTitle', 'Buka Denah Spasial Node Sensor & Indikasi Kesalahan Parkir')}
               >
                 <span className="material-symbols-outlined text-sm">grid_view</span>
-                <span>View Node Logs</span>
+                <span>{t('mgmt.viewNodeLogs', 'View Node Logs')}</span>
               </button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
@@ -951,13 +971,13 @@ export default function DashboardManagementPage() {
                 : 'bg-surface-container border-outline-variant/20'}`}>
                 <div className="flex items-center gap-2 mb-2">
                   <span className={`material-symbols-outlined text-[20px] ${sensorPct < 100 ? 'text-red-400' : 'text-on-surface-variant'}`}>sensors</span>
-                  <span className={`font-mono text-sm ${sensorPct < 100 ? 'text-red-300 font-bold' : 'text-on-surface-variant'}`}>Active Sensors</span>
+                  <span className={`font-mono text-sm ${sensorPct < 100 ? 'text-red-300 font-bold' : 'text-on-surface-variant'}`}>{t('mgmt.activeSensors', 'Active Sensors')}</span>
                 </div>
                 <div className="text-3xl text-on-surface font-bold leading-none font-mono">
-                  {sensorAktif} <span className="text-xs text-text-muted font-normal font-sans">/ {totalSensor} Unit</span>
+                  {sensorAktif} <span className="text-xs text-text-muted font-normal font-sans">/ {totalSensor} {t('dash.unitSuffix', 'Unit')}</span>
                 </div>
                 <div className={`font-mono text-xs mt-1 ${sensorPct < 100 ? 'text-red-400 font-bold' : 'text-eco-success'}`}>
-                  {sensorPct}% Up {sensorPct < 100 && '• Anomali'}
+                  {sensorPct}% Up {sensorPct < 100 && `• ${lang === 'en' ? 'Anomaly' : 'Anomali'}`}
                 </div>
                 {/* Batang indikator rasio keaktifan sensor fisik */}
                 <div className="w-full bg-surface-container-highest rounded-full h-1 mt-3">
@@ -971,10 +991,10 @@ export default function DashboardManagementPage() {
                 : 'bg-surface-container border-outline-variant/20'}`}>
                 <div className="flex items-center gap-2 mb-2">
                   <span className={`material-symbols-outlined text-[20px] ${kameraPct < 100 ? 'text-red-400' : 'text-[#7ad0ff]'}`}>videocam</span>
-                  <span className={`font-mono text-sm ${kameraPct < 100 ? 'text-red-300 font-bold' : 'text-on-surface-variant'}`}>Kamera ANPR</span>
+                  <span className={`font-mono text-sm ${kameraPct < 100 ? 'text-red-300 font-bold' : 'text-on-surface-variant'}`}>{t('mgmt.anprCameras', 'Kamera ANPR')}</span>
                 </div>
                 <div className="text-3xl text-on-surface font-bold leading-none font-mono">
-                  {kameraAktif} <span className="text-xs text-text-muted font-normal font-sans">/ {totalKamera} Unit</span>
+                  {kameraAktif} <span className="text-xs text-text-muted font-normal font-sans">/ {totalKamera} {t('dash.unitSuffix', 'Unit')}</span>
                 </div>
                 <div className={`font-mono text-xs mt-1 ${kameraPct < 100 ? 'text-red-400 font-bold' : 'text-sky-400'}`}>
                   {kameraPct}% Up {kameraPct < 100 && '• OFFLINE'}
@@ -989,7 +1009,7 @@ export default function DashboardManagementPage() {
               <div className="bg-surface-container p-4 rounded-lg border border-outline-variant/20">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="material-symbols-outlined text-on-surface-variant text-[20px]">wifi</span>
-                  <span className="font-mono text-sm text-on-surface-variant">Network Status</span>
+                  <span className="font-mono text-sm text-on-surface-variant">{t('mgmt.networkStatus', 'Network Status')}</span>
                 </div>
                 <div className="flex items-center gap-3 mt-2">
                   {/* Animasi spinner lingkaran status latensi jaringan */}
@@ -1001,7 +1021,7 @@ export default function DashboardManagementPage() {
                   <div>
                     {/* Status stabilitas jaringan berdasarkan ambang batas ping 100ms */}
                     <span className={`font-mono text-base font-bold ${networkPing && networkPing < 100 ? 'text-system-info' : 'text-warning-reserved'}`}>
-                      {networkPing === null ? 'Checking...' : (networkPing < 100 ? 'Stable' : 'Slow')}
+                      {networkPing === null ? t('mgmt.pingChecking', 'Checking...') : (networkPing < 100 ? t('mgmt.pingStable', 'Stable') : t('mgmt.pingSlow', 'Slow'))}
                     </span>
                     <p className="text-[11px] text-text-muted font-mono">
                       Ping: {networkPing !== null ? `${networkPing}ms` : '--'}
@@ -1027,11 +1047,11 @@ export default function DashboardManagementPage() {
                     {/* Judul status anomali sistem */}
                     <h3 className="font-mono text-base text-on-surface font-bold group-hover:text-alert-anomaly transition-colors">
                       {safeData.totalAnomali > 0 
-                        ? `${safeData.totalAnomali} Anomali Aktif Membutuhkan Validasi` 
-                        : "Sistem Normal — Tidak Ada Anomali Aktif"}
+                        ? `${safeData.totalAnomali} ${t('mgmt.anomalyActiveMsg', 'Anomali Aktif Membutuhkan Validasi')}` 
+                        : t('mgmt.systemNormalMsg', 'Sistem Normal — Tidak Ada Anomali Aktif')}
                     </h3>
                     <p className="text-xs text-on-surface-variant">
-                      Klik untuk melihat daftar 10 riwayat kronologis anomali & operasional sensor terbaru dari database.
+                      {t('mgmt.anomalyBannerHint', 'Klik untuk melihat daftar 10 riwayat kronologis anomali & operasional sensor terbaru dari database.')}
                     </p>
                   </div>
                 </div>
@@ -1047,13 +1067,13 @@ export default function DashboardManagementPage() {
           <div className="flex justify-between items-center mb-5">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-on-surface">map</span>
-              <h2 className="text-xl font-semibold text-on-surface">Tingkat Kepadatan per Zona</h2>
+              <h2 className="text-xl font-semibold text-on-surface">{t('mgmt.zoneDensityTitle', 'Tingkat Kepadatan per Zona')}</h2>
             </div>
             {/* Legenda visual kategori kepadatan: Normal, Sedang, dan Padat */}
             <div className="flex gap-4 text-sm">
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-eco-success inline-block"></span><span className="text-text-muted font-mono">Normal (&lt;50%)</span></span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-warning-reserved inline-block"></span><span className="text-text-muted font-mono">Sedang (50-80%)</span></span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-alert-anomaly inline-block"></span><span className="text-text-muted font-mono">Padat (&gt;80%)</span></span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-eco-success inline-block"></span><span className="text-text-muted font-mono">{t('mgmt.zoneNormal', 'Normal (<50%)')}</span></span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-warning-reserved inline-block"></span><span className="text-text-muted font-mono">{t('mgmt.zoneModerate', 'Sedang (50-80%)')}</span></span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-alert-anomaly inline-block"></span><span className="text-text-muted font-mono">{t('mgmt.zoneCrowded', 'Padat (>80%)')}</span></span>
             </div>
           </div>
           {/* Grid kartu sektor zona parkir */}
@@ -1088,8 +1108,12 @@ export default function DashboardManagementPage() {
                 <div className="flex items-center gap-3">
                   <span className="material-symbols-outlined text-alert-anomaly text-2xl">warning</span>
                   <div>
-                    <h2 className={`text-xl font-bold font-['Space_Grotesk'] ${isLight ? 'text-slate-900' : 'text-white'}`}>10 Log Anomali & Operasional IoT Terakhir</h2>
-                    <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Data riil kronologis langsung dari tabel <code className={isLight ? 'text-sky-600 font-semibold' : 'text-sky-300'}>log_operasional_iot</code> database.</p>
+                    <h2 className={`text-xl font-bold font-['Space_Grotesk'] ${isLight ? 'text-slate-900' : 'text-white'}`}>{t('mgmt.modalAnomalyTitle', '10 Log Anomali & Operasional IoT Terakhir')}</h2>
+                    <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                      {lang === 'en'
+                        ? <>Real chronological data queried directly from <code className={isLight ? 'text-sky-600 font-semibold' : 'text-sky-300'}>log_operasional_iot</code> database table.</>
+                        : <>Data riil kronologis langsung dari tabel <code className={isLight ? 'text-sky-600 font-semibold' : 'text-sky-300'}>log_operasional_iot</code> database.</>}
+                    </p>
                   </div>
                 </div>
                 {/* Tombol silang untuk menutup modal */}
@@ -1119,7 +1143,7 @@ export default function DashboardManagementPage() {
                         : (isLight ? 'bg-slate-200/80 text-slate-700 hover:bg-slate-300' : 'bg-slate-800 text-slate-300 hover:bg-slate-700')
                     }`}
                   >
-                    Semua ({anomaliList.length})
+                    {t('common.all', 'Semua')} ({anomaliList.length})
                   </button>
                   <button 
                     type="button"
@@ -1131,7 +1155,7 @@ export default function DashboardManagementPage() {
                     }`}
                   >
                     <span className="material-symbols-outlined text-[15px]">directions_car</span>
-                    Mobil ({anomaliList.filter(l => getLogVehicleType(l) !== 'MOTOR').length})
+                    {t('dash.car', 'Mobil')} ({anomaliList.filter(l => getLogVehicleType(l) !== 'MOTOR').length})
                   </button>
                   <button 
                     type="button"
@@ -1143,20 +1167,20 @@ export default function DashboardManagementPage() {
                     }`}
                   >
                     <span className="material-symbols-outlined text-[15px]">two_wheeler</span>
-                    Motor ({anomaliList.filter(l => getLogVehicleType(l) === 'MOTOR').length})
+                    {t('dash.motorcycle', 'Motor')} ({anomaliList.filter(l => getLogVehicleType(l) === 'MOTOR').length})
                   </button>
                 </div>
 
                 {/* Kondisi jika data log masih dalam proses pengambilan */}
                 {isLoadingAnomali ? (
                   <div className={`flex items-center justify-center py-12 font-mono animate-pulse ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    Mengambil data log anomali dari server...
+                    {t('mgmt.loadingAnomalies', 'Mengambil data log anomali dari server...')}
                   </div>
                 ) : anomaliList.length === 0 ? (
                   // Tampilan jika tidak ditemukan rekaman log anomali di database
                   <div className="flex flex-col items-center justify-center py-12 text-slate-500 gap-2">
                     <span className="material-symbols-outlined text-4xl">check_circle</span>
-                    <span>Tidak ada catatan anomali di database.</span>
+                    <span>{t('mgmt.noAnomalyDb', 'Tidak ada catatan anomali di database.')}</span>
                   </div>
                 ) : (
                   // Daftar kartu log anomali hasil pemfilteran kategori kendaraan
@@ -1172,8 +1196,8 @@ export default function DashboardManagementPage() {
                       .map((log) => {
                         // Evaluasi status kegawatan insiden log
                         const isCritical = log.tingkatKeparahan === 'CRITICAL' || log.jenisKejadian?.includes('ANOMALI');
-                        // Format stempel waktu kejadian ke format tanggal dan jam lokal Indonesia
-                        const tanggal = log.waktuKejadian ? new Date(log.waktuKejadian).toLocaleString('id-ID', {
+                        // Format stempel waktu kejadian sesuai bahasa aktif
+                        const tanggal = log.waktuKejadian ? new Date(log.waktuKejadian).toLocaleString(lang === 'en' ? 'en-US' : 'id-ID', {
                           day: '2-digit', month: 'short', year: 'numeric',
                           hour: '2-digit', minute: '2-digit', second: '2-digit'
                         }) : '-';
@@ -1209,7 +1233,7 @@ export default function DashboardManagementPage() {
                                     <span className="material-symbols-outlined text-[13px]">
                                       {vehicleType === 'MOTOR' ? 'two_wheeler' : 'directions_car'}
                                     </span>
-                                    {vehicleType === 'MOTOR' ? 'ZONA MOTOR' : 'ZONA MOBIL'}
+                                    {vehicleType === 'MOTOR' ? t('mgmt.zoneMotorBadge', 'ZONA MOTOR') : t('mgmt.zoneCarBadge', 'ZONA MOBIL')}
                                   </span>
                                   {/* Lencana jenis kejadian anomali */}
                                   <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
@@ -1217,12 +1241,12 @@ export default function DashboardManagementPage() {
                                       ? (isLight ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-red-900/40 text-red-300 border border-red-700/40')
                                       : (isLight ? 'bg-slate-200 text-slate-700 border border-slate-300' : 'bg-slate-800 text-slate-300')
                                   }`}>
-                                    {log.jenisKejadian}
+                                    {translateLogEventType(log.jenisKejadian, lang)}
                                   </span>
                                 </div>
                                 {/* Rincian catatan insiden operasional */}
                                 <p className={`text-xs mt-1 leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                                  {log.catatanDetail || 'Tidak ada catatan tambahan.'}
+                                  {translateLogDetail(log.catatanDetail, lang)}
                                 </p>
                               </div>
                             </div>
@@ -1237,7 +1261,7 @@ export default function DashboardManagementPage() {
                                   ? (isLight ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-emerald-900/30 text-emerald-300 border border-emerald-700/40')
                                   : (isLight ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-amber-900/30 text-amber-300 border border-amber-700/40')
                               }`}>
-                                {log.statusResolusi || 'BELUM_DITANGANI'}
+                                {translateResolutionStatus(log.statusResolusi, lang)}
                               </span>
                             </div>
                           </div>
@@ -1257,7 +1281,7 @@ export default function DashboardManagementPage() {
                       : 'bg-slate-800 hover:bg-slate-700 text-white'
                   }`}
                 >
-                  Tutup
+                  {t('common.close', 'Tutup')}
                 </button>
               </div>
 
@@ -1280,10 +1304,10 @@ export default function DashboardManagementPage() {
                   </div>
                   <div>
                     <h2 className={`text-xl font-bold font-['Space_Grotesk'] flex items-center gap-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                      Peta Denah Spasial Node Sensor & Kesalahan Parkir
+                      {t('mgmt.modalSpatialTitle', 'Peta Denah Spasial Node Sensor & Kesalahan Parkir')}
                     </h2>
                     <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                      Visualisasi indikasi slot yang teridentifikasi mengalami anomali atau salah parkir dari 10 log IoT terbaru.
+                      {t('mgmt.modalSpatialSubtitle', 'Visualisasi indikasi slot yang teridentifikasi mengalami anomali atau salah parkir dari 10 log IoT terbaru.')}
                     </p>
                   </div>
                 </div>
@@ -1304,7 +1328,7 @@ export default function DashboardManagementPage() {
                       }`}
                     >
                       <span className="material-symbols-outlined text-[16px]">directions_car</span>
-                      Zona Mobil
+                      {t('mgmt.carZone', 'Zona Mobil')}
                     </button>
                     <button
                       type="button"
@@ -1319,7 +1343,7 @@ export default function DashboardManagementPage() {
                       }`}
                     >
                       <span className="material-symbols-outlined text-[16px]">two_wheeler</span>
-                      Zona Motor
+                      {t('mgmt.motorZone', 'Zona Motor')}
                     </button>
                   </div>
 
@@ -1327,11 +1351,11 @@ export default function DashboardManagementPage() {
                   <div className="hidden lg:flex items-center gap-3 text-xs font-mono">
                     <div className="flex items-center gap-1.5 text-red-500">
                       <div className="w-3 h-3 bg-red-600/30 border border-red-500 rounded-sm animate-pulse"></div>
-                      <span>Anomali Terindikasi</span>
+                      <span>{t('mgmt.nodeAnomalyLegend', 'Anomali Terindikasi')}</span>
                     </div>
                     <div className={`flex items-center gap-1.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                       <div className={`w-3 h-3 border border-dashed rounded-sm ${isLight ? 'border-slate-400' : 'border-slate-600'}`}></div>
-                      <span>Node Normal</span>
+                      <span>{t('mgmt.nodeNormalLegend', 'Node Normal')}</span>
                     </div>
                   </div>
 
@@ -1351,7 +1375,7 @@ export default function DashboardManagementPage() {
                 {/* Kondisi saat peta denah sedang dimuat */}
                 {isLoadingNodeMap ? (
                   <div className={`flex items-center justify-center py-20 font-mono animate-pulse ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    Memuat pemetaan denah node sensor...
+                    {t('mgmt.loadingNodeMap', 'Memuat pemetaan denah node sensor...')}
                   </div>
                 ) : (
                   <>
@@ -1366,7 +1390,11 @@ export default function DashboardManagementPage() {
                         <span className="material-symbols-outlined text-[16px] text-sky-500">
                           {nodeMapCategory === 'MOTOR' ? 'two_wheeler' : 'directions_car'}
                         </span>
-                        <span>BASEMENT LANTAI 1 — {nodeMapCategory === 'MOTOR' ? 'ZONA PARKIR MOTOR (16 SLOT)' : 'ZONA PARKIR MOBIL (16 SLOT)'}</span>
+                        <span>
+                          {lang === 'en'
+                            ? `BASEMENT FLOOR 1 — ${nodeMapCategory === 'MOTOR' ? 'MOTORCYCLE PARKING ZONE (16 SLOTS)' : 'CAR PARKING ZONE (16 SLOTS)'}`
+                            : `BASEMENT LANTAI 1 — ${nodeMapCategory === 'MOTOR' ? 'ZONA PARKIR MOTOR (16 SLOT)' : 'ZONA PARKIR MOBIL (16 SLOT)'}`}
+                        </span>
                       </div>
 
                       {/* Baris 1: 8 Slot Parkir (B1-01 sampai B1-08) */}
@@ -1445,8 +1473,8 @@ export default function DashboardManagementPage() {
                         <div className="flex items-center gap-2">
                           <span className={`material-symbols-outlined ${isLight ? 'text-sky-600' : 'text-sky-400'}`}>info</span>
                           <h3 className={`font-mono text-base font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                            Detail Insiden Node: <span className={isLight ? 'text-sky-600' : 'text-sky-300'}>{(selectedSlotNode || 'Pilih Slot').replace(/^M(\d+)/, 'B$1')}</span>
-                            <span className="text-xs font-normal text-text-muted ml-2">({nodeMapCategory === 'MOTOR' ? 'Zona Motor' : 'Zona Mobil'})</span>
+                            {t('mgmt.nodeDetailTitle', 'Detail Insiden Node')}: <span className={isLight ? 'text-sky-600' : 'text-sky-300'}>{(selectedSlotNode || t('mgmt.selectSlot', 'Pilih Slot')).replace(/^M(\d+)/, 'B$1')}</span>
+                            <span className="text-xs font-normal text-text-muted ml-2">({nodeMapCategory === 'MOTOR' ? t('mgmt.motorZone', 'Zona Motor') : t('mgmt.carZone', 'Zona Mobil')})</span>
                           </h3>
                         </div>
                         {/* Lencana status anomali slot terpilih */}
@@ -1457,8 +1485,8 @@ export default function DashboardManagementPage() {
                               : (isLight ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-emerald-950/50 text-emerald-300 border border-emerald-700/50')
                           }`}>
                             {nodeAnomaliMap[selectedSlotNode] 
-                              ? `${nodeAnomaliMap[selectedSlotNode].length} Insiden Anomali Terdeteksi` 
-                              : 'Status Normal'}
+                              ? `${nodeAnomaliMap[selectedSlotNode].length} ${t('mgmt.incidentDetected', 'Insiden Anomali Terdeteksi')}` 
+                              : t('mgmt.statusNormal', 'Status Normal')}
                           </span>
                         )}
                       </div>
@@ -1469,18 +1497,18 @@ export default function DashboardManagementPage() {
                           {nodeAnomaliMap[selectedSlotNode].map((item, idx) => (
                             <div key={idx} className={`border rounded-lg p-3.5 flex flex-col gap-1 ${isLight ? 'bg-red-50/80 border-red-200' : 'bg-red-950/20 border-red-800/40'}`}>
                               <div className="flex items-center justify-between text-xs font-mono">
-                                <span className={`font-bold ${isLight ? 'text-red-600' : 'text-red-400'}`}>{item.jenisKejadian}</span>
+                                <span className={`font-bold ${isLight ? 'text-red-600' : 'text-red-400'}`}>{translateLogEventType(item.jenisKejadian, lang)}</span>
                                 <span className={isLight ? 'text-slate-500' : 'text-slate-400'}>
-                                  {item.waktuKejadian ? new Date(item.waktuKejadian).toLocaleString('id-ID') : '-'}
+                                  {item.waktuKejadian ? new Date(item.waktuKejadian).toLocaleString(lang === 'en' ? 'en-US' : 'id-ID') : '-'}
                                 </span>
                               </div>
                               <p className={`text-xs mt-1 leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                                {item.catatanDetail}
+                                {translateLogDetail(item.catatanDetail, lang)}
                               </p>
                               <div className={`mt-2 flex items-center gap-2 text-[11px] font-mono ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                                <span>Resolusi: <strong className={isLight ? 'text-amber-700' : 'text-amber-300'}>{item.statusResolusi || 'BELUM_DITANGANI'}</strong></span>
+                                <span>{t('mgmt.resolutionLabel', 'Resolusi')}: <strong className={isLight ? 'text-amber-700' : 'text-amber-300'}>{translateResolutionStatus(item.statusResolusi, lang)}</strong></span>
                                 <span>•</span>
-                                <span>Keparahan: <strong className={isLight ? 'text-red-600' : 'text-red-400'}>{item.tingkatKeparahan}</strong></span>
+                                <span>{t('mgmt.severityLabel', 'Keparahan')}: <strong className={isLight ? 'text-red-600' : 'text-red-400'}>{item.tingkatKeparahan}</strong></span>
                               </div>
                             </div>
                           ))}
@@ -1489,7 +1517,7 @@ export default function DashboardManagementPage() {
                         // Tampilan status normal jika tidak terdapat catatan anomali pada slot
                         <div className={`text-xs py-4 text-center font-mono flex items-center justify-center gap-2 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                           <span className={`material-symbols-outlined text-lg ${isLight ? 'text-emerald-600' : 'text-emerald-400'}`}>verified</span>
-                          <span>Slot {(selectedSlotNode || '').replace(/^M(\d+)/, 'B$1')} ({nodeMapCategory === 'MOTOR' ? 'Zona Motor' : 'Zona Mobil'}) tidak memiliki catatan kesalahan atau anomali pada 10 log IoT terbaru.</span>
+                          <span>Slot {(selectedSlotNode || '').replace(/^M(\d+)/, 'B$1')} ({nodeMapCategory === 'MOTOR' ? t('mgmt.motorZone', 'Zona Motor') : t('mgmt.carZone', 'Zona Mobil')}) {t('mgmt.noNodeIncidents', 'tidak memiliki catatan kesalahan atau anomali pada 10 log IoT terbaru.')}</span>
                         </div>
                       )}
                     </div>
@@ -1502,7 +1530,7 @@ export default function DashboardManagementPage() {
               {/* Footer Modal 2 dengan petunjuk klik dan tombol tutup */}
               <div className={`p-4 border-t flex justify-between items-center ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#08101E] border-slate-700/60'}`}>
                 <span className={`text-xs font-mono ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>
-                  *Klik pada kotak slot mana saja di peta untuk melihat riwayat insiden node terkait.
+                  {t('mgmt.nodeMapFooterHint', '*Klik pada kotak slot mana saja di peta untuk melihat riwayat insiden node terkait.')}
                 </span>
                 <button
                   onClick={() => setIsNodeMapModalOpen(false)}
@@ -1512,7 +1540,7 @@ export default function DashboardManagementPage() {
                       : 'bg-slate-800 hover:bg-slate-700 text-white'
                   }`}
                 >
-                  Tutup
+                  {t('common.close', 'Tutup')}
                 </button>
               </div>
 
