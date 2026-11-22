@@ -28,7 +28,7 @@ export default function NotificationPopover({
   // Menentukan status boolean apakah pengguna bertindak sebagai Manajer
   const isManager = userData.role === 'ADMIN' || userData.role === 'Manajemen RS' || isManagementRoute;
 
-  // Inisialisasi state activeFilter bertipe string dengan nilai awal 'ALL' ('ALL' | 'ENTRY' | 'REPORT' | 'ANOMALY')
+  // Inisialisasi state activeFilter bertipe string dengan nilai awal 'ALL' ('ALL' | 'ENTRY' | 'ANOMALY')
   const [activeFilter, setActiveFilter] = useState('ALL');
 
   // Jika popover tidak dalam keadaan terbuka, jangan render elemen antarmuka (return null)
@@ -36,13 +36,13 @@ export default function NotificationPopover({
 
   // Memfilter daftar notifikasi berdasarkan tab filter yang sedang aktif dan peran pengguna
   const filteredNotifications = notifications.filter((item) => {
-    // Jika filter ENTRY aktif dan bukan mode manajer, hanya sertakan notifikasi kedatangan kendaraan
-    if (activeFilter === 'ENTRY' && !isManager) return item.type === 'ENTRY';
-    // Jika filter REPORT aktif dan berada di mode manajer, hanya sertakan notifikasi riwayat ekspor laporan
-    if (activeFilter === 'REPORT' && isManager) return item.type === 'REPORT';
-    // Jika filter ANOMALY aktif, hanya sertakan notifikasi bertipe 'ANOMALY'
+    // Pada mode Manajer, langsung tampilkan seluruh riwayat dan notifikasi ekspor laporan
+    if (isManager) return true;
+    // Jika filter ENTRY aktif untuk petugas lapangan, hanya sertakan notifikasi kedatangan kendaraan
+    if (activeFilter === 'ENTRY') return item.type === 'ENTRY';
+    // Jika filter ANOMALY aktif untuk petugas lapangan, hanya sertakan notifikasi bertipe 'ANOMALY'
     if (activeFilter === 'ANOMALY') return item.type === 'ANOMALY';
-    // Jika filter ALL atau filter tidak berlaku untuk peran aktif, tampilkan seluruh item
+    // Jika filter ALL, tampilkan seluruh item
     return true;
   });
 
@@ -152,11 +152,11 @@ export default function NotificationPopover({
 
       {/* Baris tombol filter kategori notifikasi adaptif sesuai peran pengguna */}
       <div className="px-3 pt-2.5 pb-2 border-b border-[#242f3b] flex gap-1.5 notification-popover-filter bg-[#0f1419]/50">
-        {/* Filter semua notifikasi */}
+        {/* Filter semua notifikasi (satu-satunya tab ringkasan pada mode Manajer) */}
         <button
           onClick={() => setActiveFilter('ALL')}
           className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition-colors cursor-pointer ${
-            activeFilter === 'ALL'
+            isManager || activeFilter === 'ALL'
               ? 'bg-[#1e2936] text-[#7ad0ff] border border-[#3b4b5d] notification-filter-active'
               : 'text-[#8fa0b0] hover:text-white hover:bg-[#1a232d] notification-filter-inactive'
           }`}
@@ -164,45 +164,36 @@ export default function NotificationPopover({
           {t('notification.all', 'Semua')} ({notifications.length})
         </button>
 
-        {/* Jika Manajer, tampilkan filter Ekspor Laporan; jika Petugas Lapangan, tampilkan filter Kendaraan Masuk */}
-        {isManager ? (
-          <button
-            onClick={() => setActiveFilter('REPORT')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition-colors cursor-pointer flex items-center gap-1 ${
-              activeFilter === 'REPORT'
-                ? 'bg-[#102438] text-[#7ad0ff] border border-[#1b4363] notification-filter-active'
-                : 'text-[#8fa0b0] hover:text-white hover:bg-[#1a232d] notification-filter-inactive'
-            }`}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></span>
-            {t('notification.exportReport', 'Ekspor Laporan')}
-          </button>
-        ) : (
-          <button
-            onClick={() => setActiveFilter('ENTRY')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition-colors cursor-pointer flex items-center gap-1 ${
-              activeFilter === 'ENTRY'
-                ? 'bg-[#102438] text-[#7ad0ff] border border-[#1b4363] notification-filter-active'
-                : 'text-[#8fa0b0] hover:text-white hover:bg-[#1a232d] notification-filter-inactive'
-            }`}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-[#00bfff]"></span>
-            {t('notification.entry', 'Kendaraan Masuk')}
-          </button>
-        )}
+        {/* Tab filter khusus Petugas Lapangan (Kendaraan Masuk dan Anomali) tidak ditampilkan pada Dashboard Manajer */}
+        {!isManager && (
+          <>
+            {/* Filter notifikasi kedatangan kendaraan masuk */}
+            <button
+              onClick={() => setActiveFilter('ENTRY')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition-colors cursor-pointer flex items-center gap-1 ${
+                activeFilter === 'ENTRY'
+                  ? 'bg-[#102438] text-[#7ad0ff] border border-[#1b4363] notification-filter-active'
+                  : 'text-[#8fa0b0] hover:text-white hover:bg-[#1a232d] notification-filter-inactive'
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00bfff]"></span>
+              {t('notification.entry', 'Kendaraan Masuk')}
+            </button>
 
-        {/* Filter notifikasi insiden anomali */}
-        <button
-          onClick={() => setActiveFilter('ANOMALY')}
-          className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition-colors cursor-pointer flex items-center gap-1 ${
-            activeFilter === 'ANOMALY'
-              ? 'bg-[#2b1619] text-[#f87171] border border-[#52252a] notification-filter-active-anomaly'
-              : 'text-[#8fa0b0] hover:text-white hover:bg-[#1a232d] notification-filter-inactive'
-          }`}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-[#ef4444]"></span>
-          {t('notification.anomaly', 'Anomali')}
-        </button>
+            {/* Filter notifikasi insiden anomali */}
+            <button
+              onClick={() => setActiveFilter('ANOMALY')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition-colors cursor-pointer flex items-center gap-1 ${
+                activeFilter === 'ANOMALY'
+                  ? 'bg-[#2b1619] text-[#f87171] border border-[#52252a] notification-filter-active-anomaly'
+                  : 'text-[#8fa0b0] hover:text-white hover:bg-[#1a232d] notification-filter-inactive'
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-[#ef4444]"></span>
+              {t('notification.anomaly', 'Anomali')}
+            </button>
+          </>
+        )}
       </div>
 
       {/* Daftar gulir item notifikasi */}

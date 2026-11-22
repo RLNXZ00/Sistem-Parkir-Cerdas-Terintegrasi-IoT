@@ -333,27 +333,19 @@ export function NotificationProvider({ children }) {
     };
   }, []);
 
-  // Memadukan daftar notifikasi khusus Manajer: riwayat ekspor laporan sebagai fokus utama ditambah peringatan anomali kritis
+  // Menyusun daftar notifikasi khusus Manajer yang murni berisi riwayat dan notifikasi ekspor laporan (PDF / Excel) tanpa item anomali lapangan
   const managerNotifications = useMemo(() => {
-    // Menyaring hanya item bertipe ANOMALY dan mengarahkan tautannya ke Dashboard Manajemen sesuai cakupan peran Manajer
-    const anomalyAlerts = notifications
-      .filter((item) => item.type === 'ANOMALY')
-      .map((item) => ({
-        ...item,
-        link: '/dashboard-management',
-      }));
-    // Jika telah terdapat riwayat ekspor dari database, tampilkan di urutan teratas diikuti peringatan anomali
+    // Jika telah terdapat riwayat ekspor dari database, tampilkan hingga 15 catatan ekspor terbaru
     if (reportNotifications.length > 0) {
-      return [...reportNotifications, ...anomalyAlerts].slice(0, 15);
+      return reportNotifications.slice(0, 15);
     }
-    // Jika riwayat ekspor backend masih kosong, tampilkan pesan pengantar manajer yang disinkronkan status bacanya bersama anomali aktif
+    // Jika riwayat ekspor backend masih kosong, tampilkan pesan pengantar manajer yang disinkronkan status bacanya
     const currentReadIds = readIds;
-    const defaultWelcome = DEFAULT_MANAGER_NOTIFICATIONS.map((item) => ({
+    return DEFAULT_MANAGER_NOTIFICATIONS.map((item) => ({
       ...item,
       isRead: item.isRead || currentReadIds.has(item.id),
     }));
-    return [...defaultWelcome, ...anomalyAlerts].slice(0, 15);
-  }, [reportNotifications, notifications, readIds]);
+  }, [reportNotifications, readIds]);
 
   // Deklarasi fungsi memoize markAllRead untuk menandai seluruh notifikasi telah dibaca berdasarkan cakupan peran aktif
   const markAllRead = useCallback((scope = 'all') => {
