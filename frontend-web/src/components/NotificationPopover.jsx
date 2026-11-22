@@ -346,18 +346,24 @@ export default function NotificationPopover({
       </div>
 
       {/* Bagian footer popover berisi tautan cepat adaptif berbasis peran pengguna (Role-Based Access) */}
-      <div className="px-4 py-2.5 bg-[#0f1419] border-t border-[#242f3b] flex items-center justify-between text-xs font-mono notification-popover-footer">
-        {/* Tautan navigasi ke halaman Log Anomali */}
-        <button
-          onClick={() => {
-            navigate('/anomaly-logs');
-            onClose();
-          }}
-          className="text-[#f87171] hover:underline flex items-center gap-1 cursor-pointer"
-        >
-          <span>{t('notification.anomalyLogs', 'Log Anomali')}</span>
-          <span className="material-symbols-outlined text-[13px]">arrow_forward</span>
-        </button>
+      <div
+        className={`px-4 py-2.5 bg-[#0f1419] border-t border-[#242f3b] flex items-center text-xs font-mono notification-popover-footer ${
+          isManager ? 'justify-end' : 'justify-between'
+        }`}
+      >
+        {/* Tautan navigasi Log Anomali dan Gate Live OCR hanya ditampilkan bagi Petugas Lapangan */}
+        {!isManager && (
+          <button
+            onClick={() => {
+              navigate('/anomaly-logs');
+              onClose();
+            }}
+            className="text-[#f87171] hover:underline flex items-center gap-1 cursor-pointer"
+          >
+            <span>{t('notification.anomalyLogs', 'Log Anomali')}</span>
+            <span className="material-symbols-outlined text-[13px]">arrow_forward</span>
+          </button>
+        )}
 
         {/* Tautan navigasi adaptif: Laporan Analitik untuk Manajer, atau Gate Live OCR untuk Petugas Lapangan */}
         {isManager ? (
