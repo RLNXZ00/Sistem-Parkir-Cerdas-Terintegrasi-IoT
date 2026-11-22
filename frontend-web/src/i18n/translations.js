@@ -7,7 +7,7 @@ export const translations = {
     'nav.systemTitle': 'SPCT IoT', // Judul merek sistem
     'nav.systemSubtitle': 'Sistem Parkir Cerdas', // Sub-judul sistem
     'nav.fieldDashboard': 'Live Dashboard', // Label menu dashboard lapangan
-    'nav.managementDashboard': 'Management Oversight', // Label menu dashboard manajemen
+    'nav.managementDashboard': 'Dashboard Manajemen', // Label menu dashboard manajemen
     'nav.gateLive': 'Operasional Gerbang', // Label menu kamera gerbang
     'nav.anomalyLogs': 'Log Anomali', // Label menu log insiden anomali
     'nav.reports': 'Laporan Analitik', // Label menu laporan
@@ -26,6 +26,7 @@ export const translations = {
     'topbar.anomalyLogs': 'Log Anomali & Insiden', // Judul halaman log anomali
     'topbar.reports': 'Laporan & Dokumen', // Judul halaman laporan
     'topbar.settings': 'Pengaturan Sistem', // Judul halaman pengaturan
+    'topbar.systemGuide': 'Pusat Bantuan & SOP', // Judul halaman pusat bantuan & SOP
     'topbar.live': 'LIVE', // Indikator siaran langsung
     'topbar.systemHealthy': 'Sistem Normal', // Indikator status kesehatan sistem
     'topbar.notifTooltip': 'Notifikasi Sistem', // Tooltip tombol lonceng notifikasi
@@ -44,6 +45,11 @@ export const translations = {
     'notification.anomalyLogs': 'Log Anomali', // Pintasan navigasi footer ke halaman log anomali
     'notification.gateLive': 'Gate Live OCR', // Pintasan navigasi footer ke monitoring kamera gerbang
     'notification.reports': 'Laporan Analitik', // Pintasan navigasi footer ke laporan analitik untuk manajer
+    'notification.exportReport': 'Ekspor Laporan', // Tab filter riwayat ekspor dokumen laporan untuk manajer
+    'notification.exportPdf': 'Ekspor PDF', // Tab filter khusus unduhan dokumen PDF
+    'notification.exportExcel': 'Ekspor Excel', // Tab filter khusus unduhan dokumen spreadsheet Excel
+    'notification.managerTitle': 'Riwayat & Notifikasi Manajer', // Judul panel notifikasi khusus peran manajer
+    'notification.emptyManager': 'Belum ada riwayat ekspor laporan atau peringatan audit', // Pesan kosong notifikasi manajer
     'notification.unreadTooltip': 'Belum dibaca', // Tooltip titik penanda notifikasi belum dibaca
 
     // Frasa halaman Dashboard Petugas Lapangan (DashboardPage)
@@ -275,6 +281,23 @@ export const translations = {
     'settings.themeLight': 'Tema Cerah (Light Mode)', // Pilihan tema cerah
     'settings.saveSuccess': 'Pengaturan berhasil disimpan!', // Notifikasi sukses simpan preferensi
 
+    // Frasa halaman Panduan Sistem & SOP (PanduanPage)
+    'guide.title': 'Panduan Pengoperasian Sistem (SOP)', // Judul utama halaman panduan
+    'guide.subtitle': 'Dokumentasi resmi alur operasional Sistem Parkir Cerdas Terintegrasi IoT berdasarkan Narasi Use Case PK-UC001 s.d. PK-UC010.', // Subjudul dokumentasi SOP
+    'guide.docStdLabel': 'Standar Dokumen', // Label standar dokumen
+    'guide.docStdValue': 'RPL Tahap V (BluePrint)', // Nilai versi standar dokumen
+    'guide.catAll': 'Semua Use Case (10)', // Tab filter seluruh use case
+    'guide.catEntry': 'Gerbang Masuk', // Tab filter gerbang masuk
+    'guide.catExit': 'Gerbang Keluar', // Tab filter gerbang keluar
+    'guide.catOps': 'Operasional Lapangan & IoT', // Tab filter operasional IoT
+    'guide.catMgmt': 'Manajemen & Analitik', // Tab filter manajemen & analitik
+    'guide.searchPlaceholder': 'Cari use case atau kata kunci...', // Placeholder input pencarian SOP
+    'guide.actorsLabel': 'Aktor yang Terlibat:', // Label aktor terlibat
+    'guide.stepsLabel': 'Alur Langkah Standar (Typical Course of Events):', // Label langkah standar
+    'guide.troubleshootingLabel': 'Solusi Kendala & Alur Alternatif:', // Label troubleshooting
+    'guide.businessRulesLabel': 'Aturan Bisnis & Kepatuhan:', // Label aturan bisnis
+    'guide.emptySearch': 'Tidak ada use case yang cocok dengan kata kunci "{query}".', // Pesan hasil pencarian kosong
+
     // Frasa Umum Global (Common)
     'common.close': 'Tutup', // Tombol penutup dialog modal
     'common.save': 'Simpan Perubahan', // Tombol penyimpanan perubahan
@@ -294,7 +317,7 @@ export const translations = {
     'nav.systemTitle': 'SPCT IoT', // System brand title
     'nav.systemSubtitle': 'Smart Parking System', // System brand subtitle
     'nav.fieldDashboard': 'Live Dashboard', // Field dashboard navigation label
-    'nav.managementDashboard': 'Management Oversight', // Executive management navigation label
+    'nav.managementDashboard': 'Management Dashboard', // Executive management navigation label
     'nav.gateLive': 'Gate Operations', // Gate operations navigation label
     'nav.anomalyLogs': 'Anomaly Logs', // Anomaly log navigation label
     'nav.reports': 'Analytics Reports', // Reports navigation label
@@ -313,6 +336,7 @@ export const translations = {
     'topbar.anomalyLogs': 'Anomaly & Incident Logs', // Anomaly logs title
     'topbar.reports': 'Reports & Documents', // Reports title
     'topbar.settings': 'System Settings', // System settings title
+    'topbar.systemGuide': 'Help Center & SOP', // Help center & SOP title
     'topbar.live': 'LIVE', // Live tag indicator
     'topbar.systemHealthy': 'System Healthy', // System healthy status indicator
     'topbar.notifTooltip': 'System Notifications', // Notification bell button tooltip
@@ -331,6 +355,11 @@ export const translations = {
     'notification.anomalyLogs': 'Anomaly Logs', // Shortcut footer navigation to anomaly logs
     'notification.gateLive': 'Gate Live OCR', // Shortcut footer navigation to live gate camera feed
     'notification.reports': 'Analytics Reports', // Shortcut footer navigation to analytics reports for manager
+    'notification.exportReport': 'Report Exports', // Filter tab for report document export history for manager
+    'notification.exportPdf': 'PDF Exports', // Filter tab for PDF document exports
+    'notification.exportExcel': 'Excel Exports', // Filter tab for Excel spreadsheet exports
+    'notification.managerTitle': 'Manager History & Alerts', // Panel title specifically for manager role
+    'notification.emptyManager': 'No report export history or audit alerts yet', // Empty notification state for manager
     'notification.unreadTooltip': 'Unread', // Unread indicator tooltip
 
     // Field Dashboard (DashboardPage) labels
@@ -561,6 +590,23 @@ export const translations = {
     'settings.themeDark': 'Dark Theme (Dark Mode)', // Dark mode selection
     'settings.themeLight': 'Light Theme (Light Mode)', // Light mode selection
     'settings.saveSuccess': 'Settings saved successfully!', // Settings saved notification
+
+    // System Guide & SOP (PanduanPage) labels
+    'guide.title': 'System Operating Guide (SOP)', // Main guide page title
+    'guide.subtitle': 'Official operational workflow documentation for the IoT Integrated Smart Parking System based on Use Cases PK-UC001 through PK-UC010.', // Guide subtitle
+    'guide.docStdLabel': 'Document Standard', // Document standard badge label
+    'guide.docStdValue': 'SDLC Phase V (BluePrint)', // Document standard badge value
+    'guide.catAll': 'All Use Cases (10)', // All use cases filter tab
+    'guide.catEntry': 'Entry Gate', // Entry gate filter tab
+    'guide.catExit': 'Exit Gate', // Exit gate filter tab
+    'guide.catOps': 'Field Ops & IoT', // Field operations filter tab
+    'guide.catMgmt': 'Management & Analytics', // Management filter tab
+    'guide.searchPlaceholder': 'Search use case or keyword...', // Search placeholder
+    'guide.actorsLabel': 'Actors Involved:', // Actors label
+    'guide.stepsLabel': 'Standard Workflow Steps (Typical Course of Events):', // Steps section header
+    'guide.troubleshootingLabel': 'Troubleshooting & Alternative Flows:', // Troubleshooting header
+    'guide.businessRulesLabel': 'Business Rules & Compliance:', // Business rules header
+    'guide.emptySearch': 'No use cases match the keyword "{query}".', // Empty search state
 
     // Global Common labels
     'common.close': 'Close', // Close dialog button

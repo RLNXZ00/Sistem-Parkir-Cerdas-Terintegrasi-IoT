@@ -9,7 +9,7 @@ export const STORAGE_KEY_READ_NOTIFS = 'spct_read_notification_ids';
 // Konstanta URL dasar endpoint API backend Spring Boot SPCT
 const API_BASE = 'http://localhost:8081';
 
-// Deklarasi array objek DEFAULT_NOTIFICATIONS sebagai data awal notifikasi sistem parkir
+// Deklarasi array objek DEFAULT_NOTIFICATIONS sebagai data awal notifikasi operasional petugas lapangan
 export const DEFAULT_NOTIFICATIONS = [
   {
     id: 'notif-anomali-live', // Identitas unik notifikasi
@@ -57,6 +57,25 @@ export const DEFAULT_NOTIFICATIONS = [
   },
 ];
 
+// Deklarasi array objek DEFAULT_MANAGER_NOTIFICATIONS sebagai notifikasi sambutan manajer bila riwayat ekspor database masih kosong
+export const DEFAULT_MANAGER_NOTIFICATIONS = [
+  {
+    id: 'mgr-info-export-ready', // Identitas unik notifikasi bawaan manajer
+    type: 'REPORT', // Kategori notifikasi laporan manajerial
+    format: 'PDF', // Penanda format berkas dukungan
+    title: 'Ekspor Laporan Analitik Siap Digunakan', // Judul pengantar fitur ekspor laporan
+    description: 'Riwayat dan notifikasi akan otomatis tercatat di sini setiap kali Anda mengekspor file PDF atau Excel di menu Laporan.', // Keterangan penggunaan
+    time: 'Hari ini', // Waktu relatif notifikasi
+    isRead: false, // Status belum dibaca secara bawaan
+    fileBadge: 'PDF / XLSX', // Lencana format berkas
+    severity: 'INFO', // Tingkat keparahan informasi
+    link: '/reports', // Tautan langsung menuju halaman Laporan Analitik
+    i18nMeta: {
+      kind: 'MANAGER_WELCOME', // Penanda tipe metadata terjemahan sambutan manajer
+    },
+  },
+];
+
 // Deklarasi fungsi pembantu getSavedReadIds untuk membaca himpunan (Set) ID notifikasi yang tersimpan di localStorage
 const getSavedReadIds = () => {
   try {
@@ -88,11 +107,23 @@ const saveReadIds = (readSet) => {
   }
 };
 
-// Deklarasi fungsi komponen publik NotificationProvider untuk menyediakan state notifikasi real-time
+// Fungsi pembantu formatReportTypeIndo untuk memformat label kategori laporan dalam Bahasa Indonesia
+const formatReportTypeIndo = (jenis) => {
+  // Normalisasi teks jenis laporan ke huruf kecil
+  const lower = String(jenis || '').toLowerCase();
+  // Kembalikan padanan kategori laporan resmi
+  if (lower.includes('finansial')) return 'Finansial';
+  if (lower.includes('operasional')) return 'Operasional';
+  if (lower.includes('lingkungan')) return 'Lingkungan (Eco)';
+  if (lower.includes('komprehensif')) return 'Komprehensif';
+  return jenis || 'Analitik';
+};
+
+// Deklarasi fungsi komponen publik NotificationProvider untuk menyediakan state notifikasi real-time lintas peran
 export function NotificationProvider({ children }) {
   // Inisialisasi state readIds dengan himpunan ID yang telah dibaca dari penyimpanan lokal
   const [readIds, setReadIds] = useState(getSavedReadIds);
-  // Inisialisasi state notifications dengan data default yang disinkronkan dengan status baca awal
+  // Inisialisasi state notifications (operasional petugas) dengan data default yang disinkronkan status bacanya
   const [notifications, setNotifications] = useState(() => {
     // Membaca himpunan ID terbaca
     const initialRead = getSavedReadIds();
@@ -102,6 +133,8 @@ export function NotificationProvider({ children }) {
       isRead: item.isRead || initialRead.has(item.id),
     }));
   });
+  // Inisialisasi state reportNotifications untuk menyimpan riwayat dan notifikasi ekspor laporan manajer dari backend
+  const [reportNotifications, setReportNotifications] = useState([]);
 
   // Deklarasi fungsi asinkron fetchNotifications dengan useCallback untuk polling log IoT dari server backend
   const fetchNotifications = useCallback(async () => {
@@ -189,15 +222,82 @@ export function NotificationProvider({ children }) {
     }
   }, []);
 
-  // Hook useEffect untuk menjalankan polling notifikasi backend setiap 10 detik (10000 ms)
+  // Deklarasi fungsi asinkron fetchManagerReportAudit untuk mengambil riwayat ekspor PDF/Excel dari tabel log_audit_laporan
+  const fetchManagerReportAudit = useCallback(async () => {
+    try {
+      // Mengirimkan permintaan HTTP GET ke endpoint audit unduhan laporan backend tanpa cache
+      const res = await fetch(`${API_BASE}/api/laporan/audit`, { cache: 'no-store' });
+      // Hentikan eksekusi apabila respons server tidak sukses
+      if (!res.ok) return;
+      // Mengurai respons JSON menjadi array rekaman audit
+      const auditList = await res.json();
+
+      // Memastikan data berupa array
+      if (Array.isArray(auditList)) {
+        // Mengambil himpunan ID notifikasi terbaca terkini dari localStorage
+        const currentReadIds = getSavedReadIds();
+
+        // Memetakan hingga 15 rekaman audit ekspor laporan menjadi item notifikasi manajer
+        const mappedReports = auditList.slice(0, 15).map((log) => {
+          // Menstandarkan label format berkas ke huruf kapital ('PDF' atau 'XLSX')
+          const formatBerkas = String(log.formatBerkas || 'PDF').toUpperCase();
+          // Membentuk ID unik notifikasi berdasarkan ID rekaman audit database
+          const id = `report-audit-${log.idAudit}`;
+          // Menentukan apakah notifikasi ekspor laporan ini telah ditandai dibaca oleh manajer
+          const isAlreadyRead = currentReadIds.has(id);
+          // Menghitung ukuran berkas dalam satuan Kilobyte (KB)
+          const ukuranKB = log.ukuranByte ? (log.ukuranByte / 1024).toFixed(1) : '0.0';
+          // Memformat stempel waktu unduhan menjadi jam dan menit setempat
+          const waktu = log.waktuUnduh
+            ? new Date(log.waktuUnduh).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+            : 'Hari ini';
+          // Memformat kategori jenis laporan ke Bahasa Indonesia yang ramah
+          const jenisLabel = formatReportTypeIndo(log.jenisLaporan);
+
+          // Mengembalikan struktur objek notifikasi ekspor laporan yang siap dirender dan diterjemahkan
+          return {
+            id,
+            type: 'REPORT',
+            format: formatBerkas,
+            title: `Ekspor ${formatBerkas}: Laporan ${jenisLabel}`,
+            description: `Berkas ${log.namaBerkas || 'Dokumen Laporan'} (${ukuranKB} KB) telah diekspor oleh ${log.pengguna || 'Manajemen RS'}.`,
+            time: waktu,
+            isRead: isAlreadyRead,
+            fileBadge: formatBerkas,
+            severity: formatBerkas === 'PDF' ? 'INFO' : 'SUCCESS',
+            link: '/reports',
+            i18nMeta: {
+              kind: 'REPORT_EXPORT',
+              formatBerkas,
+              jenisLaporan: log.jenisLaporan,
+              namaBerkas: log.namaBerkas || 'Report Document',
+              ukuranKB,
+              pengguna: log.pengguna || 'Manajemen RS',
+            },
+          };
+        });
+
+        // Menyimpan daftar notifikasi riwayat ekspor laporan ke state reportNotifications
+        setReportNotifications(mappedReports);
+      }
+    } catch {
+      // Abaikan kesalahan secara tenang apabila layanan backend sedang offline
+    }
+  }, []);
+
+  // Hook useEffect untuk menjalankan polling notifikasi operasional dan audit laporan setiap 10 detik (10000 ms)
   useEffect(() => {
-    // Memanggil pembaruan data notifikasi saat pertama kali komponen dimuat
+    // Memanggil pembaruan data notifikasi lapangan dan laporan manajer saat pertama kali dimuat
     fetchNotifications();
-    // Menyetel interval waktu 10 detik untuk polling berkelanjutan
-    const interval = setInterval(fetchNotifications, 10000);
-    // Membersihkan interval timer saat unmount
+    fetchManagerReportAudit();
+    // Menyetel interval waktu 10 detik untuk polling berkelanjutan kedua sumber data
+    const interval = setInterval(() => {
+      fetchNotifications();
+      fetchManagerReportAudit();
+    }, 10000);
+    // Membersihkan interval timer saat komponen NotificationProvider dilepas
     return () => clearInterval(interval);
-  }, [fetchNotifications]);
+  }, [fetchNotifications, fetchManagerReportAudit]);
 
   // Hook useEffect untuk menyelaraskan status baca notifikasi dari localStorage dan event lintas tab
   useEffect(() => {
@@ -207,8 +307,15 @@ export function NotificationProvider({ children }) {
       const latestRead = getSavedReadIds();
       // Memperbarui state readIds
       setReadIds(latestRead);
-      // Memperbarui properti isRead pada array notifikasi aktif
+      // Memperbarui properti isRead pada array notifikasi lapangan
       setNotifications((prev) =>
+        prev.map((item) => ({
+          ...item,
+          isRead: item.isRead || latestRead.has(item.id),
+        }))
+      );
+      // Memperbarui properti isRead pada array notifikasi ekspor laporan manajer
+      setReportNotifications((prev) =>
         prev.map((item) => ({
           ...item,
           isRead: item.isRead || latestRead.has(item.id),
@@ -226,44 +333,86 @@ export function NotificationProvider({ children }) {
     };
   }, []);
 
-  // Deklarasi fungsi memoize markAllRead untuk menandai seluruh notifikasi telah dibaca
-  const markAllRead = useCallback(() => {
-    setNotifications((prev) => {
-      // Membuat himpunan baru dari ID yang tersimpan
-      const newReadIds = new Set(getSavedReadIds());
-      // Memasukkan seluruh ID notifikasi yang ada ke dalam himpunan
-      prev.forEach((item) => newReadIds.add(item.id));
-      // Menyimpan pembaruan ke localStorage
-      saveReadIds(newReadIds);
-      // Memperbarui state readIds
-      setReadIds(newReadIds);
-      // Mengembalikan array notifikasi dengan status isRead bernilai true
-      return prev.map((item) => ({ ...item, isRead: true }));
-    });
-  }, []);
+  // Memadukan daftar notifikasi khusus Manajer: riwayat ekspor laporan sebagai fokus utama ditambah peringatan anomali kritis
+  const managerNotifications = useMemo(() => {
+    // Menyaring hanya item bertipe ANOMALY dari log sistem untuk pengawasan manajerial (mengabaikan log rutin keluar-masuk gerbang)
+    const anomalyAlerts = notifications.filter((item) => item.type === 'ANOMALY');
+    // Jika telah terdapat riwayat ekspor dari database, tampilkan di urutan teratas diikuti peringatan anomali
+    if (reportNotifications.length > 0) {
+      return [...reportNotifications, ...anomalyAlerts].slice(0, 15);
+    }
+    // Jika riwayat ekspor backend masih kosong, tampilkan pesan pengantar manajer yang disinkronkan status bacanya bersama anomali aktif
+    const currentReadIds = readIds;
+    const defaultWelcome = DEFAULT_MANAGER_NOTIFICATIONS.map((item) => ({
+      ...item,
+      isRead: item.isRead || currentReadIds.has(item.id),
+    }));
+    return [...defaultWelcome, ...anomalyAlerts].slice(0, 15);
+  }, [reportNotifications, notifications, readIds]);
+
+  // Deklarasi fungsi memoize markAllRead untuk menandai seluruh notifikasi telah dibaca berdasarkan cakupan peran aktif
+  const markAllRead = useCallback((scope = 'all') => {
+    // Membaca himpunan ID terbaca terkini dari localStorage
+    const newReadIds = new Set(getSavedReadIds());
+
+    // Menambahkan ID sesuai cakupan peran ('manager', 'operator', atau 'all')
+    if (scope === 'manager') {
+      managerNotifications.forEach((item) => newReadIds.add(item.id));
+    } else if (scope === 'operator') {
+      notifications.forEach((item) => newReadIds.add(item.id));
+    } else {
+      notifications.forEach((item) => newReadIds.add(item.id));
+      managerNotifications.forEach((item) => newReadIds.add(item.id));
+    }
+
+    // Menyimpan pembaruan himpunan ID terbaca ke localStorage
+    saveReadIds(newReadIds);
+    // Memperbarui state readIds
+    setReadIds(newReadIds);
+
+    // Memperbarui status isRead pada daftar notifikasi petugas
+    setNotifications((prev) =>
+      prev.map((item) => (newReadIds.has(item.id) ? { ...item, isRead: true } : item))
+    );
+    // Memperbarui status isRead pada daftar notifikasi ekspor laporan manajer
+    setReportNotifications((prev) =>
+      prev.map((item) => (newReadIds.has(item.id) ? { ...item, isRead: true } : item))
+    );
+  }, [notifications, managerNotifications]);
 
   // Deklarasi fungsi memoize markAsRead untuk menandai satu item notifikasi spesifik telah dibaca
   const markAsRead = useCallback((id) => {
-    // Validasi parameter ID
+    // Validasi parameter ID agar tidak kosong
     if (!id) return;
-    setNotifications((prev) => {
-      // Membuat himpunan ID baru dan menambahkan ID target
-      const newReadIds = new Set(getSavedReadIds());
-      newReadIds.add(id);
-      // Menyimpan perubahan ke localStorage
-      saveReadIds(newReadIds);
-      // Memperbarui state readIds
-      setReadIds(newReadIds);
-      // Mengubah properti isRead item yang cocok menjadi true
-      return prev.map((item) => (item.id === id ? { ...item, isRead: true } : item));
-    });
+    // Membuat himpunan ID baru dan menambahkan ID target
+    const newReadIds = new Set(getSavedReadIds());
+    newReadIds.add(id);
+    // Menyimpan perubahan ke localStorage
+    saveReadIds(newReadIds);
+    // Memperbarui state readIds
+    setReadIds(newReadIds);
+
+    // Mengubah properti isRead item yang cocok pada state notifikasi petugas
+    setNotifications((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, isRead: true } : item))
+    );
+    // Mengubah properti isRead item yang cocok pada state notifikasi laporan manajer
+    setReportNotifications((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, isRead: true } : item))
+    );
   }, []);
 
-  // Menghitung jumlah notifikasi yang belum dibaca menggunakan hook useMemo untuk optimasi performa
+  // Menghitung jumlah notifikasi petugas yang belum dibaca menggunakan hook useMemo
   const unreadCount = useMemo(() => {
     // Memfilter notifikasi yang belum dibaca dan mengembalikan panjang array-nya
     return notifications.filter((n) => !n.isRead).length;
   }, [notifications]);
+
+  // Menghitung jumlah notifikasi manajer yang belum dibaca menggunakan hook useMemo
+  const managerUnreadCount = useMemo(() => {
+    // Memfilter daftar notifikasi manajer yang belum dibaca dan mengembalikan panjang array-nya
+    return managerNotifications.filter((n) => !n.isRead).length;
+  }, [managerNotifications]);
 
   // Mengembalikan penyedia NotificationContext beserta seluruh nilai state dan method aksinya
   return (
@@ -271,9 +420,12 @@ export function NotificationProvider({ children }) {
       value={{
         notifications,
         unreadCount,
+        managerNotifications,
+        managerUnreadCount,
         markAllRead,
         markAsRead,
         refreshNotifications: fetchNotifications,
+        refreshManagerNotifications: fetchManagerReportAudit,
       }}
     >
       {children}

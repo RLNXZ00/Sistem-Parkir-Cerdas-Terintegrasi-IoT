@@ -37,6 +37,8 @@ export default function DashboardManagementPage() {
   const { t, lang } = useLanguage();
   // Inisialisasi state data bertipe objek/null dengan nilai awal null untuk menampung data ringkasan analitik dari backend
   const [data, setData] = useState(null);
+  // Inisialisasi state kameraList bertipe array kosong untuk menampung status real-time unit kamera ANPR
+  const [kameraList, setKameraList] = useState([]);
   // Inisialisasi state isLoading bertipe boolean dengan nilai awal true untuk menandai proses pemuatan data awal
   const [isLoading, setIsLoading] = useState(true);
   // Inisialisasi state networkPing bertipe number/null untuk menyimpan nilai latensi respon jaringan ke server dalam milidetik (ms)
@@ -117,20 +119,36 @@ export default function DashboardManagementPage() {
   // Inisialisasi ref chartInstanceRef untuk menyimpan instance aktif objek grafik Chart.js agar dapat dihancurkan saat update
   const chartInstanceRef = useRef(null);
 
-  // Deklarasi fungsi fetchDashboardData untuk mengambil data analitik dan mengukur latensi round-trip jaringan ke backend
+  // Deklarasi fungsi fetchDashboardData untuk mengambil data analitik, status kamera ANPR real-time, dan mengukur latensi round-trip jaringan
   const fetchDashboardData = () => {
     // Catat stempel waktu presisi tinggi saat request dimulai menggunakan performance.now()
     const startTime = performance.now();
-    // Melakukan panggilan HTTP GET ke endpoint analitik dashboard backend
-    fetch('http://localhost:8081/api/analitik/dashboard')
-      // Tangani respon awal dari server backend
-      .then(res => {
+    // Melakukan panggilan HTTP GET secara paralel ke endpoint analitik dashboard dan status perangkat kamera ANPR tanpa cache browser
+    Promise.all([
+      fetch('http://localhost:8081/api/analitik/dashboard', { cache: 'no-store' }),
+      fetch('http://localhost:8081/api/hardware/kamera', { cache: 'no-store' }).catch(() => null),
+    ])
+      // Tangani respon awal kedua endpoint dari server backend
+      .then(async ([analitikRes, kameraRes]) => {
         // Hitung selisih waktu penyelesaian request dalam milidetik dan bulatkan nilainya
         const ping = Math.round(performance.now() - startTime);
         // Simpan nilai latensi ping jaringan ke state networkPing
         setNetworkPing(ping);
-        // Parsing badan respon HTTP menjadi format JSON
-        return res.json();
+        // Jika endpoint perangkat keras kamera merespons normal, parsing JSON dan simpan ke state kameraList
+        if (kameraRes && kameraRes.ok) {
+          // Parsing array data kamera dari server backend
+          const kameraData = await kameraRes.json();
+          // Pastikan payload berbentuk array sebelum memperbarui state kameraList
+          if (Array.isArray(kameraData)) {
+            setKameraList(kameraData);
+          }
+        }
+        // Lempar galat HTTP jika endpoint analitik dashboard gagal merespons
+        if (!analitikRes.ok) {
+          throw new Error(`HTTP ${analitikRes.status}`);
+        }
+        // Parsing badan respon HTTP analitik menjadi format JSON
+        return analitikRes.json();
       })
       // Tangani data JSON yang telah berhasil di-parsing
       .then(res => {
@@ -711,12 +729,16 @@ export default function DashboardManagementPage() {
   // Menghitung persentase keaktifan sensor (health percentage)
   const sensorPct = totalSensor > 0 ? Math.round((sensorAktif / totalSensor) * 100) : 100;
 
-  // Menentukan jumlah kamera ANPR aktif saat ini (default 4 unit)
-  const kameraAktif = safeData.totalKameraAktif ?? 4;
-  // Menentukan kapasitas total unit kamera ANPR (default 4 unit)
-  const totalKamera = safeData.totalKamera ?? 4;
-  // Menghitung persentase keaktifan kamera ANPR
-  const kameraPct = totalKamera > 0 ? Math.round((kameraAktif / totalKamera) * 100) : 100;
+  // Menghitung jumlah total & aktif kamera ANPR langsung dari endpoint /api/hardware/kamera bila tersedia
+  const totalKameraLangsung = kameraList.length;
+  // Menghitung unit kamera dengan status operasional 'ON' dari data perangkat keras langsung
+  const kameraAktifLangsung = kameraList.filter(k => k.statusKamera?.toUpperCase() === 'ON').length;
+  // Menentukan jumlah kamera ANPR aktif saat ini (prioritas data perangkat keras langsung agar selalu sinkron dengan toggle Petugas)
+  const kameraAktif = totalKameraLangsung > 0 ? kameraAktifLangsung : (safeData.totalKameraAktif ?? 4);
+  // Menentukan kapasitas total unit kamera ANPR (prioritas data perangkat keras langsung, default 4 unit)
+  const totalKamera = totalKameraLangsung > 0 ? totalKameraLangsung : (safeData.totalKamera ?? 4);
+  // Menghitung persentase keaktifan kamera ANPR secara aman
+  const kameraPct = totalKamera > 0 ? Math.round((kameraAktif / totalKamera) * 100) : 0;
 
   // Menentukan daftar slot denah aktif berdasarkan tab kategori kendaraan yang dipilih
   const activeGridSlots = nodeMapCategory === 'MOTOR' ? DEFAULT_MOTOR_SLOTS : DEFAULT_MOBIL_SLOTS;

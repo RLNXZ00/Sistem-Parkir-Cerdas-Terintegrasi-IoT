@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import AppLayout from '../components/AppLayout';
 // Import hook useLanguage dari konteks bahasa untuk internasionalisasi label dan teks
 import { useLanguage } from '../context/LanguageContext';
+// Import hook useNotification dari konteks notifikasi untuk memicu pembaruan notifikasi lonceng pasca ekspor laporan
+import { useNotification } from '../context/NotificationContext';
 // Import fungsi helper penerjemahan enum, status, dan log dinamis untuk tabel pratinjau laporan dan audit trail
 import {
   translateLogEventType,
@@ -23,6 +25,8 @@ const API_BASE = 'http://localhost:8081';
 export default function ReportsPage() {
   // Mengambil fungsi penerjemah t dan kode bahasa aktif lang dari context LanguageContext
   const { t, lang } = useLanguage();
+  // Mengambil fungsi penyegar riwayat notifikasi ekspor laporan manajer dari NotificationContext
+  const { refreshManagerNotifications } = useNotification();
 
   // Daftar opsi jenis laporan resmi sesuai modul PK-UC010
   const REPORT_TYPES = [
@@ -124,6 +128,8 @@ export default function ReportsPage() {
 
       // Memperbarui rekam jejak audit unduhan terbaru
       fetchAuditLogs();
+      // Memicu penyegaran langsung lonceng notifikasi manajer dengan catatan ekspor PDF baru
+      refreshManagerNotifications();
     } catch (err) {
       // Menampilkan log kesalahan ke konsol
       console.error('Error downloading PDF:', err);
@@ -173,6 +179,8 @@ export default function ReportsPage() {
 
       // Memperbarui rekam jejak audit unduhan
       fetchAuditLogs();
+      // Memicu penyegaran langsung lonceng notifikasi manajer dengan catatan ekspor Excel baru
+      refreshManagerNotifications();
     } catch (err) {
       // Menampilkan galat ke konsol
       console.error('Error downloading Excel:', err);

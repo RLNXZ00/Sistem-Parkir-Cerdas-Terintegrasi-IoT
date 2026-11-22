@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 // Import kustom hook useLanguage untuk mendukung multi-bahasa terjemahan
 import { useLanguage } from '../context/LanguageContext';
-// Import fungsi helper penerjemahan kategori anomali dan rincian log IoT
-import { translateAnomalyCategory, translateLogDetail } from '../i18n/i18nHelpers';
+// Import fungsi helper penerjemahan kategori anomali, rincian log IoT, dan kategori laporan
+import { translateAnomalyCategory, translateLogDetail, translateReportType } from '../i18n/i18nHelpers';
 
 // Deklarasi fungsi komponen publik NotificationPopover untuk panel daftar notifikasi mengambang
 export default function NotificationPopover({
@@ -28,19 +28,21 @@ export default function NotificationPopover({
   // Menentukan status boolean apakah pengguna bertindak sebagai Manajer
   const isManager = userData.role === 'ADMIN' || userData.role === 'Manajemen RS' || isManagementRoute;
 
-  // Inisialisasi state activeFilter bertipe string dengan nilai awal 'ALL' ('ALL' | 'ENTRY' | 'ANOMALY')
+  // Inisialisasi state activeFilter bertipe string dengan nilai awal 'ALL' ('ALL' | 'ENTRY' | 'REPORT' | 'ANOMALY')
   const [activeFilter, setActiveFilter] = useState('ALL');
 
   // Jika popover tidak dalam keadaan terbuka, jangan render elemen antarmuka (return null)
   if (!isOpen) return null;
 
-  // Memfilter daftar notifikasi berdasarkan tab filter yang sedang aktif
+  // Memfilter daftar notifikasi berdasarkan tab filter yang sedang aktif dan peran pengguna
   const filteredNotifications = notifications.filter((item) => {
-    // Jika filter ENTRY aktif, hanya sertakan notifikasi bertipe 'ENTRY'
-    if (activeFilter === 'ENTRY') return item.type === 'ENTRY';
+    // Jika filter ENTRY aktif dan bukan mode manajer, hanya sertakan notifikasi kedatangan kendaraan
+    if (activeFilter === 'ENTRY' && !isManager) return item.type === 'ENTRY';
+    // Jika filter REPORT aktif dan berada di mode manajer, hanya sertakan notifikasi riwayat ekspor laporan
+    if (activeFilter === 'REPORT' && isManager) return item.type === 'REPORT';
     // Jika filter ANOMALY aktif, hanya sertakan notifikasi bertipe 'ANOMALY'
     if (activeFilter === 'ANOMALY') return item.type === 'ANOMALY';
-    // Jika filter ALL, tampilkan seluruh item
+    // Jika filter ALL atau filter tidak berlaku untuk peran aktif, tampilkan seluruh item
     return true;
   });
 
@@ -49,7 +51,7 @@ export default function NotificationPopover({
 
   // Deklarasi fungsi penanganan klik pada item notifikasi
   const handleItemClick = (item) => {
-    // Panggil handler eksternal jika disediakan
+    // Panggil handler eksternal jika disediakan untuk menandai sudah dibaca
     if (onNotificationClick) {
       onNotificationClick(item);
     }
@@ -60,25 +62,41 @@ export default function NotificationPopover({
     }
   };
 
-  // Deklarasi fungsi getIcon untuk memilih nama ikon Material Symbols berdasarkan tipe notifikasi
-  const getIcon = (type) => {
-    switch (type) {
+  // Deklarasi fungsi getIcon untuk memilih nama ikon Material Symbols berdasarkan tipe dan format notifikasi
+  const getIcon = (item) => {
+    switch (item.type) {
       case 'ANOMALY':
         return 'warning'; // Ikon tanda peringatan untuk anomali
       case 'ENTRY':
         return 'directions_car'; // Ikon mobil untuk kendaraan masuk
       case 'EXIT':
         return 'logout'; // Ikon pintu keluar untuk kendaraan pulang
+      case 'REPORT':
+        // Pilih ikon dokumen khusus PDF, Spreadsheet Excel, atau dokumen umum
+        if (item.format === 'PDF') return 'picture_as_pdf';
+        if (item.format === 'XLSX' || item.format === 'EXCEL') return 'table_view';
+        return 'description';
       default:
         return 'notifications'; // Ikon lonceng standar untuk sistem
     }
   };
 
-  // Deklarasi fungsi getIconColors untuk menentukan skema warna ikon berdasarkan tipe dan tingkat urgensi
-  const getIconColors = (type, severity) => {
+  // Deklarasi fungsi getIconColors untuk menentukan skema warna ikon berdasarkan tipe, format berkas, dan tingkat urgensi
+  const getIconColors = (item) => {
+    const { type, severity, format } = item;
     // Kondisi bila notifikasi bertipe anomali atau berstatus kritis
     if (type === 'ANOMALY' || severity === 'CRITICAL' || severity === 'critical') {
       return 'bg-red-500/10 text-red-500 border border-red-500/30';
+    }
+    // Kondisi bila notifikasi bertipe ekspor laporan manajerial (PDF merah mawar, Excel hijau zamrud)
+    if (type === 'REPORT') {
+      if (format === 'XLSX' || format === 'EXCEL') {
+        return 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30';
+      }
+      if (format === 'PDF') {
+        return 'bg-rose-500/10 text-rose-500 border border-rose-500/30';
+      }
+      return 'bg-sky-500/10 text-sky-500 border border-sky-500/30';
     }
     // Kondisi bila notifikasi bertipe kedatangan kendaraan masuk
     if (type === 'ENTRY') {
@@ -99,13 +117,17 @@ export default function NotificationPopover({
       className="notification-popover absolute right-0 top-full mt-2 w-[340px] sm:w-[400px] bg-[#141b22] border border-[#2d3a47] rounded-2xl shadow-2xl z-50 overflow-hidden transition-all duration-200 animate-fadeIn"
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Header popover berisi judul, lencana jumlah notifikasi baru, dan tombol tandai telah dibaca */}
+      {/* Header popover berisi judul adaptif peran, lencana jumlah notifikasi baru, dan tombol tandai telah dibaca */}
       <div className="notification-popover-header px-4 py-3.5 border-b border-[#242f3b] flex items-center justify-between">
         {/* Judul dan lencana hitungan */}
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[19px] text-[#7ad0ff]">notifications_active</span>
+          <span className="material-symbols-outlined text-[19px] text-[#7ad0ff]">
+            {isManager ? 'receipt_long' : 'notifications_active'}
+          </span>
           <h3 className="font-semibold text-sm text-white notification-title">
-            {t('notification.title', 'Notifikasi Sistem')}
+            {isManager
+              ? t('notification.managerTitle', 'Riwayat & Notifikasi Manajer')
+              : t('notification.title', 'Notifikasi Sistem')}
           </h3>
           {/* Lencana angka belum dibaca */}
           {unreadCount > 0 && (
@@ -128,7 +150,7 @@ export default function NotificationPopover({
         )}
       </div>
 
-      {/* Baris tombol filter kategori notifikasi */}
+      {/* Baris tombol filter kategori notifikasi adaptif sesuai peran pengguna */}
       <div className="px-3 pt-2.5 pb-2 border-b border-[#242f3b] flex gap-1.5 notification-popover-filter bg-[#0f1419]/50">
         {/* Filter semua notifikasi */}
         <button
@@ -142,18 +164,32 @@ export default function NotificationPopover({
           {t('notification.all', 'Semua')} ({notifications.length})
         </button>
 
-        {/* Filter notifikasi kendaraan masuk */}
-        <button
-          onClick={() => setActiveFilter('ENTRY')}
-          className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition-colors cursor-pointer flex items-center gap-1 ${
-            activeFilter === 'ENTRY'
-              ? 'bg-[#102438] text-[#7ad0ff] border border-[#1b4363] notification-filter-active'
-              : 'text-[#8fa0b0] hover:text-white hover:bg-[#1a232d] notification-filter-inactive'
-          }`}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-[#00bfff]"></span>
-          {t('notification.entry', 'Kendaraan Masuk')}
-        </button>
+        {/* Jika Manajer, tampilkan filter Ekspor Laporan; jika Petugas Lapangan, tampilkan filter Kendaraan Masuk */}
+        {isManager ? (
+          <button
+            onClick={() => setActiveFilter('REPORT')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition-colors cursor-pointer flex items-center gap-1 ${
+              activeFilter === 'REPORT'
+                ? 'bg-[#102438] text-[#7ad0ff] border border-[#1b4363] notification-filter-active'
+                : 'text-[#8fa0b0] hover:text-white hover:bg-[#1a232d] notification-filter-inactive'
+            }`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></span>
+            {t('notification.exportReport', 'Ekspor Laporan')}
+          </button>
+        ) : (
+          <button
+            onClick={() => setActiveFilter('ENTRY')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition-colors cursor-pointer flex items-center gap-1 ${
+              activeFilter === 'ENTRY'
+                ? 'bg-[#102438] text-[#7ad0ff] border border-[#1b4363] notification-filter-active'
+                : 'text-[#8fa0b0] hover:text-white hover:bg-[#1a232d] notification-filter-inactive'
+            }`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00bfff]"></span>
+            {t('notification.entry', 'Kendaraan Masuk')}
+          </button>
+        )}
 
         {/* Filter notifikasi insiden anomali */}
         <button
@@ -176,16 +212,26 @@ export default function NotificationPopover({
           <div className="py-8 px-4 text-center flex flex-col items-center justify-center gap-2">
             <span className="material-symbols-outlined text-[36px] text-[#55697d]">notifications_off</span>
             <p className="text-xs text-[#8fa0b0] font-mono">
-              {t('notification.empty', 'Tidak ada notifikasi')}
+              {isManager
+                ? t('notification.emptyManager', 'Belum ada riwayat ekspor laporan atau peringatan audit')
+                : t('notification.empty', 'Tidak ada notifikasi')}
             </p>
           </div>
         ) : (
           // Looping untuk merender setiap item notifikasi yang cocok secara dwibahasa
           filteredNotifications.map((item) => {
-            // Tentukan judul notifikasi reaktif sesuai bahasa aktif
+            // Inisialisasi judul tampil dengan nilai asli item
             let displayTitle = item.title;
+            // Terapkan translasi judul otomatis bila antarmuka menggunakan Bahasa Inggris
             if (lang === 'en') {
-              if (item.i18nMeta) {
+              if (item.i18nMeta?.kind === 'REPORT_EXPORT') {
+                // Terjemahkan judul notifikasi hasil ekspor PDF / XLSX
+                const reportLabel = translateReportType(item.i18nMeta.jenisLaporan, 'en');
+                displayTitle = `Exported ${item.i18nMeta.formatBerkas}: ${reportLabel} Report`;
+              } else if (item.i18nMeta?.kind === 'MANAGER_WELCOME') {
+                // Terjemahkan judul pengantar pusat laporan manajer
+                displayTitle = 'Analytics Report Export Ready';
+              } else if (item.i18nMeta) {
                 if (item.i18nMeta.kind === 'ANOMALY') {
                   const cat = item.i18nMeta.jenisAnomali && item.i18nMeta.jenisAnomali !== '-'
                     ? translateAnomalyCategory(item.i18nMeta.jenisAnomali, 'en')
@@ -204,19 +250,30 @@ export default function NotificationPopover({
               }
             }
 
-            // Tentukan deskripsi notifikasi reaktif sesuai bahasa aktif
-            let displayDesc = item.i18nMeta?.rawDetail
-              ? translateLogDetail(item.i18nMeta.rawDetail, lang)
-              : translateLogDetail(item.description, lang);
-            if (lang === 'en' && !item.i18nMeta?.rawDetail) {
-              displayDesc = displayDesc
-                .replace('Pembaruan telemetri sensor sistem parkir.', 'Parking system sensor telemetry update.')
-                .replace('Sensor ultrasonik mendeteksi kendaraan di Slot', 'Ultrasonic sensor detected a vehicle in Slot')
-                .replace('padahal status reservasi masih KOSONG.', 'while reservation status is still VACANT.')
-                .replace('Kendaraan terdeteksi di Gerbang Utama. Slot', 'Vehicle detected at Main Gate. Slot')
-                .replace('dialokasikan otomatis oleh AI Gateway.', 'was automatically allocated by AI Gateway.')
-                .replace('terdeteksi di Barrier Gate Masuk 1. Rute alokasi diarahkan ke Slot', 'detected at Entry Barrier Gate 1. Route guided to Slot')
-                .replace('Kendaraan parkir melebihi kuota 24 jam tanpa perpanjangan sesi.', 'Vehicle exceeded the 24-hour parking quota without session extension.');
+            // Menentukan deskripsi notifikasi reaktif sesuai tipe metadata dan bahasa aktif
+            let displayDesc = item.description;
+            if (item.i18nMeta?.kind === 'REPORT_EXPORT') {
+              if (lang === 'en') {
+                displayDesc = `File ${item.i18nMeta.namaBerkas} (${item.i18nMeta.ukuranKB} KB) exported by ${item.i18nMeta.pengguna}.`;
+              }
+            } else if (item.i18nMeta?.kind === 'MANAGER_WELCOME') {
+              if (lang === 'en') {
+                displayDesc = 'Export history and notifications will appear automatically here whenever you download PDF or Excel reports.';
+              }
+            } else {
+              displayDesc = item.i18nMeta?.rawDetail
+                ? translateLogDetail(item.i18nMeta.rawDetail, lang)
+                : translateLogDetail(item.description, lang);
+              if (lang === 'en' && !item.i18nMeta?.rawDetail) {
+                displayDesc = displayDesc
+                  .replace('Pembaruan telemetri sensor sistem parkir.', 'Parking system sensor telemetry update.')
+                  .replace('Sensor ultrasonik mendeteksi kendaraan di Slot', 'Ultrasonic sensor detected a vehicle in Slot')
+                  .replace('padahal status reservasi masih KOSONG.', 'while reservation status is still VACANT.')
+                  .replace('Kendaraan terdeteksi di Gerbang Utama. Slot', 'Vehicle detected at Main Gate. Slot')
+                  .replace('dialokasikan otomatis oleh AI Gateway.', 'was automatically allocated by AI Gateway.')
+                  .replace('terdeteksi di Barrier Gate Masuk 1. Rute alokasi diarahkan ke Slot', 'detected at Entry Barrier Gate 1. Route guided to Slot')
+                  .replace('Kendaraan parkir melebihi kuota 24 jam tanpa perpanjangan sesi.', 'Vehicle exceeded the 24-hour parking quota without session extension.');
+              }
             }
 
             // Tentukan format waktu relatif sesuai bahasa aktif
@@ -235,15 +292,12 @@ export default function NotificationPopover({
                   !item.isRead ? 'bg-[#18212b]/60 notification-item-unread' : ''
                 }`}
               >
-                {/* Ikon kategori notifikasi */}
+                {/* Ikon kategori atau tipe berkas notifikasi */}
                 <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${getIconColors(
-                    item.type,
-                    item.severity
-                  )}`}
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${getIconColors(item)}`}
                 >
                   <span className="material-symbols-outlined text-[20px]">
-                    {getIcon(item.type)}
+                    {getIcon(item)}
                   </span>
                 </div>
 
@@ -265,14 +319,24 @@ export default function NotificationPopover({
                     {displayDesc}
                   </p>
 
-                  {/* Informasi waktu dan ID slot terkait */}
+                  {/* Informasi waktu serta lencana format berkas atau ID slot terkait */}
                   <div className="flex items-center justify-between text-[10px] font-mono text-[#7d90a1] notification-item-time">
                     <span>{displayTime}</span>
-                    {item.slotId && (
+                    {item.fileBadge ? (
+                      <span
+                        className={`px-1.5 py-0.2 rounded font-bold border ${
+                          item.format === 'XLSX'
+                            ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                            : 'bg-rose-500/15 border-rose-500/30 text-rose-400'
+                        }`}
+                      >
+                        {item.fileBadge}
+                      </span>
+                    ) : item.slotId ? (
                       <span className="px-1.5 py-0.2 rounded bg-[#10151a] border border-[#273542] text-[#7ad0ff] notification-item-slot">
                         Slot: {item.slotId}
                       </span>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </div>
