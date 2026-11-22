@@ -358,22 +358,22 @@ export default function DashboardManagementPage() {
       }
       activeDatasetLabel = 'Pendapatan Bulanan (Rp)';
     } else if (revenuePeriod === 'SEMUA') {
-      // Periode Semua: Mengambil data histori kumulatif database all-time dari backend
+      // Periode Semua: Mengambil rincian data pendapatan per bulan sepanjang masa dari backend
       const rawData = data.grafikPendapatanSemua;
       if (Array.isArray(rawData) && rawData.length > 0) {
         activeChartData = rawData;
       } else {
-        // Fallback: Bentuk titik data historis multi-periode agar grafik pertumbuhan tetap tampil rapi
-        const defaultPeriods = ['Jun 26', 'Jul 26', 'Agu 26', 'Sep 26', 'Okt 26', 'Nov 26'];
-        activeChartData = defaultPeriods.map((prd, idx) => ({
-          hari: idx + 1,
-          labelTanggal: prd,
-          nominal: 0
-        }));
+        // Fallback: Bentuk 6 titik periode bulan terakhir secara dinamis agar tetap informatif saat data kosong
+        const now = new Date();
+        activeChartData = Array.from({ length: 6 }, (_, idx) => {
+          const d = new Date(now.getFullYear(), now.getMonth() - (5 - idx), 1);
+          const lbl = d.toLocaleDateString('id-ID', { month: 'short', year: '2-digit' });
+          return { hari: idx + 1, labelTanggal: lbl, nominal: 0 };
+        });
       }
-      activeDatasetLabel = 'Pendapatan Historis (Rp)';
+      activeDatasetLabel = 'Pendapatan Per Bulan (Rp)';
     } else {
-      // Periode Bulanan (default): Mengambil data harian tanggal 1 s.d. hari ini dari backend
+      // Periode Bulanan (default): Mengambil rincian pendapatan per hari tanggal 1 s.d. hari ini dari backend
       const rawData = data.grafikPendapatanHarian;
       if (Array.isArray(rawData) && rawData.length > 0) {
         activeChartData = rawData;
@@ -386,7 +386,7 @@ export default function DashboardManagementPage() {
           nominal: 0
         }));
       }
-      activeDatasetLabel = 'Pertumbuhan Akumulatif (Rp)';
+      activeDatasetLabel = 'Pendapatan Harian (Rp)';
     }
 
     // Petakan label sumbu X berdasarkan properti labelTanggal atau nomor hari
@@ -399,29 +399,8 @@ export default function DashboardManagementPage() {
       return item.labelTanggal || `P-${item.hari}`;
     });
 
-    // Petakan nilai numerik nominal pendapatan dasar dari dataset aktif
-    const rawValues = activeChartData.map(item => Number(item.nominal) || 0);
-
-    // Untuk periode BULANAN atau SEMUA, pastikan nilai membentuk kurva pertumbuhan akumulatif kontinu (running total)
-    // agar visualisasi selalu stabil menanjak atau mendatar, tidak naik-turun tajam atau anjlok ke nol
-    let values = rawValues;
-    if (revenuePeriod === 'BULANAN' || revenuePeriod === 'SEMUA') {
-      let isStrictlyNonDecreasing = true;
-      for (let i = 1; i < rawValues.length; i++) {
-        if (rawValues[i] < rawValues[i - 1]) {
-          isStrictlyNonDecreasing = false;
-          break;
-        }
-      }
-      // Jika nilai belum berformat akumulasi berjalan, konversi deretan nilai ke running total
-      if (!isStrictlyNonDecreasing) {
-        let runningAccumulator = 0;
-        values = rawValues.map(nominal => {
-          runningAccumulator += nominal;
-          return runningAccumulator;
-        });
-      }
-    }
+    // Gunakan nominal pendapatan murni per hari / per bulan / per periode secara langsung (bukan akumulasi berjalan)
+    const values = activeChartData.map(item => Number(item.nominal) || 0);
 
     // Deteksi apakah tema aktif saat ini adalah tema cerah (light mode) dengan memeriksa kelas dokumen
     const isLightChart = isLight;
@@ -553,6 +532,7 @@ export default function DashboardManagementPage() {
   const safeData = data || {
     pendapatanTotal: 0,
     pendapatanHariIni: 0,
+    pendapatanKemarin: 0,
     pendapatanBulanan: 0,
     persentasePendapatan: 0,
     totalKendaraan: 0,
@@ -577,14 +557,21 @@ export default function DashboardManagementPage() {
     grafikPendapatanSemua: []
   };
 
-  // Nilai pendapatan harian dengan fallback ke pendapatan total atau nol
-  const pendapatanHariIniVal = safeData.pendapatanHariIni ?? safeData.pendapatanTotal ?? 0;
-  // Nilai pendapatan bulanan dengan fallback ke pendapatan total atau nol
-  const pendapatanBulananVal = safeData.pendapatanBulanan ?? safeData.pendapatanTotal ?? 0;
-  // Nilai pendapatan tahunan dengan fallback ke pendapatan total atau nol
-  const pendapatanTahunanVal = safeData.pendapatanTahunan ?? safeData.pendapatanTotal ?? 0;
+  // Nilai pendapatan hari ini (murni hari kalender berjalan) dengan fallback ke nol
+  const pendapatanHariIniVal = safeData.pendapatanHariIni ?? 0;
+  // Nilai pendapatan kemarin sebagai referensi perbandingan persentase harian
+  const pendapatanKemarinVal = safeData.pendapatanKemarin;
+  // Nilai pendapatan bulanan (total bulan kalender berjalan) dengan fallback ke nol
+  const pendapatanBulananVal = safeData.pendapatanBulanan ?? 0;
+  // Nilai pendapatan tahunan (total tahun kalender berjalan) dengan fallback ke nol
+  const pendapatanTahunanVal = safeData.pendapatanTahunan ?? 0;
   // Nilai pendapatan all-time sepanjang masa dengan fallback ke nol
   const pendapatanTotalVal = safeData.pendapatanTotal ?? 0;
+
+  // Hitung ulang / format persentase perbandingan Hari Ini vs Kemarin secara eksak (menghindari tanda '+' pada 0%)
+  const pctHarianVal = Number(safeData.persentasePendapatan ?? 0);
+  const pctHarianFormatted = `${pctHarianVal > 0 ? '+' : ''}${pctHarianVal}% vs ${lang === 'en' ? 'Yesterday' : 'Kemarin'}${pendapatanKemarinVal != null ? ` (Rp ${Number(pendapatanKemarinVal).toLocaleString('id-ID')})` : ''}`;
+  const pctTrendClass = pctHarianVal > 0 ? 'text-eco-success' : pctHarianVal < 0 ? 'text-red-400' : 'text-text-muted';
 
   // Nilai nominal pendapatan aktif yang ditampilkan pada kartu utama sesuai filter periode aktif
   const activeRevenueDisplayVal = revenuePeriod === 'BULANAN'
@@ -669,7 +656,8 @@ export default function DashboardManagementPage() {
     { 
       label: t('mgmt.totalRevenue', 'Pendapatan Hari Ini'), 
       value: `Rp ${Number(pendapatanHariIniVal).toLocaleString('id-ID')}`, 
-      sub: `${safeData.persentasePendapatan >= 0 ? '+' : ''}${safeData.persentasePendapatan}% vs ${lang === 'en' ? 'Yesterday' : 'Kemarin'}`, 
+      sub: pctHarianFormatted,
+      subClass: pctTrendClass,
       icon: 'payments', 
       color: 'text-eco-success' 
     },
@@ -765,7 +753,7 @@ export default function DashboardManagementPage() {
               {/* Nilai numerik utama metrik yang diformat */}
               <div className={`text-3xl font-bold ${kpi.color}`}>{kpi.value}</div>
               {/* Keterangan perbandingan tren terhadap periode sebelumnya */}
-              <div className="text-xs text-text-muted font-mono">{kpi.sub}</div>
+              <div className={`text-xs font-mono ${kpi.subClass || 'text-text-muted'}`}>{kpi.sub}</div>
             </div>
           ))}
         </div>
@@ -853,9 +841,9 @@ export default function DashboardManagementPage() {
             </div>
             {/* Catatan kaki metodologi perhitungan pendapatan sesuai filter aktif */}
             <div className="text-right text-[11px] text-text-muted font-mono mt-2">
-              {revenuePeriod === 'BULANAN' && '*Pertumbuhan pendapatan akumulatif harian dari tanggal 1 s.d. hari ini'}
-              {revenuePeriod === 'TAHUNAN' && `*Rekapitulasi pendapatan riil per bulan pada tahun berjalan ${CURRENT_CALENDAR_YEAR}`}
-              {revenuePeriod === 'SEMUA' && '*Akumulasi pendapatan riil seluruh transaksi lunas sejak sistem beroperasi'}
+              {revenuePeriod === 'BULANAN' && '*Rincian pendapatan riil per hari dari tanggal 1 s.d. hari ini'}
+              {revenuePeriod === 'TAHUNAN' && `*Rincian pendapatan riil per bulan pada tahun berjalan ${CURRENT_CALENDAR_YEAR}`}
+              {revenuePeriod === 'SEMUA' && '*Rincian pendapatan riil per bulan sepanjang waktu operasional sistem'}
             </div>
           </div>
 
