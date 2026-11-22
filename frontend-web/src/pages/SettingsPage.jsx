@@ -549,7 +549,7 @@ export default function SettingsPage() {
   // Mengembalikan elemen antarmuka JSX halaman pengaturan sistem
   return (
     // Membungkus seluruh antarmuka dengan komponen AppLayout
-    <AppLayout breadcrumb={lang === 'id' ? 'Pengaturan Sistem' : 'System Settings'} status="IoT Operational">
+    <AppLayout breadcrumb={lang === 'id' ? 'Pengaturan Sistem' : 'System Settings'} status={t('topbar.systemHealthy', 'IoT Operational')}>
       {/* Kontainer utama halaman pengaturan dengan lebar maksimum 7xl */}
       <div className="p-6 max-w-7xl mx-auto flex flex-col gap-6">
 
@@ -1076,7 +1076,9 @@ export default function SettingsPage() {
                     {lang === 'id' ? 'Parameter Standarisasi Emisi Gas Buang (CO₂)' : 'CO₂ Emission Standarization Parameters'}
                   </h3>
                   <p className="text-xs text-on-surface-variant font-mono mt-1">
-                    Formula: Reduksi CO₂ = (Baseline Waktu - Waktu Tiba Nyata) × Standar Emisi Kendaraan.
+                    {lang === 'id'
+                      ? 'Formula: Reduksi CO₂ = (Baseline Waktu - Waktu Tiba Nyata) × Standar Emisi Kendaraan.'
+                      : 'Formula: CO₂ Reduction = (Baseline Search Time - Actual Arrival Time) × Vehicle Emission Rate.'}
                   </p>
                 </div>
 
@@ -1364,7 +1366,7 @@ export default function SettingsPage() {
                   <div className="border-t border-surface-variant pt-4 flex flex-col gap-2">
                     <div className="flex items-center justify-between text-xs font-mono">
                       <span className="text-on-surface-variant">{lang === 'id' ? 'Jadwal Cron Pembersihan:' : 'Cron Purge Schedule:'}</span>
-                      <span className="text-system-info font-bold">02:00 WIB (Daily)</span>
+                      <span className="text-system-info font-bold">{lang === 'id' ? '02:00 WIB (Harian)' : '02:00 WIB (Daily)'}</span>
                     </div>
                     <div className="flex items-center justify-between text-xs font-mono">
                       <span className="text-on-surface-variant">{lang === 'id' ? 'Status Service Backend:' : 'Backend Service Status:'}</span>
