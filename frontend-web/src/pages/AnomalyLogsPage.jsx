@@ -4,6 +4,12 @@ import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '../components/AppLayout';
 // Import hook useLanguage dari konteks bahasa untuk internasionalisasi antarmuka
 import { useLanguage } from '../context/LanguageContext';
+// Import fungsi helper penerjemahan jenis kejadian, detail log IoT, dan kategori anomali
+import {
+  translateLogEventType,
+  translateLogDetail,
+  translateAnomalyCategory,
+} from '../i18n/i18nHelpers';
 
 // Mendefinisikan konstanta alamat dasar server backend Spring Boot (port 8081)
 const API_BASE = 'http://localhost:8081';
@@ -17,8 +23,8 @@ const SEVERITY_CONFIG = {
 
 // Deklarasi fungsi komponen publik AnomalyLogsPage untuk rekam jejak insiden dan validasi lapangan
 export default function AnomalyLogsPage() {
-  // Mengambil fungsi penerjemah t dari context LanguageContext
-  const { t } = useLanguage();
+  // Mengambil fungsi penerjemah t dan kode bahasa aktif lang dari context LanguageContext
+  const { t, lang } = useLanguage();
   // Inisialisasi state anomalies bertipe array kosong untuk menampung seluruh daftar log anomali IoT
   const [anomalies, setAnomalies] = useState([]);
   // Inisialisasi state filter bertipe string dengan nilai awal 'ALL' untuk menyaring status penanganan
@@ -181,14 +187,14 @@ export default function AnomalyLogsPage() {
                       <div className="flex flex-wrap items-center gap-2 mb-1">
                         <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${cfg.badge}`}>{anomaly.severity}</span>
                         <span className="text-on-surface font-bold font-mono">SLOT {anomaly.slot}</span>
-                        <span className="text-on-surface-variant font-mono text-sm">— {anomaly.type}</span>
+                        <span className="text-on-surface-variant font-mono text-sm">— {translateLogEventType(anomaly.type, lang)}</span>
                       </div>
-                      <p className="text-sm text-on-surface mb-2">{anomaly.desc}</p>
+                      <p className="text-sm text-on-surface mb-2">{translateLogDetail(anomaly.desc, lang)}</p>
                       <div className="flex flex-wrap gap-4 text-xs font-mono text-on-surface-variant">
-                        <span>{t('anomaly.plate','Plat')}: <span className="text-primary">{anomaly.plate}</span></span>
+                        <span>{t('anomaly.plate','Plat')}: <span className="text-primary">{anomaly.plate === 'UNKNOWN' ? (lang === 'en' ? 'UNKNOWN' : 'TIDAK DIKETAHUI') : anomaly.plate}</span></span>
                         <span>{t('anomaly.time','Waktu')}: {anomaly.time}</span>
                         {anomaly.jenisAnomali && anomaly.jenisAnomali !== '-' && (
-                          <span>{t('anomaly.category','Kategori')}: <span className="text-on-surface font-semibold bg-surface-container px-2 py-0.5 rounded border border-outline-variant/30 text-primary">{anomaly.jenisAnomali}</span></span>
+                          <span>{t('anomaly.category','Kategori')}: <span className="text-on-surface font-semibold bg-surface-container px-2 py-0.5 rounded border border-outline-variant/30 text-primary">{translateAnomalyCategory(anomaly.jenisAnomali, lang)}</span></span>
                         )}
                         <span className={`font-semibold ${resolved ? 'text-eco-success' : 'text-warning-reserved'}`}>
                           {resolved ? t('anomaly.resolved','✓ Selesai Divalidasi') : t('anomaly.pending','⚠ Belum Ditangani')}
@@ -246,7 +252,7 @@ export default function AnomalyLogsPage() {
                 <div className="w-10 h-10 rounded-full bg-alert-anomaly/10 flex items-center justify-center">
                   <span className="material-symbols-outlined text-alert-anomaly">warning</span>
                 </div>
-                <h3 className="text-headline-md font-headline-md text-on-surface">Acknowledge Anomaly</h3>
+                <h3 className="text-headline-md font-headline-md text-on-surface">{t('anomaly.modalTitle', 'Acknowledge Anomaly')}</h3>
               </div>
               {/* Tombol silang untuk menutup modal */}
               <button 
@@ -262,11 +268,11 @@ export default function AnomalyLogsPage() {
               {/* Baris data slot target dan waktu deteksi */}
               <div className="grid grid-cols-2 gap-4 bg-surface-container px-4 py-3 rounded-lg border border-outline-variant/20">
                 <div className="flex flex-col">
-                  <span className="text-xs font-tech-mono text-on-surface-variant uppercase tracking-wider mb-1">Target Slot</span>
+                  <span className="text-xs font-tech-mono text-on-surface-variant uppercase tracking-wider mb-1">{t('anomaly.targetSlot', 'Target Slot')}</span>
                   <span className="text-lg font-tech-mono text-on-surface font-bold">{selectedAnomaly.slot}</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-xs font-tech-mono text-on-surface-variant uppercase tracking-wider mb-1">Detected At</span>
+                  <span className="text-xs font-tech-mono text-on-surface-variant uppercase tracking-wider mb-1">{t('anomaly.detectedAt', 'Detected At')}</span>
                   <span className="text-lg font-tech-mono text-on-surface font-bold">{selectedAnomaly.time} <span className="text-sm opacity-50 font-normal">WIB</span></span>
                 </div>
               </div>
@@ -282,10 +288,10 @@ export default function AnomalyLogsPage() {
                   <div className="w-12 h-12 rounded-full border-2 border-alert-anomaly flex items-center justify-center bg-surface shadow-[0_0_15px_rgba(255,69,0,0.5)]">
                     <span className="material-symbols-outlined text-alert-anomaly">directions_car</span>
                   </div>
-                  <span className="mt-2 text-xs font-tech-mono text-alert-anomaly bg-alert-anomaly/10 px-2 py-1 rounded backdrop-blur-sm border border-alert-anomaly/20">OCR: {selectedAnomaly.plate}</span>
+                  <span className="mt-2 text-xs font-tech-mono text-alert-anomaly bg-alert-anomaly/10 px-2 py-1 rounded backdrop-blur-sm border border-alert-anomaly/20">OCR: {selectedAnomaly.plate === 'UNKNOWN' ? (lang === 'en' ? 'UNKNOWN' : 'TIDAK DIKETAHUI') : selectedAnomaly.plate}</span>
                 </div>
                 <div className="absolute top-2 right-2 flex items-center gap-1 bg-surface/80 px-2 py-1 rounded backdrop-blur text-[10px] font-tech-mono text-on-surface-variant border border-outline-variant/30">
-                  <span className="w-1.5 h-1.5 rounded-full bg-eco-success"></span> Cam {selectedAnomaly.slot} - Live
+                  <span className="w-1.5 h-1.5 rounded-full bg-eco-success"></span> {lang === 'en' ? `Cam ${selectedAnomaly.slot} - Live` : `Kamera ${selectedAnomaly.slot} - Live`}
                 </div>
               </div>
               
@@ -297,9 +303,9 @@ export default function AnomalyLogsPage() {
                   value={jenisAnomali}
                   onChange={(e) => setJenisAnomali(e.target.value)}
                 >
-                  <option value="Salah Parkir">Salah Parkir</option>
-                  <option value="Benda Asing">Benda Asing</option>
-                  <option value="Keberadaan Manusia">Keberadaan Manusia</option>
+                  <option value="Salah Parkir">{t('anomaly.optWrongPark', 'Salah Parkir')}</option>
+                  <option value="Benda Asing">{t('anomaly.optForeignObj', 'Benda Asing')}</option>
+                  <option value="Keberadaan Manusia">{t('anomaly.optHuman', 'Keberadaan Manusia')}</option>
                 </select>
               </div>
 
