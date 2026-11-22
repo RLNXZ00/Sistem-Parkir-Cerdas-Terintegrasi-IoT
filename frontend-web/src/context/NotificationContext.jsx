@@ -335,8 +335,13 @@ export function NotificationProvider({ children }) {
 
   // Memadukan daftar notifikasi khusus Manajer: riwayat ekspor laporan sebagai fokus utama ditambah peringatan anomali kritis
   const managerNotifications = useMemo(() => {
-    // Menyaring hanya item bertipe ANOMALY dari log sistem untuk pengawasan manajerial (mengabaikan log rutin keluar-masuk gerbang)
-    const anomalyAlerts = notifications.filter((item) => item.type === 'ANOMALY');
+    // Menyaring hanya item bertipe ANOMALY dan mengarahkan tautannya ke Dashboard Manajemen sesuai cakupan peran Manajer
+    const anomalyAlerts = notifications
+      .filter((item) => item.type === 'ANOMALY')
+      .map((item) => ({
+        ...item,
+        link: '/dashboard-management',
+      }));
     // Jika telah terdapat riwayat ekspor dari database, tampilkan di urutan teratas diikuti peringatan anomali
     if (reportNotifications.length > 0) {
       return [...reportNotifications, ...anomalyAlerts].slice(0, 15);
