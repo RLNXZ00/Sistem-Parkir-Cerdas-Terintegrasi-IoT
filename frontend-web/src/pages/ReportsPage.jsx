@@ -4,14 +4,25 @@ import { useState, useEffect } from 'react';
 import AppLayout from '../components/AppLayout';
 // Import hook useLanguage dari konteks bahasa untuk internasionalisasi label dan teks
 import { useLanguage } from '../context/LanguageContext';
+// Import fungsi helper penerjemahan enum, status, dan log dinamis untuk tabel pratinjau laporan dan audit trail
+import {
+  translateLogEventType,
+  translateLogDetail,
+  translateResolutionStatus,
+  translateVehicleType,
+  translateAnomalyCategory,
+  translateReportType,
+  translateReportKpiLabel,
+  translateDurationText,
+} from '../i18n/i18nHelpers';
 
 // Mendefinisikan konstanta alamat dasar server backend Spring Boot (port 8081)
 const API_BASE = 'http://localhost:8081';
 
 // Deklarasi fungsi komponen publik ReportsPage untuk pelaporan analitik, pratinjau, dan ekspor dokumen resmi
 export default function ReportsPage() {
-  // Mengambil fungsi penerjemah t dari context LanguageContext
-  const { t } = useLanguage();
+  // Mengambil fungsi penerjemah t dan kode bahasa aktif lang dari context LanguageContext
+  const { t, lang } = useLanguage();
 
   // Daftar opsi jenis laporan resmi sesuai modul PK-UC010
   const REPORT_TYPES = [
@@ -89,7 +100,7 @@ export default function ReportsPage() {
       const response = await fetch(url);
       // Jika respons tidak sukses, lempar pesan galat
       if (!response.ok) {
-        throw new Error(`Gagal mengunduh dokumen PDF (HTTP ${response.status})`);
+        throw new Error(lang === 'en' ? `Failed to download PDF document (HTTP ${response.status})` : `Gagal mengunduh dokumen PDF (HTTP ${response.status})`);
       }
 
       // Mengubah respons biner menjadi objek Blob
@@ -117,7 +128,7 @@ export default function ReportsPage() {
       // Menampilkan log kesalahan ke konsol
       console.error('Error downloading PDF:', err);
       // Menampilkan pesan galat di antarmuka pengguna
-      setErrorMsg('Gagal mengunduh dokumen PDF: ' + err.message);
+      setErrorMsg((lang === 'en' ? 'Failed to download PDF document: ' : 'Gagal mengunduh dokumen PDF: ') + err.message);
     } finally {
       // Mematikan status loading unduh PDF
       setDownloadingPdf(false);
@@ -138,7 +149,7 @@ export default function ReportsPage() {
       const response = await fetch(url);
       // Jika respons gagal, lempar galat
       if (!response.ok) {
-        throw new Error(`Gagal mengunduh dokumen Excel (HTTP ${response.status})`);
+        throw new Error(lang === 'en' ? `Failed to download Excel document (HTTP ${response.status})` : `Gagal mengunduh dokumen Excel (HTTP ${response.status})`);
       }
 
       // Mengubah respons ke format Blob
@@ -166,7 +177,7 @@ export default function ReportsPage() {
       // Menampilkan galat ke konsol
       console.error('Error downloading Excel:', err);
       // Menampilkan pesan kegagalan ke antarmuka
-      setErrorMsg('Gagal mengunduh dokumen Excel: ' + err.message);
+      setErrorMsg((lang === 'en' ? 'Failed to download Excel document: ' : 'Gagal mengunduh dokumen Excel: ') + err.message);
     } finally {
       // Mematikan status loading unduh Excel
       setDownloadingXlsx(false);
@@ -177,19 +188,19 @@ export default function ReportsPage() {
   const fetchReport = async (jenis, dari, sampai) => {
     // Validasi parameter: memastikan tanggal mulai dan akhir telah terisi
     if (!dari || !sampai) {
-      setErrorMsg('Input tanggal salah: Tanggal mulai dan tanggal akhir wajib dipilih.');
+      setErrorMsg(lang === 'en' ? 'Invalid date input: Both start date and end date must be selected.' : 'Input tanggal salah: Tanggal mulai dan tanggal akhir wajib dipilih.');
       return;
     }
     // Validasi kronologi: tanggal mulai tidak boleh melebihi tanggal akhir
     if (dari > sampai) {
-      setErrorMsg('Input tanggal salah: Tanggal mulai tidak boleh lebih besar dari tanggal akhir.');
+      setErrorMsg(lang === 'en' ? 'Invalid date input: Start date cannot be later than end date.' : 'Input tanggal salah: Tanggal mulai tidak boleh lebih besar dari tanggal akhir.');
       return;
     }
 
     // Validasi masa depan: tanggal mulai tidak boleh melebihi hari ini
     const todayStr = new Date().toISOString().split('T')[0];
     if (dari > todayStr) {
-      setErrorMsg('Input tanggal salah: Tanggal mulai tidak boleh berada di masa depan.');
+      setErrorMsg(lang === 'en' ? 'Invalid date input: Start date cannot be in the future.' : 'Input tanggal salah: Tanggal mulai tidak boleh berada di masa depan.');
       return;
     }
 
@@ -207,7 +218,7 @@ export default function ReportsPage() {
       // Jika respons tidak berhasil (non-2xx)
       if (!response.ok) {
         const errorJson = await response.json().catch(() => null);
-        const pesan = errorJson?.message || `Gagal memuat laporan (HTTP ${response.status}). Silakan ulangi.`;
+        const pesan = errorJson?.message || (lang === 'en' ? `Failed to load report (HTTP ${response.status}). Please retry.` : `Gagal memuat laporan (HTTP ${response.status}). Silakan ulangi.`);
         setErrorMsg(pesan);
         setReportData(null);
         return;
@@ -220,7 +231,7 @@ export default function ReportsPage() {
     } catch (err) {
       // Menampilkan pesan kesalahan koneksi server ke konsol
       console.error('Error fetching report:', err);
-      setErrorMsg('Gagal terhubung ke server backend SPCT. Pastikan server backend sedang aktif.');
+      setErrorMsg(lang === 'en' ? 'Failed to connect to SPCT backend server. Please ensure the backend service is running.' : 'Gagal terhubung ke server backend SPCT. Pastikan server backend sedang aktif.');
       setReportData(null);
     } finally {
       // Mematikan status loading
@@ -274,7 +285,7 @@ export default function ReportsPage() {
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-medium bg-primary/10 text-primary border border-primary/20">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-              Live Database Sync
+              {t('reports.liveSync', 'Live Database Sync')}
             </span>
           </div>
         </div>
@@ -285,7 +296,7 @@ export default function ReportsPage() {
             <div className="flex items-center gap-3">
               <span className="material-symbols-outlined text-alert-anomaly text-[24px]">error</span>
               <div>
-                <p className="text-xs font-mono font-bold text-alert-anomaly uppercase tracking-wider">Validasi Parameter Gagal</p>
+                <p className="text-xs font-mono font-bold text-alert-anomaly uppercase tracking-wider">{t('reports.validationFailed', 'Validasi Parameter Gagal')}</p>
                 <p className="text-sm text-on-surface mt-0.5">{errorMsg}</p>
               </div>
             </div>
@@ -293,7 +304,7 @@ export default function ReportsPage() {
             <button
               onClick={() => setErrorMsg(null)}
               className="text-text-muted hover:text-on-surface transition-colors p-1 cursor-pointer"
-              title="Tutup pesan"
+              title={t('common.close', 'Tutup')}
             >
               <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
@@ -304,7 +315,7 @@ export default function ReportsPage() {
         <div className="bg-bg-surface rounded-xl p-5 border border-outline-variant/30 shadow-lg">
           <div className="flex items-center gap-2 mb-5">
             <span className="material-symbols-outlined text-primary text-[22px]">summarize</span>
-            <h2 className="text-xl font-semibold text-on-surface">Report Generator</h2>
+            <h2 className="text-xl font-semibold text-on-surface">{t('reports.reportGenerator', 'Report Generator')}</h2>
           </div>
 
           <form onSubmit={handleGenerate} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
@@ -383,15 +394,21 @@ export default function ReportsPage() {
                   <span className="material-symbols-outlined text-eco-success text-[28px]">verified</span>
                   <div>
                     <div className="flex items-center gap-3">
-                      <h2 className="text-xl font-bold text-on-surface">{reportData.metadata.judulLaporan}</h2>
+                      <h2 className="text-xl font-bold text-on-surface">
+                        {lang === 'en'
+                          ? (REPORT_TYPES.find(r => r.value === reportData.metadata.jenisLaporan)?.label || reportData.metadata.judulLaporan)
+                          : reportData.metadata.judulLaporan}
+                      </h2>
                       {reportData.metadata.modeSimulasi && (
-                        <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-warning-reserved/20 text-warning-reserved border border-warning-reserved/30" title="Pembayaran gerbang keluar masih disimulasikan dari kiosk, belum payment gateway sungguhan">
-                          MODE SIMULASI
+                        <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-warning-reserved/20 text-warning-reserved border border-warning-reserved/30" title={lang === 'en' ? 'Exit gate payments are currently simulated via kiosk' : 'Pembayaran gerbang keluar masih disimulasikan dari kiosk, belum payment gateway sungguhan'}>
+                          {t('reports.simMode', 'MODE SIMULASI')}
                         </span>
                       )}
                     </div>
                     <p className="text-xs font-mono text-text-muted mt-0.5">
-                      Periode: {reportData.metadata.tanggalMulai} s.d. {reportData.metadata.tanggalAkhir} • Digenerate: {reportData.metadata.waktuGenerate} • Total: {reportData.metadata.totalBaris} Data
+                      {lang === 'en'
+                        ? `Period: ${reportData.metadata.tanggalMulai} to ${reportData.metadata.tanggalAkhir} • Generated: ${reportData.metadata.waktuGenerate} • Total: ${reportData.metadata.totalBaris} Records`
+                        : `Periode: ${reportData.metadata.tanggalMulai} s.d. ${reportData.metadata.tanggalAkhir} • Digenerate: ${reportData.metadata.waktuGenerate} • Total: ${reportData.metadata.totalBaris} Data`}
                     </p>
                   </div>
                 </div>
@@ -402,18 +419,18 @@ export default function ReportsPage() {
                   <button
                     onClick={handleExportPdf}
                     disabled={downloadingPdf}
-                    title="Unduh Dokumen PDF Resmi ber-kop surat, ringkasan KPI, dan lembar pengesahan (PK-UC010)"
+                    title={lang === 'en' ? 'Download Official PDF Report with Header, KPI Summary, and Sign-off Sheet (PK-UC010)' : 'Unduh Dokumen PDF Resmi ber-kop surat, ringkasan KPI, dan lembar pengesahan (PK-UC010)'}
                     className="flex items-center gap-2 px-3.5 py-2 rounded-lg border border-red-500/40 text-red-400 bg-red-500/10 hover:bg-red-500/20 active:scale-95 text-xs font-mono font-medium transition-all cursor-pointer shadow-sm disabled:opacity-50"
                   >
                     {downloadingPdf ? (
                       <>
                         <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
-                        Generating PDF...
+                        {t('reports.generatingPdf', 'Generating PDF...')}
                       </>
                     ) : (
                       <>
                         <span className="material-symbols-outlined text-[16px] text-alert-anomaly">picture_as_pdf</span>
-                        Export PDF
+                        {t('reports.btnPdf', 'Export PDF')}
                       </>
                     )}
                   </button>
@@ -422,18 +439,18 @@ export default function ReportsPage() {
                   <button
                     onClick={handleExportXlsx}
                     disabled={downloadingXlsx}
-                    title="Unduh Dokumen Spreadsheet Resmi Excel XLSX (PK-UC010)"
+                    title={lang === 'en' ? 'Download Official Excel XLSX Spreadsheet Report (PK-UC010)' : 'Unduh Dokumen Spreadsheet Resmi Excel XLSX (PK-UC010)'}
                     className="flex items-center gap-2 px-3.5 py-2 rounded-lg border border-emerald-500/40 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-95 text-xs font-mono font-medium transition-all cursor-pointer shadow-sm disabled:opacity-50"
                   >
                     {downloadingXlsx ? (
                       <>
                         <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
-                        Generating XLSX...
+                        {t('reports.generatingXlsx', 'Generating XLSX...')}
                       </>
                     ) : (
                       <>
                         <span className="material-symbols-outlined text-[16px] text-eco-success">table_view</span>
-                        Export XLSX
+                        {t('reports.btnExcel', 'Export XLSX')}
                       </>
                     )}
                   </button>
@@ -444,10 +461,10 @@ export default function ReportsPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {reportData.ringkasan.map((kpi, idx) => (
                   <div key={idx} className="bg-surface-container rounded-lg p-4 border border-outline-variant/20 hover:border-outline-variant/40 transition-colors">
-                    <p className="text-xs font-mono text-on-surface-variant mb-1">{kpi.label}</p>
+                    <p className="text-xs font-mono text-on-surface-variant mb-1">{translateReportKpiLabel(kpi.label, lang)}</p>
                     <div className="flex items-baseline gap-1.5">
                       <p className={`text-2xl font-bold font-mono tracking-tight ${getKpiColor(kpi.warna)}`}>
-                        {kpi.nilai}
+                        {translateDurationText(kpi.nilai, lang)}
                       </p>
                     </div>
                   </div>
@@ -460,22 +477,22 @@ export default function ReportsPage() {
                   <div className="bg-surface-container/60 rounded-lg p-3 border border-outline-variant/20 flex items-center gap-3">
                     <span className="material-symbols-outlined text-primary text-[24px]">payments</span>
                     <div>
-                      <p className="text-[11px] font-mono text-on-surface-variant uppercase">Pilar 1: Finansial</p>
-                      <p className="text-xs font-semibold text-on-surface">Rekap Transaksi & Omset Parkir</p>
+                      <p className="text-[11px] font-mono text-on-surface-variant uppercase">{t('reports.pillar1Title', 'Pilar 1: Finansial')}</p>
+                      <p className="text-xs font-semibold text-on-surface">{t('reports.pillar1Desc', 'Rekap Transaksi & Omset Parkir')}</p>
                     </div>
                   </div>
                   <div className="bg-surface-container/60 rounded-lg p-3 border border-warning-reserved/30 flex items-center gap-3">
                     <span className="material-symbols-outlined text-warning-reserved text-[24px]">sensors</span>
                     <div>
-                      <p className="text-[11px] font-mono text-on-surface-variant uppercase">Pilar 2: IoT & Okupansi</p>
-                      <p className="text-xs font-semibold text-on-surface">Log Node & Resolusi Anomali</p>
+                      <p className="text-[11px] font-mono text-on-surface-variant uppercase">{t('reports.pillar2Title', 'Pilar 2: IoT & Okupansi')}</p>
+                      <p className="text-xs font-semibold text-on-surface">{t('reports.pillar2Desc', 'Log Node & Resolusi Anomali')}</p>
                     </div>
                   </div>
                   <div className="bg-surface-container/60 rounded-lg p-3 border border-eco-success/30 flex items-center gap-3">
                     <span className="material-symbols-outlined text-eco-success text-[24px]">eco</span>
                     <div>
-                      <p className="text-[11px] font-mono text-on-surface-variant uppercase">Pilar 3: Eco-Metric</p>
-                      <p className="text-xs font-semibold text-on-surface">Reduksi Karbon & Waktu Efisien</p>
+                      <p className="text-[11px] font-mono text-on-surface-variant uppercase">{t('reports.pillar3Title', 'Pilar 3: Eco-Metric')}</p>
+                      <p className="text-xs font-semibold text-on-surface">{t('reports.pillar3Desc', 'Reduksi Karbon & Waktu Efisien')}</p>
                     </div>
                   </div>
                 </div>
@@ -486,10 +503,10 @@ export default function ReportsPage() {
             {reportData.metadata.kosong ? (
               <div className="bg-bg-surface rounded-xl p-12 border border-outline-variant/30 text-center flex flex-col items-center justify-center gap-3">
                 <span className="material-symbols-outlined text-text-muted text-[48px]">folder_off</span>
-                <h3 className="text-lg font-bold text-on-surface">Data Kosong Pada Periode Ini</h3>
+                <h3 className="text-lg font-bold text-on-surface">{t('reports.emptyTitle', 'Data Kosong Pada Periode Ini')}</h3>
                 <p className="text-sm text-text-muted max-w-md">{reportData.metadata.pesanStatus}</p>
                 <p className="text-xs font-mono text-primary mt-2">
-                  Saran: Ubah rentang tanggal mulai/akhir ke periode yang memiliki riwayat aktivitas kendaraan.
+                  {t('reports.emptyHint', 'Saran: Ubah rentang tanggal mulai/akhir ke periode yang memiliki riwayat aktivitas kendaraan.')}
                 </p>
               </div>
             ) : (
@@ -500,7 +517,7 @@ export default function ReportsPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-primary text-[20px]">table_chart</span>
-                    <h3 className="text-lg font-semibold text-on-surface">Rincian Data Historis</h3>
+                    <h3 className="text-lg font-semibold text-on-surface">{t('reports.historicalDetails', 'Rincian Data Historis')}</h3>
                   </div>
 
                   {/* Tab selektor pilar data pada laporan komprehensif */}
@@ -511,21 +528,21 @@ export default function ReportsPage() {
                         onClick={() => setKomprehensifTab('finansial')}
                         className={`px-3 py-1.5 rounded-md transition-colors ${komprehensifTab === 'finansial' ? 'bg-primary text-on-primary font-bold shadow' : 'text-on-surface-variant hover:text-on-surface'}`}
                       >
-                        1. Finansial ({reportData.tabelFinansial.length})
+                        1. {t('reports.tabFinancial', 'Finansial')} ({reportData.tabelFinansial.length})
                       </button>
                       <button
                         type="button"
                         onClick={() => setKomprehensifTab('operasional')}
                         className={`px-3 py-1.5 rounded-md transition-colors ${komprehensifTab === 'operasional' ? 'bg-primary text-on-primary font-bold shadow' : 'text-on-surface-variant hover:text-on-surface'}`}
                       >
-                        2. Operasional ({reportData.tabelOperasional.length})
+                        2. {t('reports.tabOperational', 'Operasional')} ({reportData.tabelOperasional.length})
                       </button>
                       <button
                         type="button"
                         onClick={() => setKomprehensifTab('lingkungan')}
                         className={`px-3 py-1.5 rounded-md transition-colors ${komprehensifTab === 'lingkungan' ? 'bg-primary text-on-primary font-bold shadow' : 'text-on-surface-variant hover:text-on-surface'}`}
                       >
-                        3. Lingkungan ({reportData.tabelLingkungan.length})
+                        3. {t('reports.tabEnvironmental', 'Lingkungan')} ({reportData.tabelLingkungan.length})
                       </button>
                     </div>
                   )}
@@ -539,14 +556,14 @@ export default function ReportsPage() {
                       <thead>
                         <tr className="border-b border-surface-variant text-on-surface-variant font-mono text-xs uppercase tracking-wider">
                           <th className="text-left pb-3 pr-3">No</th>
-                          <th className="text-left pb-3 pr-4">No. Tiket</th>
-                          <th className="text-left pb-3 pr-4">Plat Nomor</th>
-                          <th className="text-left pb-3 pr-4">Jenis</th>
-                          <th className="text-left pb-3 pr-4">Waktu Masuk</th>
-                          <th className="text-left pb-3 pr-4">Waktu Keluar</th>
-                          <th className="text-left pb-3 pr-4">Durasi</th>
-                          <th className="text-right pb-3 pr-4">Total Biaya</th>
-                          <th className="text-left pb-3 pr-4">Kanal Bayar</th>
+                          <th className="text-left pb-3 pr-4">{lang === 'en' ? 'Ticket No.' : 'No. Tiket'}</th>
+                          <th className="text-left pb-3 pr-4">{lang === 'en' ? 'Plate Number' : 'Plat Nomor'}</th>
+                          <th className="text-left pb-3 pr-4">{lang === 'en' ? 'Type' : 'Jenis'}</th>
+                          <th className="text-left pb-3 pr-4">{lang === 'en' ? 'Entry Time' : 'Waktu Masuk'}</th>
+                          <th className="text-left pb-3 pr-4">{lang === 'en' ? 'Exit Time' : 'Waktu Keluar'}</th>
+                          <th className="text-left pb-3 pr-4">{lang === 'en' ? 'Duration' : 'Durasi'}</th>
+                          <th className="text-right pb-3 pr-4">{lang === 'en' ? 'Total Fee' : 'Total Biaya'}</th>
+                          <th className="text-left pb-3 pr-4">{lang === 'en' ? 'Payment Channel' : 'Kanal Bayar'}</th>
                           <th className="text-center pb-3">Status</th>
                         </tr>
                       </thead>
@@ -556,10 +573,10 @@ export default function ReportsPage() {
                             <td className="py-3 pr-3 font-mono text-on-surface-variant text-xs">{row.no}</td>
                             <td className="py-3 pr-4 font-mono text-primary text-xs font-semibold">{row.nomorTiket}</td>
                             <td className="py-3 pr-4 font-mono text-on-surface text-sm font-bold">{row.platNomor}</td>
-                            <td className="py-3 pr-4 font-mono text-on-surface-variant text-xs">{row.jenisKendaraan}</td>
+                            <td className="py-3 pr-4 font-mono text-on-surface-variant text-xs">{translateVehicleType(row.jenisKendaraan, lang)}</td>
                             <td className="py-3 pr-4 font-mono text-on-surface-variant text-xs">{row.waktuMasuk}</td>
                             <td className="py-3 pr-4 font-mono text-on-surface-variant text-xs">{row.waktuKeluar}</td>
-                            <td className="py-3 pr-4 font-mono text-on-surface text-xs">{row.durasiTeks}</td>
+                            <td className="py-3 pr-4 font-mono text-on-surface text-xs">{translateDurationText(row.durasiTeks, lang)}</td>
                             <td className="py-3 pr-4 font-mono text-eco-success font-bold text-sm text-right">
                               Rp {Number(row.totalTarif).toLocaleString('id-ID')}
                             </td>
@@ -570,7 +587,7 @@ export default function ReportsPage() {
                             </td>
                             <td className="py-3 text-center">
                               <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-eco-success/20 text-eco-success border border-eco-success/30">
-                                {row.statusPembayaran}
+                                {lang === 'en' && row.statusPembayaran === 'LUNAS' ? 'PAID' : row.statusPembayaran}
                               </span>
                             </td>
                           </tr>
@@ -588,14 +605,14 @@ export default function ReportsPage() {
                       <thead>
                         <tr className="border-b border-surface-variant text-on-surface-variant font-mono text-xs uppercase tracking-wider">
                           <th className="text-left pb-3 pr-3">No</th>
-                          <th className="text-left pb-3 pr-4">ID Log</th>
-                          <th className="text-left pb-3 pr-4">Waktu Kejadian</th>
+                          <th className="text-left pb-3 pr-4">{lang === 'en' ? 'Log ID' : 'ID Log'}</th>
+                          <th className="text-left pb-3 pr-4">{lang === 'en' ? 'Incident Time' : 'Waktu Kejadian'}</th>
                           <th className="text-left pb-3 pr-4">Slot / Node</th>
-                          <th className="text-left pb-3 pr-4">Tipe Kejadian</th>
-                          <th className="text-left pb-3 pr-4">Jenis Anomali</th>
-                          <th className="text-left pb-3 pr-4">Catatan Detail</th>
+                          <th className="text-left pb-3 pr-4">{lang === 'en' ? 'Event Type' : 'Tipe Kejadian'}</th>
+                          <th className="text-left pb-3 pr-4">{lang === 'en' ? 'Anomaly Type' : 'Jenis Anomali'}</th>
+                          <th className="text-left pb-3 pr-4">{lang === 'en' ? 'Detail Notes' : 'Catatan Detail'}</th>
                           <th className="text-center pb-3 pr-4">Severity</th>
-                          <th className="text-center pb-3">Status Resolusi</th>
+                          <th className="text-center pb-3">{lang === 'en' ? 'Resolution Status' : 'Status Resolusi'}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -604,15 +621,15 @@ export default function ReportsPage() {
                             <td className="py-3 pr-3 font-mono text-on-surface-variant text-xs">{row.no}</td>
                             <td className="py-3 pr-4 font-mono text-primary text-xs font-semibold">{row.idLog}</td>
                             <td className="py-3 pr-4 font-mono text-on-surface-variant text-xs">{row.waktu}</td>
-                            <td className="py-3 pr-4 font-mono text-on-surface text-xs font-bold">{row.idSlot}</td>
-                            <td className="py-3 pr-4 font-mono text-on-surface text-xs">{row.jenisKejadian}</td>
+                            <td className="py-3 pr-4 font-mono text-on-surface text-xs font-bold">{String(row.idSlot || '-').replace(/^M(\d+)/, 'B$1')}</td>
+                            <td className="py-3 pr-4 font-mono text-on-surface text-xs">{translateLogEventType(row.jenisKejadian, lang)}</td>
                             <td className="py-3 pr-4 font-mono text-on-surface text-xs">
                               <span className="px-2 py-0.5 rounded bg-surface-container-highest border border-outline-variant/30 text-[11px] font-semibold text-primary">
-                                {row.jenisAnomali || '-'}
+                                {translateAnomalyCategory(row.jenisAnomali, lang)}
                               </span>
                             </td>
-                            <td className="py-3 pr-4 text-xs text-text-muted max-w-xs truncate" title={row.catatanDetail}>
-                              {row.catatanDetail}
+                            <td className="py-3 pr-4 text-xs text-text-muted max-w-xs truncate" title={translateLogDetail(row.catatanDetail, lang)}>
+                              {translateLogDetail(row.catatanDetail, lang)}
                             </td>
                             <td className="py-3 pr-4 text-center">
                               <span
@@ -635,7 +652,7 @@ export default function ReportsPage() {
                                     : 'bg-alert-anomaly/20 text-alert-anomaly border border-alert-anomaly/30'
                                 }`}
                               >
-                                {row.statusResolusi}
+                                {translateResolutionStatus(row.statusResolusi, lang)}
                               </span>
                             </td>
                           </tr>
@@ -653,14 +670,14 @@ export default function ReportsPage() {
                       <thead>
                         <tr className="border-b border-surface-variant text-on-surface-variant font-mono text-xs uppercase tracking-wider">
                           <th className="text-left pb-3 pr-3">No</th>
-                          <th className="text-left pb-3 pr-4">Plat Nomor</th>
-                          <th className="text-left pb-3 pr-4">Slot Tujuan</th>
-                          <th className="text-left pb-3 pr-4">Waktu Masuk</th>
-                          <th className="text-left pb-3 pr-4">Tiba di Slot</th>
-                          <th className="text-right pb-3 pr-4">Durasi Nyata</th>
-                          <th className="text-right pb-3 pr-4">Waktu Normal</th>
-                          <th className="text-right pb-3 pr-4">Waktu Dihemat</th>
-                          <th className="text-right pb-3">Reduksi CO2</th>
+                          <th className="text-left pb-3 pr-4">{lang === 'en' ? 'Plate Number' : 'Plat Nomor'}</th>
+                          <th className="text-left pb-3 pr-4">{lang === 'en' ? 'Target Slot' : 'Slot Tujuan'}</th>
+                          <th className="text-left pb-3 pr-4">{lang === 'en' ? 'Entry Time' : 'Waktu Masuk'}</th>
+                          <th className="text-left pb-3 pr-4">{lang === 'en' ? 'Slot Arrival' : 'Tiba di Slot'}</th>
+                          <th className="text-right pb-3 pr-4">{lang === 'en' ? 'Actual Duration' : 'Durasi Nyata'}</th>
+                          <th className="text-right pb-3 pr-4">{lang === 'en' ? 'Baseline Time' : 'Waktu Normal'}</th>
+                          <th className="text-right pb-3 pr-4">{lang === 'en' ? 'Time Saved' : 'Waktu Dihemat'}</th>
+                          <th className="text-right pb-3">{lang === 'en' ? 'CO2 Reduction' : 'Reduksi CO2'}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -668,13 +685,13 @@ export default function ReportsPage() {
                           <tr key={row.no} className="border-b border-surface-container hover:bg-surface-container-high transition-colors">
                             <td className="py-3 pr-3 font-mono text-on-surface-variant text-xs">{row.no}</td>
                             <td className="py-3 pr-4 font-mono text-on-surface text-sm font-bold">{row.platNomor}</td>
-                            <td className="py-3 pr-4 font-mono text-primary text-xs font-semibold">{row.idSlot}</td>
+                            <td className="py-3 pr-4 font-mono text-primary text-xs font-semibold">{String(row.idSlot || '-').replace(/^M(\d+)/, 'B$1')}</td>
                             <td className="py-3 pr-4 font-mono text-on-surface-variant text-xs">{row.waktuMasuk}</td>
                             <td className="py-3 pr-4 font-mono text-on-surface-variant text-xs">{row.waktuTiba}</td>
-                            <td className="py-3 pr-4 font-mono text-on-surface text-xs text-right">{row.durasiTempuhDetik} dtk</td>
-                            <td className="py-3 pr-4 font-mono text-text-muted text-xs text-right">{row.waktuNormalDetik} dtk</td>
+                            <td className="py-3 pr-4 font-mono text-on-surface text-xs text-right">{row.durasiTempuhDetik} {t('reports.secUnit', 'dtk')}</td>
+                            <td className="py-3 pr-4 font-mono text-text-muted text-xs text-right">{row.waktuNormalDetik} {t('reports.secUnit', 'dtk')}</td>
                             <td className="py-3 pr-4 font-mono text-secondary font-bold text-xs text-right">
-                              {row.menitDihemat} mnt
+                              {row.menitDihemat} {t('reports.minUnit', 'mnt')}
                             </td>
                             <td className="py-3 font-mono text-eco-success font-bold text-sm text-right">
                               {row.reduksiCo2Gram} g
@@ -696,9 +713,9 @@ export default function ReportsPage() {
             <div className="flex items-center gap-3">
               <span className="material-symbols-outlined text-primary text-[24px]">verified_user</span>
               <div>
-                <h3 className="text-lg font-bold text-on-surface">Riwayat Unduhan Dokumen (Audit Trail)</h3>
+                <h3 className="text-lg font-bold text-on-surface">{t('reports.auditTitle', 'Riwayat Unduhan Dokumen (Audit Trail)')}</h3>
                 <p className="text-xs font-mono text-text-muted mt-0.5">
-                  LOG KEAMANAN // REKAM JEJAK PENARIKAN DOKUMEN RESMI (PK-UC010 LANGKAH 19–20)
+                  {t('reports.auditSubtitle', 'LOG KEAMANAN // REKAM JEJAK PENARIKAN DOKUMEN RESMI (PK-UC010 LANGKAH 19–20)')}
                 </p>
               </div>
             </div>
@@ -706,13 +723,13 @@ export default function ReportsPage() {
             <button
               onClick={fetchAuditLogs}
               disabled={loadingAudit}
-              title="Perbarui daftar riwayat audit"
+              title={t('reports.refreshAudit', 'Perbarui daftar riwayat audit')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-outline-variant/60 text-on-surface-variant hover:text-on-surface bg-surface-container hover:bg-surface-container-high text-xs font-mono transition-colors cursor-pointer"
             >
               <span className={`material-symbols-outlined text-[16px] ${loadingAudit ? 'animate-spin' : ''}`}>
                 refresh
               </span>
-              Refresh Audit
+              {t('reports.refreshAudit', 'Refresh Audit')}
             </button>
           </div>
 
@@ -720,11 +737,11 @@ export default function ReportsPage() {
           {loadingAudit && auditLogs.length === 0 ? (
             <div className="py-8 text-center text-text-muted font-mono text-xs flex items-center justify-center gap-2">
               <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
-              Memuat log audit unduhan...
+              {t('reports.loadingAudit', 'Memuat log audit unduhan...')}
             </div>
           ) : auditLogs.length === 0 ? (
             <div className="py-8 text-center text-text-muted font-mono text-xs">
-              Belum ada riwayat dokumen yang diunduh pada sistem ini.
+              {t('reports.noAudit', 'Belum ada riwayat dokumen yang diunduh pada sistem ini.')}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -732,12 +749,12 @@ export default function ReportsPage() {
                 <thead>
                   <tr className="border-b border-surface-variant text-on-surface-variant font-mono text-xs uppercase tracking-wider">
                     <th className="text-left pb-3 pr-3">ID</th>
-                    <th className="text-left pb-3 pr-4">Waktu Unduh</th>
-                    <th className="text-left pb-3 pr-4">Pengguna</th>
-                    <th className="text-left pb-3 pr-4">Jenis Laporan</th>
+                    <th className="text-left pb-3 pr-4">{lang === 'en' ? 'Download Time' : 'Waktu Unduh'}</th>
+                    <th className="text-left pb-3 pr-4">{lang === 'en' ? 'User' : 'Pengguna'}</th>
+                    <th className="text-left pb-3 pr-4">{lang === 'en' ? 'Report Type' : 'Jenis Laporan'}</th>
                     <th className="text-center pb-3 pr-4">Format</th>
-                    <th className="text-left pb-3 pr-4">Nama Berkas</th>
-                    <th className="text-right pb-3 pr-4">Ukuran</th>
+                    <th className="text-left pb-3 pr-4">{lang === 'en' ? 'Filename' : 'Nama Berkas'}</th>
+                    <th className="text-right pb-3 pr-4">{lang === 'en' ? 'Size' : 'Ukuran'}</th>
                     <th className="text-center pb-3">Status</th>
                   </tr>
                 </thead>
@@ -751,7 +768,7 @@ export default function ReportsPage() {
                       <td className="py-3 pr-4 font-mono text-on-surface text-xs font-semibold">{log.pengguna}</td>
                       <td className="py-3 pr-4 font-mono text-xs">
                         <span className="px-2 py-0.5 rounded bg-surface-container-highest border border-outline-variant/30 text-[11px] text-on-surface">
-                          {log.jenisLaporan}
+                          {translateReportType(log.jenisLaporan, lang)}
                         </span>
                       </td>
                       <td className="py-3 pr-4 text-center">
@@ -773,7 +790,7 @@ export default function ReportsPage() {
                       </td>
                       <td className="py-3 text-center">
                         <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-eco-success/20 text-eco-success border border-eco-success/30">
-                          {log.statusKeberhasilan}
+                          {lang === 'en' && (log.statusKeberhasilan === 'BERHASIL' || log.statusKeberhasilan === 'SUKSES') ? 'SUCCESS' : log.statusKeberhasilan}
                         </span>
                       </td>
                     </tr>

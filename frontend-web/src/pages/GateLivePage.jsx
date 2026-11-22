@@ -4,28 +4,32 @@ import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '../components/AppLayout';
 // Import hook useLanguage untuk dukungan internasionalisasi teks
 import { useLanguage } from '../context/LanguageContext';
+// Import fungsi helper penerjemahan arah gerbang dan hasil deteksi OCR
+import { translateGateDirection, translateDetectionResult } from '../i18n/i18nHelpers';
 
 // Mendefinisikan konstanta alamat dasar server backend Spring Boot (port 8081)
 const API_BASE = 'http://localhost:8081';
 
-// Pemetaan ID perangkat kamera backend ke label antarmuka yang informatif dan arah gerbang
+// Pemetaan ID perangkat kamera backend ke label antarmuka dwibahasa dan arah gerbang
 const KAMERA_LABELS = {
-  'PG-IN-MOB':  { label: 'Entry-Mobil (A)', arah: 'MASUK' }, // Kamera gerbang masuk mobil
-  'PG-IN-MOT':  { label: 'Entry-Motor (B)', arah: 'MASUK' }, // Kamera gerbang masuk motor
-  'PG-OUT-MOB': { label: 'Exit-Mobil',      arah: 'KELUAR' }, // Kamera gerbang keluar mobil
-  'PG-OUT-MOT': { label: 'Exit-Motor',      arah: 'KELUAR' }, // Kamera gerbang keluar motor
+  'PG-IN-MOB':  { id: 'Entry-Mobil (A)', en: 'Entry-Car (A)',        arah: 'MASUK' }, // Kamera gerbang masuk mobil
+  'PG-IN-MOT':  { id: 'Entry-Motor (B)', en: 'Entry-Motorcycle (B)', arah: 'MASUK' }, // Kamera gerbang masuk motor
+  'PG-OUT-MOB': { id: 'Exit-Mobil',      en: 'Exit-Car',             arah: 'KELUAR' }, // Kamera gerbang keluar mobil
+  'PG-OUT-MOT': { id: 'Exit-Motor',      en: 'Exit-Motorcycle',      arah: 'KELUAR' }, // Kamera gerbang keluar motor
 };
 
-// Objek gaya tampilan visual status deteksi kamera ANPR
+// Objek konfigurasi gaya tampilan visual status deteksi kamera ANPR
 const statusStyles = {
-  success: { label: 'TERBACA',      cls: 'bg-eco-success/20 text-eco-success border border-eco-success/30',       dot: 'bg-eco-success',    border: 'border-outline-variant' }, // Status plat nomor berhasil dikenali
-  anomaly: { label: 'SALDO KURANG', cls: 'bg-alert-anomaly/20 text-alert-anomaly border border-alert-anomaly/30 animate-pulse', dot: 'bg-alert-anomaly', border: 'border-alert-anomaly/50' }, // Status anomali pembayaran gerbang keluar
-  idle:    { label: 'IDLE',         cls: 'bg-surface-variant text-on-surface-variant border border-outline-variant', dot: 'bg-outline-variant', border: 'border-outline-variant' }, // Status siaga menunggu kendaraan
-  offline: { label: 'OFFLINE',      cls: 'bg-red-950/30 text-red-400 border border-red-700/40',                  dot: 'bg-red-500',        border: 'border-red-700/40' }, // Status kamera terputus
+  success: { labelKey: 'gate.statusReadable',   defaultLabel: 'TERBACA',      cls: 'bg-eco-success/20 text-eco-success border border-eco-success/30',       dot: 'bg-eco-success',    border: 'border-outline-variant' }, // Status plat nomor berhasil dikenali
+  anomaly: { labelKey: 'gate.statusBalanceLow', defaultLabel: 'SALDO KURANG', cls: 'bg-alert-anomaly/20 text-alert-anomaly border border-alert-anomaly/30 animate-pulse', dot: 'bg-alert-anomaly', border: 'border-alert-anomaly/50' }, // Status anomali pembayaran gerbang keluar
+  idle:    { labelKey: null,                    defaultLabel: 'IDLE',         cls: 'bg-surface-variant text-on-surface-variant border border-outline-variant', dot: 'bg-outline-variant', border: 'border-outline-variant' }, // Status siaga menunggu kendaraan
+  offline: { labelKey: null,                    defaultLabel: 'OFFLINE',      cls: 'bg-red-950/30 text-red-400 border border-red-700/40',                  dot: 'bg-red-500',        border: 'border-red-700/40' }, // Status kamera terputus
 };
 
 // Komponen pembantu CameraCard untuk merender feed visual simulasi per kamera gerbang
 function CameraCard({ kamera, deteksiTerbaru }) {
+  // Mengambil helper translasi t dan kode bahasa aktif lang dari LanguageContext
+  const { t, lang } = useLanguage();
   // Evaluasi boolean apakah perangkat kamera berstatus mati (OFF)
   const isOffline = kamera.statusKamera === 'OFF';
   // Evaluasi boolean apakah deteksi plat terbaru dinyatakan BERHASIL
@@ -44,10 +48,13 @@ function CameraCard({ kamera, deteksiTerbaru }) {
 
   // Mengambil konfigurasi styling sesuai kunci gaya yang aktif
   const style = statusStyles[styleKey];
-  // Mengambil informasi label ramah kamera dari KAMERA_LABELS
-  const labelInfo = KAMERA_LABELS[kamera.idKamera] || { label: kamera.idKamera };
+  // Menentukan teks badge status sesuai bahasa aktif
+  const statusLabel = style.labelKey ? t(style.labelKey, style.defaultLabel) : style.defaultLabel;
+  // Mengambil informasi label ramah kamera dari KAMERA_LABELS sesuai bahasa
+  const labelInfo = KAMERA_LABELS[kamera.idKamera];
+  const cameraLabel = labelInfo ? (lang === 'en' ? labelInfo.en : labelInfo.id) : kamera.idKamera;
   // Menentukan teks ID plat kendaraan yang ditampilkan jika deteksi berhasil
-  const plateTampil = hasDeteksi ? `ID Kendaraan: ${deteksiTerbaru.idKendaraan}` : null;
+  const plateTampil = hasDeteksi ? `${t('gate.vehicleId', 'ID Kendaraan')}: ${deteksiTerbaru.idKendaraan}` : null;
 
   // Mengembalikan elemen JSX kartu visual kamera live OCR
   return (
@@ -75,13 +82,13 @@ function CameraCard({ kamera, deteksiTerbaru }) {
       <div className="absolute top-0 left-0 w-full p-3 flex justify-between items-start bg-gradient-to-b from-black/80 to-transparent z-[2]">
         <div className="flex items-center gap-2">
           <span className={`material-symbols-outlined text-sm ${isOffline ? 'text-red-500' : hasDeteksi ? 'text-system-info' : 'text-text-muted'}`}>videocam</span>
-          <span className={`font-mono text-xs font-bold tracking-widest ${isOffline ? 'text-red-400' : hasDeteksi ? 'text-system-info' : 'text-text-muted'}`}>{labelInfo.label}</span>
+          <span className={`font-mono text-xs font-bold tracking-widest ${isOffline ? 'text-red-400' : hasDeteksi ? 'text-system-info' : 'text-text-muted'}`}>{cameraLabel}</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="font-mono text-[9px] text-[#5d8099] bg-black/60 px-1.5 py-0.5 rounded border border-outline-variant/20">{kamera.idKamera}</span>
           <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider backdrop-blur-sm flex items-center gap-1 ${style.cls}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`}></span>
-            {style.label}
+            {statusLabel}
           </span>
         </div>
       </div>
@@ -89,24 +96,24 @@ function CameraCard({ kamera, deteksiTerbaru }) {
       {/* Bagian HUD bawah kartu kamera menampilkan hasil deteksi plat nomor dan tingkat keyakinan (confidence) */}
       <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black via-black/80 to-transparent z-[2]">
         {isOffline ? (
-          <p className="font-mono text-xs text-red-400 tracking-widest text-center">KAMERA OFFLINE — PERLU MAINTENANCE</p>
+          <p className="font-mono text-xs text-red-400 tracking-widest text-center">{t('gate.cameraOfflineMsg', 'KAMERA OFFLINE — PERLU PERAWATAN')}</p>
         ) : hasDeteksi ? (
           <div className="flex justify-between items-end">
             <div>
-              <p className="text-[10px] text-text-muted font-mono uppercase tracking-widest mb-1">Last Detected Plate</p>
+              <p className="text-[10px] text-text-muted font-mono uppercase tracking-widest mb-1">{t('gate.lastPlate', 'Plat Terdeteksi Terakhir')}</p>
               <p className="font-mono text-xl font-bold tracking-widest drop-shadow-lg text-primary">
                 {plateTampil}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-[10px] text-text-muted font-mono uppercase tracking-widest mb-1">Confidence</p>
+              <p className="text-[10px] text-text-muted font-mono uppercase tracking-widest mb-1">{t('gate.confidence', 'Confidence')}</p>
               <p className="font-mono text-sm text-eco-success">
                 {deteksiTerbaru.confidenceScore ? `${(deteksiTerbaru.confidenceScore * 100).toFixed(1)}%` : 'N/A'}
               </p>
             </div>
           </div>
         ) : (
-          <p className="font-mono text-xs text-text-muted tracking-widest text-center">WAITING FOR VEHICLE...</p>
+          <p className="font-mono text-xs text-text-muted tracking-widest text-center">{t('gate.waitingVehicle', 'MENUNGGU KENDARAAN...')}</p>
         )}
       </div>
 
@@ -212,7 +219,7 @@ export default function GateLivePage() {
             <h1 className="text-4xl font-bold text-on-surface tracking-tight">{t('gate.title', 'Live OCR Feed')}</h1>
             <p className="text-text-muted font-mono text-sm mt-1">
               GATE_CLUSTER // {totalOnline} {lang === 'en' ? 'ACTIVE CAMERAS' : 'KAMERA AKTIF'} {totalOffline > 0 && `• ${totalOffline} OFFLINE`}
-              {lastRefresh && <span className="ml-3 text-[#5d8099]">Last update: {lastRefresh}</span>}
+              {lastRefresh && <span className="ml-3 text-[#5d8099]">{t('gate.lastUpdate', 'Pembaruan terakhir')}: {lastRefresh}</span>}
             </p>
           </div>
           <div className="flex gap-2">
@@ -236,7 +243,7 @@ export default function GateLivePage() {
               className="bg-primary-container text-on-primary-container hover:brightness-110 disabled:opacity-50 px-3 py-1.5 rounded text-sm font-mono font-bold transition-all flex items-center gap-1.5"
             >
               <span className={`material-symbols-outlined text-[16px] ${isLoading ? 'animate-spin' : ''}`}>refresh</span>
-              REFRESH FEED
+              {t('gate.refreshFeed', 'REFRESH FEED')}
             </button>
           </div>
         </div>
@@ -245,7 +252,7 @@ export default function GateLivePage() {
         {isLoading && kameraList.length === 0 ? (
           <div className="h-[600px] flex items-center justify-center text-text-muted font-mono text-sm">
             <span className="material-symbols-outlined animate-spin mr-2">progress_activity</span>
-            {t('dash.loading','Memuat data kamera dari server...')}
+            {t('dash.loadingCamera', 'Memuat data kamera...')}
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5" style={{ height: '600px' }}>
@@ -264,10 +271,10 @@ export default function GateLivePage() {
         <div className="bg-surface-container rounded-xl border border-surface-container-highest p-5">
           <div className="flex justify-between items-center border-b border-surface-container-highest pb-3 mb-3">
             <h3 className="font-mono text-sm text-on-surface font-bold tracking-wider">
-              Activity Stream — Log Deteksi Plat
+              {t('gate.activityStreamTitle', 'Activity Stream — Log Deteksi Plat')}
             </h3>
             <span className="text-xs text-text-muted font-mono">
-              {logDeteksi.length > 0 ? `${logDeteksi.length} RECORDS` : (lang === 'en' ? 'NO DATA YET' : 'BELUM ADA DATA')}
+              {logDeteksi.length > 0 ? `${logDeteksi.length} ${t('gate.recordsSuffix', 'REKAMAN')}` : (lang === 'en' ? 'NO DATA YET' : 'BELUM ADA DATA')}
             </span>
           </div>
 
@@ -275,14 +282,15 @@ export default function GateLivePage() {
           {logDeteksi.length === 0 ? (
             <div className="py-8 text-center text-text-muted font-mono text-xs">
               <span className="material-symbols-outlined text-[40px] mb-2 block opacity-30">history</span>
-              Belum ada log deteksi plat. Simulasi ALPR akan mengisi tabel ini.
+              {t('gate.noPlateLogs', 'Belum ada log deteksi plat. Simulasi ALPR akan mengisi tabel ini.')}
             </div>
           ) : (
             // Daftar baris log deteksi plat nomor
             <div className="flex flex-col gap-1">
               {logDeteksi.slice(0, 20).map((log, i) => {
                 const isGagal = log.hasilDeteksi === 'GAGAL';
-                const kameraLabel = KAMERA_LABELS[log.kameraAsal?.idKamera]?.label || log.kameraAsal?.idKamera || '-';
+                const kamInfo = KAMERA_LABELS[log.kameraAsal?.idKamera];
+                const kameraLabel = kamInfo ? (lang === 'en' ? kamInfo.en : kamInfo.id) : (log.kameraAsal?.idKamera || '-');
                 return (
                   <div
                     key={log.idLogDeteksi || i}
@@ -295,12 +303,12 @@ export default function GateLivePage() {
                       </span>
                       {/* Nomor plat kendaraan terdeteksi */}
                       <span className={`px-2 py-0.5 rounded text-xs font-mono border ${isGagal ? 'text-alert-anomaly border-alert-anomaly/30 bg-surface-container-highest' : 'text-primary border-surface-variant bg-surface-container-highest'}`}>
-                        {log.kendaraanTerdeteksi?.platNomor || 'TIDAK TERBACA'}
+                        {log.kendaraanTerdeteksi?.platNomor || t('gate.unreadable', 'TIDAK TERBACA')}
                       </span>
                       {/* Label identitas kamera penangkap */}
                       <span className="text-xs text-on-surface-variant">{kameraLabel}</span>
                       {/* Arah pergerakan kendaraan (MASUK/KELUAR) */}
-                      <span className="text-xs text-[#5d8099] font-mono">{log.arah}</span>
+                      <span className="text-xs text-[#5d8099] font-mono">{translateGateDirection(log.arah, lang)}</span>
                     </div>
                     <div className="flex items-center gap-3">
                       {/* Persentase skor keyakinan OCR */}
@@ -311,7 +319,7 @@ export default function GateLivePage() {
                       )}
                       {/* Status hasil pembacaan plat nomor */}
                       <span className={`text-xs font-mono ${isGagal ? 'text-alert-anomaly' : 'text-eco-success'}`}>
-                        {log.hasilDeteksi}
+                        {translateDetectionResult(log.hasilDeteksi, lang)}
                       </span>
                     </div>
                   </div>

@@ -95,7 +95,7 @@ export default function TopBar({ breadcrumb, status }) {
             <button
               id="btn-topbar-notification"
               onClick={() => setIsNotificationOpen((prev) => !prev)}
-              title="Notifikasi Sistem"
+              title={t('topbar.notifTooltip', 'Notifikasi Sistem')}
               className={`text-on-surface-variant hover:text-primary transition-all duration-200 w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container-high cursor-pointer relative ${
                 isNotificationOpen ? 'bg-surface-container-high text-primary' : ''
               }`}
@@ -121,14 +121,14 @@ export default function TopBar({ breadcrumb, status }) {
 
           {/* Tombol ikon status jaringan IoT */}
           <button
-            title="Status Jaringan IoT"
+            title={t('topbar.wifiTooltip', 'Status Jaringan IoT')}
             className="text-on-surface-variant hover:text-primary transition-all duration-200 w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-high cursor-pointer"
           >
             <span className="material-symbols-outlined text-[20px]">wifi</span>
           </button>
           {/* Tombol ikon efisiensi ramah lingkungan */}
           <button
-            title="Indikator Efisiensi Eco"
+            title={t('topbar.ecoTooltip', 'Indikator Efisiensi Eco')}
             className="text-eco-success hover:text-primary transition-all duration-200 w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-high cursor-pointer"
           >
             <span className="material-symbols-outlined text-[20px]">eco</span>

@@ -143,7 +143,7 @@ export function NotificationProvider({ children }) {
           // Menentukan status baca apakah sudah ada di storage atau telah berstatus selesai divalidasi
           const isAlreadyRead = currentReadIds.has(id) || log.statusResolusi === 'SELESAI_DIVALIDASI';
 
-          // Mengembalikan objek notifikasi yang telah distandardisasi
+          // Mengembalikan objek notifikasi yang telah distandardisasi beserta metadata terjemahan reaktif
           return {
             id,
             type,
@@ -158,6 +158,14 @@ export function NotificationProvider({ children }) {
             slotId: log.slotTerkait?.idSlot ? log.slotTerkait.idSlot.replace(/^M(\d+)/, 'B$1') : undefined,
             severity: log.tingkatKeparahan || (isAnomaly ? 'CRITICAL' : 'INFO'),
             link: isAnomaly ? '/anomaly-logs' : '/dashboard',
+            i18nMeta: {
+              kind: isAnomaly ? 'ANOMALY' : (isEntry ? 'ENTRY' : 'SYSTEM'),
+              idLog: log.idLog,
+              jenisAnomali: log.jenisAnomali,
+              slotId: (log.slotTerkait?.idSlot || '-').replace(/^M(\d+)/, 'B$1'),
+              rawDetail: log.catatanDetail,
+              hasWaktu: Boolean(log.waktuKejadian),
+            },
           };
         });
 

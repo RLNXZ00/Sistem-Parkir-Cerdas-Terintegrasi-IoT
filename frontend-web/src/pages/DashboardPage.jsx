@@ -4,6 +4,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import AppLayout from '../components/AppLayout';
 // Import hook useLanguage dari konteks bahasa untuk internasionalisasi label dan teks
 import { useLanguage } from '../context/LanguageContext';
+// Import fungsi helper penerjemahan event IoT, log, arah gerbang, jenis kendaraan, dan status slot
+import {
+  translateLogEventType,
+  translateLogDetail,
+  translateVehicleType,
+  translateGateDirection,
+  translateSlotStatus,
+} from '../i18n/i18nHelpers';
 
 // Mendefinisikan konstanta alamat dasar server backend Spring Boot (port 8081)
 const API_BASE = 'http://localhost:8081';
@@ -36,8 +44,8 @@ function bacaStatusPeta() {
 
 // Deklarasi fungsi komponen publik DashboardPage untuk pemantauan operasional lapangan
 export default function DashboardPage() {
-  // Mengambil fungsi penerjemah t dari context LanguageContext
-  const { t } = useLanguage();
+  // Mengambil fungsi penerjemah t dan kode bahasa aktif lang dari context LanguageContext
+  const { t, lang } = useLanguage();
   // Inisialisasi state slots bertipe array kosong untuk menampung seluruh slot parkir
   const [slots, setSlots] = useState([]);
   // Inisialisasi state kameraList bertipe array kosong untuk menampung daftar perangkat kamera ANPR
@@ -364,29 +372,29 @@ export default function DashboardPage() {
               {/* Baris pemilih kategori kendaraan dan lantai */}
               <div className="flex justify-between items-end">
                 {/* Tab jenis kendaraan */}
-                <div className="slot-tabs" role="tablist" aria-label="Pilih jenis kendaraan">
-                  {TAB_JENIS.map(t => {
-                    const aktif = t.key === jenisAktif;
+                <div className="slot-tabs" role="tablist" aria-label={t('dash.car', 'Mobil')}>
+                  {TAB_JENIS.map(tabJenis => {
+                    const aktif = tabJenis.key === jenisAktif;
                     return (
                       <button
-                        key={t.key}
-                        id={`tab-jenis-${t.key.toLowerCase()}`}
+                        key={tabJenis.key}
+                        id={`tab-jenis-${tabJenis.key.toLowerCase()}`}
                         type="button"
                         role="tab"
                         aria-selected={aktif}
-                        onClick={() => setJenisAktif(t.key)}
+                        onClick={() => setJenisAktif(tabJenis.key)}
                         className={`slot-tab ${aktif ? 'active' : ''}`}
                       >
-                        <span className={`material-symbols-outlined text-[18px] ${aktif ? 'text-primary' : ''}`}>{t.icon}</span>
-                        <span className="font-semibold">{t.label}</span>
-                        <span className="slot-tab-count font-mono">{hitungKosong(lantaiTerpilih, t.key)} kosong</span>
+                        <span className={`material-symbols-outlined text-[18px] ${aktif ? 'text-primary' : ''}`}>{tabJenis.icon}</span>
+                        <span className="font-semibold">{tabJenis.label}</span>
+                        <span className="slot-tab-count font-mono">{hitungKosong(lantaiTerpilih, tabJenis.key)} {t('dash.vacantSuffix', 'kosong')}</span>
                       </button>
                     );
                   })}
                 </div>
 
                 {/* Panel tombol pemilih lantai */}
-                <div id="panel-lantai" className="floor-panel inline-flex items-center gap-1 p-1 pb-[5px] rounded-t-lg border border-b-0 border-surface-variant bg-surface-container-lowest" role="tablist" aria-label="Pilih lantai">
+                <div id="panel-lantai" className="floor-panel inline-flex items-center gap-1 p-1 pb-[5px] rounded-t-lg border border-b-0 border-surface-variant bg-surface-container-lowest" role="tablist" aria-label={t('dash.floor', 'Lantai')}>
                   <span className="material-symbols-outlined text-[18px] text-text-muted px-1.5">layers</span>
                   {lantaiTersedia.map(lt => {
                     const aktif = lt === lantaiTerpilih;
@@ -418,21 +426,23 @@ export default function DashboardPage() {
                 {isLoading ? (
                   <div className="py-12 text-center text-text-muted font-mono text-xs">
                     <span className="material-symbols-outlined animate-spin text-[32px] mb-2 block">progress_activity</span>
-                    Memuat data slot dari server...
+                    {t('dash.loading', 'Memuat data slot dari server...')}
                   </div>
                 ) : slots.length === 0 ? (
                   <div className="py-12 text-center text-text-muted font-mono text-xs">
-                    Tidak ada data slot parkir.
+                    {t('dash.noSlots', 'Tidak ada data slot parkir.')}
                   </div>
                 ) : visibleSlots.length === 0 ? (
                   <div className="py-12 text-center text-text-muted font-mono text-xs">
-                    Belum ada slot {jenisAktif.toLowerCase()} di Lantai {lantaiTerpilih}.
+                    {t('dash.noVehicleSlot', 'Belum ada slot {jenis} di {lantai}.')
+                      .replace('{jenis}', translateVehicleType(jenisAktif, lang).toLowerCase())
+                      .replace('{lantai}', `${t('dash.floor', 'Lantai')} ${lantaiTerpilih}`)}
                   </div>
                 ) : (
                   <div className="relative z-10 flex flex-col gap-4" key={`${lantaiTerpilih}-${jenisAktif}`}>
                     <div className="slot-fade-in">
                       <div className="text-xs font-mono text-outline-variant text-center border-y border-surface-variant py-1 mb-3 uppercase tracking-widest">
-                        Lantai {lantaiTerpilih} — {jenisAktif}
+                        {t('dash.floor', 'Lantai')} {lantaiTerpilih} — {translateVehicleType(jenisAktif, lang)}
                       </div>
                       {/* Grid representasi kotak slot parkir */}
                       <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.max(1, Math.min(visibleSlots.length, 8))}, minmax(0, 1fr))` }}>
@@ -443,7 +453,7 @@ export default function DashboardPage() {
                           return (
                             <div
                               key={slot.idSlot}
-                              title={`${slot.idSlot.replace(/^M(\d+)/, 'B$1')} — ${isSensorOff ? 'SENSOR OFFLINE' : slot.statusSlot}${slot.kendaraanAktif ? ` | ${slot.kendaraanAktif.platNomor}` : ''}`}
+                              title={`${slot.idSlot.replace(/^M(\d+)/, 'B$1')} — ${isSensorOff ? 'SENSOR OFFLINE' : translateSlotStatus(slot.statusSlot, lang)}${slot.kendaraanAktif ? ` | ${slot.kendaraanAktif.platNomor}` : ''}`}
                               className={`group h-10 rounded flex items-center justify-center font-mono text-xs relative ${styleClass}`}
                             >
                               {/* Menampilkan kode slot motor dengan awalan B (misal M1-01 -> B1-01) */}
@@ -459,13 +469,13 @@ export default function DashboardPage() {
                               {isAnomali && (
                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 bg-surface-container-high border border-alert-anomaly p-3 rounded shadow-lg hidden group-hover:block z-50 text-left">
                                   <p className="text-xs text-alert-anomaly font-bold mb-1">
-                                    {isSensorOff ? '⚠️ SENSOR IOT OFFLINE' : 'ANOMALI SLOT'}
+                                    {isSensorOff ? t('dash.sensorOfflineTitle', '⚠️ SENSOR IOT OFFLINE') : t('dash.slotAnomalyTitle', 'ANOMALI SLOT')}
                                   </p>
                                   <p className="text-xs text-on-surface-variant font-mono">Slot: {slot.idSlot.replace(/^M(\d+)/, 'B$1')}</p>
                                   {isSensorOff ? (
-                                    <p className="text-[11px] text-red-300 mt-1">Sensor mati. Sistem otomatis melewati slot ini dari alokasi kendaraan.</p>
+                                    <p className="text-[11px] text-red-300 mt-1">{t('dash.sensorOfflineDesc', 'Sensor mati. Sistem otomatis melewati slot ini dari alokasi kendaraan.')}</p>
                                   ) : slot.kendaraanAktif ? (
-                                    <p className="text-xs text-on-surface-variant font-mono">Plat: {slot.kendaraanAktif.platNomor}</p>
+                                    <p className="text-xs text-on-surface-variant font-mono">{t('dash.plateLabel', 'Plat')}: {slot.kendaraanAktif.platNomor}</p>
                                   ) : null}
                                 </div>
                               )}
@@ -487,10 +497,10 @@ export default function DashboardPage() {
                 <div className="flex justify-between items-center mb-3 border-b border-surface-variant pb-2">
                   <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2">
                     <span className="material-symbols-outlined text-[#7ad0ff] text-[18px]">videocam</span>
-                    Status Kamera ANPR (4 Unit)
+                    {t('dash.anprStatus', 'Status Kamera ANPR')} (4 {t('dash.unitSuffix', 'Unit')})
                   </h3>
                   <span className="text-[10px] text-text-muted font-mono uppercase bg-surface-variant/40 px-2 py-0.5 rounded">
-                    Klik kartu untuk uji simulasi
+                    {t('dash.clickCardSim', 'Klik kartu untuk uji simulasi')}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -501,7 +511,7 @@ export default function DashboardPage() {
                         type="button"
                         key={k.idKamera}
                         onClick={() => toggleKameraStatus(k.idKamera, k.statusKamera)}
-                        title={`Klik untuk ubah status kamera ${k.idKamera} (Saat ini: ${kOn ? 'ONLINE' : 'OFFLINE'})`}
+                        title={lang === 'en' ? `Click to toggle camera ${k.idKamera} status (Current: ${kOn ? 'ONLINE' : 'OFFLINE'})` : `Klik untuk ubah status kamera ${k.idKamera} (Saat ini: ${kOn ? 'ONLINE' : 'OFFLINE'})`}
                         className={`w-full flex items-center justify-between rounded-lg px-3 py-2 border text-xs font-mono transition-colors duration-200 cursor-pointer text-left ${kOn
                           ? 'bg-eco-success/10 border-eco-success/30 hover:border-eco-success/60'
                           : 'bg-red-950/50 border-red-500/80 shadow-[0_0_10px_rgba(239,68,68,0.3)] hover:border-red-400'
@@ -521,7 +531,7 @@ export default function DashboardPage() {
                     );
                   })}
                   {kameraList.length === 0 && !isLoading && (
-                    <p className="col-span-2 text-xs text-text-muted text-center font-mono py-4">Memuat data kamera...</p>
+                    <p className="col-span-2 text-xs text-text-muted text-center font-mono py-4">{t('dash.loadingCamera', 'Memuat data kamera...')}</p>
                   )}
                 </div>
               </div>
@@ -534,7 +544,7 @@ export default function DashboardPage() {
                     {t('dash.sensorIotStatus', 'Status Sensor IoT')} — {t('dash.floor', 'Lantai')} {lantaiTerpilih} · {jenisAktif === 'MOBIL' ? t('dash.car', 'Mobil') : t('dash.motorcycle', 'Motor')}
                   </h3>
                   <span className="text-[10px] text-text-muted font-mono uppercase bg-surface-variant/40 px-2 py-0.5 rounded">
-                    Klik node untuk uji simulasi
+                    {t('dash.clickNodeSim', 'Klik node untuk uji simulasi')}
                   </span>
                 </div>
                 <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 w-full">
@@ -547,7 +557,7 @@ export default function DashboardPage() {
                         type="button"
                         key={s.idSensor}
                         onClick={() => toggleSensorStatus(s.idSensor, s.statusSensor)}
-                        title={`Klik untuk ubah status sensor ${labelSensor} (${sOn ? 'ONLINE' : 'OFFLINE'})`}
+                        title={lang === 'en' ? `Click to toggle sensor ${labelSensor} status (${sOn ? 'ONLINE' : 'OFFLINE'})` : `Klik untuk ubah status sensor ${labelSensor} (${sOn ? 'ONLINE' : 'OFFLINE'})`}
                         className={`w-full h-9 rounded border font-mono text-xs flex items-center justify-center transition-colors duration-200 cursor-pointer ${sOn
                           ? 'bg-eco-success/10 border-eco-success/35 text-eco-success hover:bg-eco-success/20 hover:border-eco-success/60'
                           : 'bg-red-950/60 border-red-500 text-red-400 shadow-[0_0_8px_rgba(239,68,68,0.35)] hover:bg-red-950/80 hover:border-red-400 font-bold'
@@ -558,7 +568,7 @@ export default function DashboardPage() {
                     );
                   })}
                   {sensorList.length === 0 && !isLoading && (
-                    <p className="col-span-4 sm:col-span-8 text-xs text-text-muted text-center font-mono py-4 w-full">Memuat data sensor...</p>
+                    <p className="col-span-4 sm:col-span-8 text-xs text-text-muted text-center font-mono py-4 w-full">{t('dash.loadingSensor', 'Memuat data sensor...')}</p>
                   )}
                 </div>
               </div>
@@ -573,19 +583,19 @@ export default function DashboardPage() {
               <div className="flex justify-between items-center mb-4 border-b border-surface-variant pb-3">
                 <h2 className="font-semibold text-lg text-on-surface flex items-center gap-2">
                   <span className="material-symbols-outlined text-warning-reserved">warning</span>
-                  Active Alerts
+                  {t('dash.activeAlertsTitle', 'Active Alerts')}
                 </h2>
                 <span className="bg-warning-reserved/20 text-warning-reserved border border-warning-reserved/50 px-2 py-0.5 rounded text-xs font-bold">
-                  {logBelumDitangani} Alerts
+                  {logBelumDitangani} {t('dash.alertsCount', 'Alerts')}
                 </span>
               </div>
               <div className="flex flex-col gap-3 overflow-y-auto pr-1 max-h-72">
                 {isLoading ? (
-                  <p className="text-xs text-text-muted font-mono text-center py-6">Memuat log...</p>
+                  <p className="text-xs text-text-muted font-mono text-center py-6">{t('dash.loadingLogs', 'Memuat log...')}</p>
                 ) : logs.length === 0 ? (
                   <div className="text-center py-8">
                     <span className="material-symbols-outlined text-[40px] text-eco-success opacity-50 block mb-2">check_circle</span>
-                    <p className="text-xs text-text-muted font-mono">Tidak ada anomali aktif.</p>
+                    <p className="text-xs text-text-muted font-mono">{t('dash.noActiveAnomaly', 'Tidak ada anomali aktif.')}</p>
                   </div>
                 ) : (
                   logs.slice(0, 10).map(log => {
@@ -601,13 +611,13 @@ export default function DashboardPage() {
                         <div className="flex justify-between items-start mb-1">
                           <span className={`font-mono text-sm font-bold ${resolved ? 'text-on-surface-variant line-through' : (log.tingkatKeparahan === 'CRITICAL' ? 'text-alert-anomaly' : 'text-warning-reserved')}`}>
                             {/* Menampilkan kode slot motor berawalan B pada active alerts */}
-                            {(log.slotTerkait?.idSlot || '-').replace(/^M(\d+)/, 'B$1')} — {log.jenisKejadian}
+                            {(log.slotTerkait?.idSlot || '-').replace(/^M(\d+)/, 'B$1')} — {translateLogEventType(log.jenisKejadian, lang)}
                           </span>
                           <span className="text-xs text-on-surface-variant font-mono">
                             {new Date(log.waktuKejadian).toLocaleTimeString('id-ID')}
                           </span>
                         </div>
-                        <p className="text-xs text-on-surface">{log.catatanDetail}</p>
+                        <p className="text-xs text-on-surface">{translateLogDetail(log.catatanDetail, lang)}</p>
 
                         <div className="flex items-center justify-between mt-2">
                           <span className={`inline-block text-[10px] font-mono px-2 py-0.5 rounded border ${log.tingkatKeparahan === 'CRITICAL' ? 'text-red-400 border-red-700/40' : log.tingkatKeparahan === 'WARNING' ? 'text-[#ffd700] border-yellow-700/40' : 'text-[#5d8099] border-outline-variant'}`}>
@@ -618,7 +628,7 @@ export default function DashboardPage() {
                               onClick={() => window.location.href = '/anomaly-logs'}
                               className="px-3 py-1 bg-primary text-on-primary text-xs font-semibold rounded hover:bg-primary/90 transition-colors"
                             >
-                              Tangani
+                              {t('dash.handleAnomaly', 'Tangani')}
                             </button>
                           )}
                         </div>
@@ -633,7 +643,7 @@ export default function DashboardPage() {
             <div className="bg-bg-primary rounded-xl border border-surface-variant p-5 flex flex-col">
               <h2 className="font-semibold text-lg text-on-surface flex items-center gap-2 mb-3">
                 <span className="material-symbols-outlined text-primary">videocam</span>
-                Live Gate Monitor
+                {t('dash.liveGateMonitor', 'Live Gate Monitor')}
               </h2>
               <div className="grid grid-cols-2 gap-3">
                 {sortedKameraList.length > 0 ? sortedKameraList.map(cam => {
@@ -662,8 +672,8 @@ export default function DashboardPage() {
                       <div className={`absolute bottom-0 left-0 right-0 backdrop-blur-md p-2 border-t flex justify-between items-center z-10 ${camOn ? 'bg-black/80 border-primary/30' : 'bg-red-950/80 border-red-700/50'
                         }`}>
                         <div className="font-mono">
-                          <span className={`text-[9px] block leading-none mb-0.5 ${camOn ? 'text-outline' : 'text-red-400'}`}>
-                            {cam.posisiGerbang} — {cam.tipeKendaraan}
+                          <span className={`text-[9px] block leading-none mb-0.5 uppercase ${camOn ? 'text-outline' : 'text-red-400'}`}>
+                            {translateGateDirection(cam.posisiGerbang, lang)} — {translateVehicleType(cam.tipeKendaraan, lang)}
                           </span>
                         </div>
                         <span className={`text-[9px] font-bold border px-1.5 py-0.5 rounded leading-none ${camOn
@@ -676,7 +686,10 @@ export default function DashboardPage() {
                     </div>
                   );
                 }) : (
-                  ['Entry-Mobil', 'Entry-Motor', 'Exit-Mobil', 'Exit-Motor'].map(name => (
+                  (lang === 'en'
+                    ? ['Entry-Car', 'Entry-Motorcycle', 'Exit-Car', 'Exit-Motorcycle']
+                    : ['Entry-Mobil', 'Entry-Motor', 'Exit-Mobil', 'Exit-Motor']
+                  ).map(name => (
                     <div key={name} className="relative bg-surface-container-lowest rounded overflow-hidden border border-surface-variant aspect-video flex items-center justify-center">
                       <span className="text-[9px] font-mono text-text-muted">{name}</span>
                     </div>

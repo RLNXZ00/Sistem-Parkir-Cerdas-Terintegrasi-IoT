@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 // Import kustom hook useLanguage untuk mendukung multi-bahasa terjemahan
 import { useLanguage } from '../context/LanguageContext';
+// Import fungsi helper penerjemahan kategori anomali dan rincian log IoT
+import { translateAnomalyCategory, translateLogDetail } from '../i18n/i18nHelpers';
 
 // Deklarasi fungsi komponen publik NotificationPopover untuk panel daftar notifikasi mengambang
 export default function NotificationPopover({
@@ -13,8 +15,8 @@ export default function NotificationPopover({
   onMarkAllRead, // Fungsi callback untuk menandai semua notifikasi telah dibaca
   onNotificationClick, // Fungsi callback saat salah satu item notifikasi diklik
 }) {
-  // Mengambil fungsi penerjemah t dari LanguageContext
-  const { t } = useLanguage();
+  // Mengambil fungsi penerjemah t dan kode bahasa aktif lang dari LanguageContext
+  const { t, lang } = useLanguage();
   // Inisialisasi instance navigate untuk perpindahan rute URL
   const navigate = useNavigate();
   // Mengambil instance lokasi rute aktif saat ini
@@ -178,57 +180,104 @@ export default function NotificationPopover({
             </p>
           </div>
         ) : (
-          // Looping untuk merender setiap item notifikasi yang cocok
-          filteredNotifications.map((item) => (
-            <div
-              key={item.id}
-              onClick={() => handleItemClick(item)}
-              className={`p-3.5 flex items-start gap-3 hover:bg-[#1c2430] transition-colors cursor-pointer group notification-item ${
-                !item.isRead ? 'bg-[#18212b]/60 notification-item-unread' : ''
-              }`}
-            >
-              {/* Ikon kategori notifikasi */}
+          // Looping untuk merender setiap item notifikasi yang cocok secara dwibahasa
+          filteredNotifications.map((item) => {
+            // Tentukan judul notifikasi reaktif sesuai bahasa aktif
+            let displayTitle = item.title;
+            if (lang === 'en') {
+              if (item.i18nMeta) {
+                if (item.i18nMeta.kind === 'ANOMALY') {
+                  const cat = item.i18nMeta.jenisAnomali && item.i18nMeta.jenisAnomali !== '-'
+                    ? translateAnomalyCategory(item.i18nMeta.jenisAnomali, 'en')
+                    : 'Sensor Detection';
+                  displayTitle = `Anomaly: ${cat}`;
+                } else if (item.i18nMeta.kind === 'ENTRY') {
+                  displayTitle = `Vehicle Arrived at Slot ${item.i18nMeta.slotId}`;
+                } else {
+                  displayTitle = `IoT Sensor Activity #${item.i18nMeta.idLog}`;
+                }
+              } else {
+                displayTitle = String(item.title || '')
+                  .replace(/^Anomali: Penyerobotan Slot\b/i, 'Anomaly: Slot Poaching')
+                  .replace(/^Anomali Durasi: Melebihi Batas Slot\b/i, 'Duration Anomaly: Exceeded Limit at Slot')
+                  .replace(/^Kendaraan Masuk:/i, 'Vehicle Entry:');
+              }
+            }
+
+            // Tentukan deskripsi notifikasi reaktif sesuai bahasa aktif
+            let displayDesc = item.i18nMeta?.rawDetail
+              ? translateLogDetail(item.i18nMeta.rawDetail, lang)
+              : translateLogDetail(item.description, lang);
+            if (lang === 'en' && !item.i18nMeta?.rawDetail) {
+              displayDesc = displayDesc
+                .replace('Pembaruan telemetri sensor sistem parkir.', 'Parking system sensor telemetry update.')
+                .replace('Sensor ultrasonik mendeteksi kendaraan di Slot', 'Ultrasonic sensor detected a vehicle in Slot')
+                .replace('padahal status reservasi masih KOSONG.', 'while reservation status is still VACANT.')
+                .replace('Kendaraan terdeteksi di Gerbang Utama. Slot', 'Vehicle detected at Main Gate. Slot')
+                .replace('dialokasikan otomatis oleh AI Gateway.', 'was automatically allocated by AI Gateway.')
+                .replace('terdeteksi di Barrier Gate Masuk 1. Rute alokasi diarahkan ke Slot', 'detected at Entry Barrier Gate 1. Route guided to Slot')
+                .replace('Kendaraan parkir melebihi kuota 24 jam tanpa perpanjangan sesi.', 'Vehicle exceeded the 24-hour parking quota without session extension.');
+            }
+
+            // Tentukan format waktu relatif sesuai bahasa aktif
+            const displayTime = lang === 'en'
+              ? String(item.time || '')
+                  .replace(/^Baru saja$/i, 'Just now')
+                  .replace(/^Hari ini$/i, 'Today')
+                  .replace(/(\d+)\s*mnt lalu/gi, '$1 mins ago')
+              : item.time;
+
+            return (
               <div
-                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${getIconColors(
-                  item.type,
-                  item.severity
-                )}`}
+                key={item.id}
+                onClick={() => handleItemClick(item)}
+                className={`p-3.5 flex items-start gap-3 hover:bg-[#1c2430] transition-colors cursor-pointer group notification-item ${
+                  !item.isRead ? 'bg-[#18212b]/60 notification-item-unread' : ''
+                }`}
               >
-                <span className="material-symbols-outlined text-[20px]">
-                  {getIcon(item.type)}
-                </span>
-              </div>
-
-              {/* Rincian teks notifikasi */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-1 mb-1">
-                  {/* Judul notifikasi */}
-                  <span className="text-xs font-semibold text-white truncate notification-item-title group-hover:text-[#7ad0ff] transition-colors">
-                    {item.title}
+                {/* Ikon kategori notifikasi */}
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${getIconColors(
+                    item.type,
+                    item.severity
+                  )}`}
+                >
+                  <span className="material-symbols-outlined text-[20px]">
+                    {getIcon(item.type)}
                   </span>
-                  {/* Titik penanda item belum dibaca */}
-                  {!item.isRead && (
-                    <span className="w-2 h-2 rounded-full bg-[#ea580c] shrink-0" title="Belum dibaca"></span>
-                  )}
                 </div>
 
-                {/* Deskripsi ringkas isi pemberitahuan */}
-                <p className="text-[11px] text-[#9bb0c1] leading-relaxed line-clamp-2 notification-item-desc mb-1.5">
-                  {item.description}
-                </p>
-
-                {/* Informasi waktu dan ID slot terkait */}
-                <div className="flex items-center justify-between text-[10px] font-mono text-[#7d90a1] notification-item-time">
-                  <span>{item.time}</span>
-                  {item.slotId && (
-                    <span className="px-1.5 py-0.2 rounded bg-[#10151a] border border-[#273542] text-[#7ad0ff] notification-item-slot">
-                      Slot: {item.slotId}
+                {/* Rincian teks notifikasi */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    {/* Judul notifikasi */}
+                    <span className="text-xs font-semibold text-white truncate notification-item-title group-hover:text-[#7ad0ff] transition-colors">
+                      {displayTitle}
                     </span>
-                  )}
+                    {/* Titik penanda item belum dibaca */}
+                    {!item.isRead && (
+                      <span className="w-2 h-2 rounded-full bg-[#ea580c] shrink-0" title={t('notification.unreadTooltip', 'Belum dibaca')}></span>
+                    )}
+                  </div>
+
+                  {/* Deskripsi ringkas isi pemberitahuan */}
+                  <p className="text-[11px] text-[#9bb0c1] leading-relaxed line-clamp-2 notification-item-desc mb-1.5">
+                    {displayDesc}
+                  </p>
+
+                  {/* Informasi waktu dan ID slot terkait */}
+                  <div className="flex items-center justify-between text-[10px] font-mono text-[#7d90a1] notification-item-time">
+                    <span>{displayTime}</span>
+                    {item.slotId && (
+                      <span className="px-1.5 py-0.2 rounded bg-[#10151a] border border-[#273542] text-[#7ad0ff] notification-item-slot">
+                        Slot: {item.slotId}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
