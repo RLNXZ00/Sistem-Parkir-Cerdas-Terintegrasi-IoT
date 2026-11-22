@@ -199,3 +199,35 @@ export function translateReportType(jenis, lang = 'id') {
   // Kembalikan nilai awal jika tipe laporan tidak cocok
   return jenis || '-';
 }
+
+// Fungsi pembantu translateReportKpiLabel untuk menerjemahkan label kartu ringkasan KPI pada pratinjau laporan
+export function translateReportKpiLabel(label, lang = 'id') {
+  // Jika bahasa Indonesia atau label kosong, kembalikan nilai asli
+  if (lang !== 'en' || !label) return label;
+  // Pemetaan label KPI dari backend LaporanService ke padanan Bahasa Inggris
+  const map = {
+    'Total Pendapatan': 'Total Revenue',
+    'Transaksi Lunas': 'Paid Transactions',
+    'Rata-rata Durasi': 'Average Duration',
+    'Rata-rata Tarif': 'Average Fee',
+    'Kendaraan Masuk': 'Vehicles Entered',
+    'Total Log Tercatat': 'Total Recorded Logs',
+    'Anomali Kritis': 'Critical Anomalies',
+    'Reduksi Emisi CO2': 'CO2 Emission Reduction',
+    'Total Waktu Dihemat': 'Total Time Saved',
+    'Kendaraan Terpandu': 'Guided Vehicles',
+    'Rata-rata Hemat/Mobil': 'Avg Time Saved / Vehicle',
+  };
+  // Kembalikan label Bahasa Inggris jika ditemukan
+  return map[label] || label;
+}
+
+// Fungsi pembantu translateDurationText untuk menerjemahkan satuan durasi teks (jam/menit) ke bahasa Inggris
+export function translateDurationText(text, lang = 'id') {
+  // Jika bahasa Indonesia atau teks kosong, kembalikan nilai asli
+  if (lang !== 'en' || !text) return text;
+  // Ganti kata 'Jam' dan 'Menit' menjadi padanan Inggris 'hr' / 'min'
+  return String(text)
+    .replace(/\bJam\b/gi, 'hr')
+    .replace(/\bMenit\b/gi, 'min');
+}
