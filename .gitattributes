@@ -1,0 +1,3 @@
+# Mengecualikan file Jupyter Notebook (.ipynb) dari statistik bar Languages GitHub Linguist
+# agar komposisi bahasa mencerminkan source code aplikasi utama (JavaScript, Java, Python)
+*.ipynb linguist-detectable=false
