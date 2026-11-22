@@ -1,7 +1,7 @@
 // Import hook useState dari pustaka react untuk manajemen state filter lokal
 import { useState } from 'react';
-// Import hook useNavigate dari react-router-dom untuk navigasi halaman saat item notifikasi diklik
-import { useNavigate } from 'react-router-dom';
+// Import hook useNavigate dan useLocation dari react-router-dom untuk navigasi dan deteksi rute aktif
+import { useNavigate, useLocation } from 'react-router-dom';
 // Import kustom hook useLanguage untuk mendukung multi-bahasa terjemahan
 import { useLanguage } from '../context/LanguageContext';
 
@@ -17,6 +17,15 @@ export default function NotificationPopover({
   const { t } = useLanguage();
   // Inisialisasi instance navigate untuk perpindahan rute URL
   const navigate = useNavigate();
+  // Mengambil instance lokasi rute aktif saat ini
+  const location = useLocation();
+  // Membaca data profil pengguna dari sessionStorage atau fallback objek kosong
+  const userData = JSON.parse(sessionStorage.getItem('spct_user') || '{}');
+  // Menentukan apakah rute aktif saat ini berada di bawah cakupan modul manajemen (/dashboard-management atau /reports)
+  const isManagementRoute = location.pathname.startsWith('/dashboard-management') || location.pathname.startsWith('/reports');
+  // Menentukan status boolean apakah pengguna bertindak sebagai Manajer
+  const isManager = userData.role === 'ADMIN' || userData.role === 'Manajemen RS' || isManagementRoute;
+
   // Inisialisasi state activeFilter bertipe string dengan nilai awal 'ALL' ('ALL' | 'ENTRY' | 'ANOMALY')
   const [activeFilter, setActiveFilter] = useState('ALL');
 
@@ -223,7 +232,7 @@ export default function NotificationPopover({
         )}
       </div>
 
-      {/* Bagian footer popover berisi tautan cepat ke modul log anomali dan kamera gerbang */}
+      {/* Bagian footer popover berisi tautan cepat adaptif berbasis peran pengguna (Role-Based Access) */}
       <div className="px-4 py-2.5 bg-[#0f1419] border-t border-[#242f3b] flex items-center justify-between text-xs font-mono notification-popover-footer">
         {/* Tautan navigasi ke halaman Log Anomali */}
         <button
@@ -233,21 +242,36 @@ export default function NotificationPopover({
           }}
           className="text-[#f87171] hover:underline flex items-center gap-1 cursor-pointer"
         >
-          <span>Log Anomali</span>
+          <span>{t('notification.anomalyLogs', 'Log Anomali')}</span>
           <span className="material-symbols-outlined text-[13px]">arrow_forward</span>
         </button>
 
-        {/* Tautan navigasi ke halaman Gate Live OCR */}
-        <button
-          onClick={() => {
-            navigate('/gate-live');
-            onClose();
-          }}
-          className="text-[#7ad0ff] hover:underline flex items-center gap-1 cursor-pointer"
-        >
-          <span>Gate Live OCR</span>
-          <span className="material-symbols-outlined text-[13px]">arrow_forward</span>
-        </button>
+        {/* Tautan navigasi adaptif: Laporan Analitik untuk Manajer, atau Gate Live OCR untuk Petugas Lapangan */}
+        {isManager ? (
+          <button
+            onClick={() => {
+              navigate('/reports');
+              onClose();
+            }}
+            className="text-[#7ad0ff] hover:underline flex items-center gap-1 cursor-pointer"
+            title={t('topbar.reports', 'Laporan Analitik')}
+          >
+            <span>{t('notification.reports', 'Laporan Analitik')}</span>
+            <span className="material-symbols-outlined text-[13px]">arrow_forward</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => {
+              navigate('/gate-live');
+              onClose();
+            }}
+            className="text-[#7ad0ff] hover:underline flex items-center gap-1 cursor-pointer"
+            title={t('nav.gateLive', 'Gate Live OCR Feed')}
+          >
+            <span>{t('notification.gateLive', 'Gate Live OCR')}</span>
+            <span className="material-symbols-outlined text-[13px]">arrow_forward</span>
+          </button>
+        )}
       </div>
     </div>
   );
